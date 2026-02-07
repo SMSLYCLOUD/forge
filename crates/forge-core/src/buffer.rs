@@ -1,10 +1,11 @@
-use crate::{Encoding, History, LineEnding, Position, Selection, Transaction};
+use crate::{Encoding, History, LineEnding, Position, Selection, Syntax, Transaction};
 use anyhow::Result;
 use ropey::Rope;
 use std::path::Path;
+use tree_sitter::Language;
 
 /// The main text buffer with rope data structure and transaction-based editing
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Buffer {
     /// The text content stored as a rope
     rope: Rope,
@@ -20,6 +21,24 @@ pub struct Buffer {
     encoding: Encoding,
     /// File path (if loaded from disk)
     path: Option<String>,
+    /// Syntax highlighting state
+    syntax: Option<Syntax>,
+}
+
+// Manual Clone impl because Syntax is not Clone
+impl Clone for Buffer {
+    fn clone(&self) -> Self {
+        Self {
+            rope: self.rope.clone(),
+            history: self.history.clone(),
+            selection: self.selection.clone(),
+            dirty: self.dirty,
+            line_ending: self.line_ending,
+            encoding: self.encoding,
+            path: self.path.clone(),
+            syntax: None, // We don't clone syntax state for now
+        }
+    }
 }
 
 impl Buffer {
@@ -33,6 +52,7 @@ impl Buffer {
             line_ending: LineEnding::detect_system(),
             encoding: Encoding::Utf8,
             path: None,
+            syntax: None,
         }
     }
 
@@ -46,6 +66,7 @@ impl Buffer {
             line_ending: LineEnding::detect_from_str(s),
             encoding: Encoding::Utf8,
             path: None,
+            syntax: None,
         }
     }
 
@@ -54,7 +75,7 @@ impl Buffer {
         let content = std::fs::read_to_string(path.as_ref())?;
         let line_ending = LineEnding::detect_from_str(&content);
 
-        Ok(Self {
+        let mut buffer = Self {
             rope: Rope::from_str(&content),
             history: History::new(),
             selection: Selection::default(),
@@ -62,21 +83,60 @@ impl Buffer {
             line_ending,
             encoding: Encoding::Utf8,
             path: Some(path.as_ref().to_string_lossy().to_string()),
-        })
+            syntax: None,
+        };
+
+        // Auto-detect Rust
+        if let Some(ext) = path.as_ref().extension() {
+            if ext == "rs" {
+                buffer.set_syntax(tree_sitter_rust::LANGUAGE.into());
+            }
+        }
+
+        Ok(buffer)
+    }
+
+    /// Set the syntax language for the buffer
+    pub fn set_syntax(&mut self, language: Language) {
+        let mut syntax = Syntax::new(language);
+        syntax.parse(&self.rope);
+        self.syntax = Some(syntax);
+    }
+
+    /// Get the syntax state
+    pub fn syntax(&self) -> Option<&Syntax> {
+        self.syntax.as_ref()
+    }
+
+    /// Apply transaction and update syntax (internal helper)
+    fn apply_transaction_internal(&mut self, transaction: &Transaction) {
+        // Iterate changes
+        for change in &transaction.changes.changes {
+            // Update syntax BEFORE applying to rope
+            if let Some(syntax) = &mut self.syntax {
+                syntax.update(&self.rope, change);
+            }
+
+            // Apply to rope
+            change.apply(&mut self.rope);
+        }
+
+        // Reparse syntax AFTER all changes to ensure consistency
+        if let Some(syntax) = &mut self.syntax {
+            syntax.reparse(&self.rope);
+        }
+
+        if let Some(new_selection) = &transaction.selection {
+            self.selection = new_selection.clone();
+        }
     }
 
     /// Apply a transaction to the buffer
     pub fn apply(&mut self, transaction: Transaction) {
-        // Clone the transaction before we consume it
-        let tx_for_history = transaction.clone();
-
-        // Apply the transaction
-        if let Some(new_selection) = transaction.apply(&mut self.rope) {
-            self.selection = new_selection;
-        }
+        self.apply_transaction_internal(&transaction);
 
         // Add the ORIGINAL transaction to history (we'll invert on undo)
-        self.history.push(tx_for_history);
+        self.history.push(transaction);
         self.dirty = true;
     }
 
@@ -90,7 +150,7 @@ impl Buffer {
             if self.history.undo() {
                 // Now invert and apply the transaction
                 let inverse = tx_clone.invert(&self.rope);
-                inverse.apply(&mut self.rope);
+                self.apply_transaction_internal(&inverse);
             }
         }
     }
@@ -99,9 +159,9 @@ impl Buffer {
     pub fn redo(&mut self) {
         if self.history.can_redo() {
             // Move forward in history
-            if let Some(redo_tx) = self.history.redo() {
+            if let Some(redo_tx) = self.history.redo().cloned() {
                 // Apply the forward transaction
-                redo_tx.apply(&mut self.rope);
+                self.apply_transaction_internal(&redo_tx);
             }
         }
     }
@@ -270,5 +330,61 @@ mod tests {
 
         let (line, col) = buffer.offset_to_line_col(8); // 'n' in "line2"
         assert_eq!((line, col), (1, 2));
+    }
+
+    #[test]
+    fn test_syntax_integration() {
+        // 1. Create buffer
+        let mut buffer = Buffer::from_str("fn main() {}");
+
+        // 2. Enable syntax (Rust)
+        buffer.set_syntax(tree_sitter_rust::LANGUAGE.into());
+
+        // 3. Verify initial tree
+        {
+            let syntax = buffer.syntax().expect("Syntax should be enabled");
+            let tree = syntax.tree().expect("Tree should be parsed");
+            let root = tree.root_node();
+            assert_eq!(root.kind(), "source_file");
+            // Check for function
+            let func = root.child(0).expect("Should have a child");
+            assert_eq!(func.kind(), "function_item");
+        }
+
+        // 4. Modify buffer (insert "pub ")
+        let change = Change::insert(Position::new(0), "pub ".to_string());
+        let tx = Transaction::new(ChangeSet::with_change(change), None);
+        buffer.apply(tx);
+
+        assert_eq!(buffer.text(), "pub fn main() {}");
+
+        // 5. Verify updated tree
+        {
+            let syntax = buffer.syntax().expect("Syntax should be enabled");
+            let tree = syntax.tree().expect("Tree should be parsed");
+            let root = tree.root_node();
+            let func = root.child(0).expect("Should have a child");
+            assert_eq!(func.kind(), "function_item");
+            // Check visibility modifier
+            // The structure of `pub fn` might be `function_item` with a `visibility_modifier` child.
+            let visibility = func.child(0).expect("Should have children");
+            assert_eq!(visibility.kind(), "visibility_modifier");
+        }
+
+        // 6. Undo
+        buffer.undo();
+        assert_eq!(buffer.text(), "fn main() {}");
+
+        // 7. Verify undo updated tree
+        {
+            let syntax = buffer.syntax().expect("Syntax should be enabled");
+            let tree = syntax.tree().expect("Tree should be parsed");
+            let root = tree.root_node();
+            let func = root.child(0).expect("Should have a child");
+            // Visibility modifier should be gone
+            let first_child = func.child(0).expect("Should have children");
+            assert_ne!(first_child.kind(), "visibility_modifier");
+            assert_eq!(first_child.kind(), "fn");
+        }
     }
 }

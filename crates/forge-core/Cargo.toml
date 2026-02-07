@@ -12,6 +12,8 @@ unicode-segmentation = { workspace = true }
 encoding_rs = { workspace = true }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
+tree-sitter = "0.24"
+tree-sitter-rust = "0.23"
 
 [dev-dependencies]
 proptest = { workspace = true }
