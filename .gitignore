@@ -1,0 +1,31 @@
+# Rust
+/target/
+**/*.rs.bk
+*.pdb
+Cargo.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Testing
+test_output.txt
+test_undo.exe
+
+# Tree-sitter grammars (large binaries)
+crates/forge-syntax/grammars/*.so
+crates/forge-syntax/grammars/*.dll
+crates/forge-syntax/grammars/*.dylib

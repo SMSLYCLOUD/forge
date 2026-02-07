@@ -1,0 +1,17 @@
+[package]
+name = "forge-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+ropey = { workspace = true }
+smallvec = { workspace = true }
+unicode-segmentation = { workspace = true }
+encoding_rs = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }

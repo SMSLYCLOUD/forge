@@ -1,0 +1,13 @@
+[package]
+name = "forge-renderer"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+forge-core = { path = "../forge-core" }
+wgpu = { workspace = true }
+cosmic-text = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
