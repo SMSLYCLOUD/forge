@@ -1,4 +1,4 @@
-use crate::Transaction;
+use crate::{ChangeSet, Transaction};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// A node in the history tree
@@ -43,19 +43,18 @@ pub struct History {
 impl History {
     /// Create a new empty history
     pub fn new() -> Self {
+        // Create a dummy root node representing the initial state
+        let root = HistoryNode::new(Transaction::new(ChangeSet::new(), None), None);
         Self {
-            nodes: Vec::new(),
+            nodes: vec![root],
             current: 0,
         }
     }
 
     /// Add a new transaction to the history
     pub fn push(&mut self, transaction: Transaction) -> usize {
-        let parent = if self.nodes.is_empty() {
-            None
-        } else {
-            Some(self.current)
-        };
+        // We always have a root node, so parent is always Some(current)
+        let parent = Some(self.current);
 
         let new_node = HistoryNode::new(transaction, parent);
         let new_idx = self.nodes.len();
@@ -120,6 +119,7 @@ impl History {
 
     /// Check if we can undo
     pub fn can_undo(&self) -> bool {
+        // Can undo if current node has a parent (i.e., not root)
         !self.nodes.is_empty() && self.nodes[self.current].parent.is_some()
     }
 
@@ -166,14 +166,14 @@ mod tests {
         history.push(tx1);
         history.push(tx2);
 
-        assert_eq!(history.len(), 2);
+        assert_eq!(history.len(), 3); // Root + 2 transactions
         assert!(history.can_undo());
 
         history.undo();
         assert!(history.can_redo());
 
         history.redo();
-        assert_eq!(history.current, 1);
+        assert_eq!(history.current, 2);
     }
 
     #[test]
@@ -201,7 +201,8 @@ mod tests {
         );
         history.push(tx3);
 
-        // Now node 0 has TWO children: node 1 and node 2
-        assert_eq!(history.nodes[0].children.len(), 2);
+        // Now node 1 (tx1) has TWO children: node 2 (tx2) and node 3 (tx3)
+        // Node 0 is root.
+        assert_eq!(history.nodes[1].children.len(), 2);
     }
 }

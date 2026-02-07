@@ -6,6 +6,7 @@ mod buffer;
 mod history;
 mod position;
 mod selection;
+pub mod syntax;
 mod transaction;
 
 pub use buffer::Buffer;
@@ -13,6 +14,7 @@ pub use history::{History, HistoryNode};
 pub use position::Position;
 pub use selection::{Range, Selection};
 pub use transaction::{Change, ChangeSet, Transaction};
+pub use syntax::Syntax;
 
 /// Line ending styles
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
