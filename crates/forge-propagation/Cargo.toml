@@ -1,0 +1,9 @@
+[package]
+name = "forge-propagation"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { workspace = true }
+petgraph = { workspace = true }
+anyhow = { workspace = true }

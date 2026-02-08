@@ -7,6 +7,9 @@ members = [
     "crates/forge-config",
     "crates/forge-theme",
     "crates/forge-input",
+    "crates/forge-confidence",
+    "crates/forge-propagation",
+    "crates/forge-semantic",
 ]
 resolver = "2"
 
@@ -45,6 +48,13 @@ tracing-subscriber = "0.3"
 
 # Testing
 proptest = "1"
+
+# Confidence Engine
+rusqlite = { version = "0.31", features = ["bundled"] }
+petgraph = "0.6"
+uuid = { version = "1", features = ["v4", "serde"] }
+serde_json = "1"
+git2 = "0.20"
 
 [profile.release]
 opt-level = 3
