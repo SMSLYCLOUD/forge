@@ -1,6 +1,6 @@
 use anyhow::Result;
 use forge_core::Buffer;
-use tracing::{error, info};
+use tracing::info;
 use tracing_subscriber;
 use forge_confidence::engine::ConfidenceEngine;
 use forge_confidence::db::ConfidenceDb;

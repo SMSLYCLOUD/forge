@@ -12,6 +12,11 @@ members = [
     "crates/forge-semantic",
     "crates/forge-bayesnet",
     "crates/forge-ml",
+    "crates/forge-anticipation",
+    "crates/forge-immune",
+    "crates/forge-developer",
+    "crates/forge-surfaces",
+    "crates/forge-feedback",
 ]
 resolver = "2"
 

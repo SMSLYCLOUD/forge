@@ -2,11 +2,11 @@ use petgraph::graph::{DiGraph, NodeIndex};
 use petgraph::visit::EdgeRef;
 use std::collections::HashMap;
 use anyhow::Result;
-use crate::models::{FunctionId, EdgeKind};
+use crate::models::{FileNode, DependencyKind, DependencyEdge};
 
 pub struct GraphStore {
-    graph: DiGraph<FunctionId, EdgeKind>,
-    index: HashMap<FunctionId, NodeIndex>,
+    pub graph: DiGraph<FileNode, DependencyEdge>,
+    index: HashMap<String, NodeIndex>,
 }
 
 impl GraphStore {
@@ -17,59 +17,39 @@ impl GraphStore {
         }
     }
 
-    pub fn add_function(&mut self, id: FunctionId) -> NodeIndex {
-        if let Some(&idx) = self.index.get(&id) {
+    pub fn add_file(&mut self, path: String, confidence: f64) -> NodeIndex {
+        if let Some(&idx) = self.index.get(&path) {
+            // Update existing confidence
+            self.graph[idx].confidence = confidence;
             return idx;
         }
-        let idx = self.graph.add_node(id.clone());
-        self.index.insert(id, idx);
+        let node = FileNode { path: path.clone(), confidence };
+        let idx = self.graph.add_node(node);
+        self.index.insert(path, idx);
         idx
     }
 
-    pub fn add_edge(&mut self, from: &FunctionId, to: &FunctionId, kind: EdgeKind) -> Result<()> {
-        let from_idx = *self.index.get(from).ok_or_else(|| anyhow::anyhow!("Node not found: {:?}", from))?;
-        let to_idx = *self.index.get(to).ok_or_else(|| anyhow::anyhow!("Node not found: {:?}", to))?;
-        self.graph.add_edge(from_idx, to_idx, kind);
+    pub fn add_dependency(&mut self, from: &str, to: &str, kind: DependencyKind) -> Result<()> {
+        let from_idx = *self.index.get(from).ok_or_else(|| anyhow::anyhow!("Node not found: {}", from))?;
+        let to_idx = *self.index.get(to).ok_or_else(|| anyhow::anyhow!("Node not found: {}", to))?;
+
+        let weight = kind.weight();
+        self.graph.add_edge(from_idx, to_idx, DependencyEdge { kind, weight });
         Ok(())
     }
 
-    pub fn get_dependents(&self, id: &FunctionId) -> Vec<(FunctionId, EdgeKind)> {
-        // Dependents are nodes that depend on 'id'. If A calls B (A -> B), A depends on B.
-        // If we change B, we need to propagate to A.
-        // So we are looking for incoming edges to 'id'?
-        // Wait, normally dependency graph: A -> B means A depends on B.
-        // If B changes, A is affected. So we need to traverse reverse edges (B <- A).
-
-        // Let's stick to the spec: "BFS from source through dependents".
-        // If A calls B, then A is a dependent of B.
-        // In the graph A -> B (Edge: DirectCall), does this mean A calls B?
-        // Usually yes.
-        // So if I modify B, I want to find A.
-        // So I need incoming edges to B.
-
-        if let Some(&idx) = self.index.get(id) {
-            self.graph.neighbors_directed(idx, petgraph::Direction::Incoming)
-                .map(|neighbor_idx| {
-                    let node = self.graph[neighbor_idx].clone();
-                    // We need the edge weight. `neighbors_directed` doesn't give edges.
-                    // Let's use `edges_directed` instead.
-                    (node, EdgeKind::DirectCall) // Placeholder, need correct edge finding
-                })
-                .collect() // This logic is slightly flawed with `neighbors_directed`. Fixing below.
-        } else {
-            Vec::new()
-        }
-    }
-
-    // Correct implementation using edges_directed
-    pub fn get_incoming_edges(&self, id: &FunctionId) -> Vec<(FunctionId, EdgeKind)> {
-         if let Some(&idx) = self.index.get(id) {
+    pub fn get_dependents(&self, path: &str) -> Vec<(FileNode, DependencyEdge)> {
+        // BFS propagation will use this.
+        // If 'path' changes, we want to know what depends on it.
+        // A -> B (A imports B). If B changes, A is affected.
+        // So we need incoming edges to B.
+        if let Some(&idx) = self.index.get(path) {
             self.graph.edges_directed(idx, petgraph::Direction::Incoming)
                 .map(|edge| {
                     let source_idx = edge.source();
                     let node = self.graph[source_idx].clone();
-                    let weight = edge.weight().clone();
-                    (node, weight)
+                    let edge_data = edge.weight().clone();
+                    (node, edge_data)
                 })
                 .collect()
         } else {
@@ -77,8 +57,13 @@ impl GraphStore {
         }
     }
 
-    pub fn node_count(&self) -> usize {
-        self.graph.node_count()
+    pub fn update_confidence(&mut self, path: &str, new_confidence: f64) -> Result<()> {
+        if let Some(&idx) = self.index.get(path) {
+            self.graph[idx].confidence = new_confidence;
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!("Node not found: {}", path))
+        }
     }
 }
 

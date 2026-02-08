@@ -1,6 +1,5 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize, Serializer, Deserializer};
-use std::fmt;
 
 /// Wrapper around hex string color to support Serde
 #[derive(Debug, Clone, PartialEq, Eq)]
