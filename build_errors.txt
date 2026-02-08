@@ -1,0 +1,636 @@
+﻿cargo : warning: unused import: 
+`Position`
+At line:1 char:1
++ cargo check --package forge-app 
+2>&1 | Out-File -FilePath 
+"C:\Users\o ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~
+    + CategoryInfo          : NotS 
+   pecified: (warning: unused imp  
+  ort: `Position`:String) [], Re   
+ moteException
+    + FullyQualifiedErrorId : Nati 
+   veCommandError
+ 
+ --> crates\forge-core\src\buffer.r
+s:1:44
+  |
+1 | use crate::{Encoding, History, 
+LineEnding, Position, Selection, 
+Syntax, Transaction};
+  |                                
+            ^^^^^^^^
+  |
+  = note: 
+`#[warn(unused_imports)]` on by 
+default
+
+warning: unused import: 
+`StatusOptions`
+ --> 
+crates\forge-core\src\git.rs:1:32
+  |
+1 | use git2::{Repository, Status, 
+StatusOptions};
+  |                                
+^^^^^^^^^^^^^
+
+warning: unused import: `PathBuf`
+ --> 
+crates\forge-core\src\git.rs:2:23
+  |
+2 | use std::path::{Path, PathBuf};
+  |                       ^^^^^^^
+
+warning: unused import: 
+`anyhow::Result`
+ --> 
+crates\forge-core\src\git.rs:3:5
+  |
+3 | use anyhow::Result;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: 
+`std::collections::HashMap`
+ --> crates\forge-core\src\project.
+rs:2:5
+  |
+2 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: 
+`CommandBuilder`, 
+`NativePtySystem`, `PtyPair`, 
+`PtySize`, and `PtySystem`
+ --> crates\forge-core\src\terminal
+.rs:2:20
+  |
+2 | use 
+portable_pty::{CommandBuilder, 
+NativePtySystem, PtyPair, PtySize, 
+PtySystem};
+  |                    
+^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  
+^^^^^^^  ^^^^^^^  ^^^^^^^^^
+
+warning: unused imports: `Read` 
+and `Write`
+ --> crates\forge-core\src\terminal
+.rs:3:15
+  |
+3 | use std::io::{Read, Write};
+  |               ^^^^  ^^^^^
+
+warning: unused imports: `Arc` and 
+`Mutex`
+ --> crates\forge-core\src\terminal
+.rs:4:17
+  |
+4 | use std::sync::{Arc, Mutex};
+  |                 ^^^  ^^^^^
+
+warning: unused import: 
+`std::thread`
+ --> crates\forge-core\src\terminal
+.rs:5:5
+  |
+5 | use std::thread;
+  |     ^^^^^^^^^^^
+
+warning: unused variable: `cols`
+  --> crates\forge-core\src\termina
+l.rs:17:16
+   |
+17 |     pub fn new(cols: u16, 
+rows: u16) -> Result<Self> {
+   |                ^^^^ help: if 
+this is intentional, prefix it 
+with an underscore: `_cols`
+   |
+   = note: 
+`#[warn(unused_variables)]` on by 
+default
+
+warning: unused variable: `rows`
+  --> crates\forge-core\src\termina
+l.rs:17:27
+   |
+17 |     pub fn new(cols: u16, 
+rows: u16) -> Result<Self> {
+   |                           
+^^^^ help: if this is intentional, 
+prefix it with an underscore: 
+`_rows`
+
+warning: unused variable: `data`
+  --> crates\forge-core\src\termina
+l.rs:24:29
+   |
+24 |     pub fn write(&mut self, 
+data: &str) -> Result<()> {
+   |                             
+^^^^ help: if this is intentional, 
+prefix it with an underscore: 
+`_data`
+
+warning: unused variable: `cols`
+  --> crates\forge-core\src\termina
+l.rs:28:30
+   |
+28 |     pub fn resize(&mut self, 
+cols: u16, rows: u16) -> 
+Result<()> {
+   |                              
+^^^^ help: if this is intentional, 
+prefix it with an underscore: 
+`_cols`
+
+warning: unused variable: `rows`
+  --> crates\forge-core\src\termina
+l.rs:28:41
+   |
+28 |     pub fn resize(&mut self, 
+cols: u16, rows: u16) -> 
+Result<()> {
+   |                               
+          ^^^^ help: if this is 
+intentional, prefix it with an 
+underscore: `_rows`
+
+warning: `forge-core` (lib) 
+generated 14 warnings (run `cargo 
+fix --lib -p forge-core` to apply 
+9 suggestions)
+warning: unused import: 
+`SignalKind`
+ --> crates\forge-confidence\src\en
+gine.rs:1:46
+  |
+1 | use 
+crate::models::{ConfidenceScore, 
+Signal, SignalKind};
+  |                                
+              ^^^^^^^^^^
+  |
+  = note: 
+`#[warn(unused_imports)]` on by 
+default
+
+warning: `forge-confidence` (lib) 
+generated 1 warning (run `cargo 
+fix --lib -p forge-confidence` to 
+apply 1 suggestion)
+    Checking forge-app v0.1.0 (C:\U
+sers\osaretin\Downloads\forge\crate
+s\forge-app)
+warning: unused import: `Range`
+ --> 
+crates\forge-app\src\editor.rs:3:55
+  |
+3 | use forge_core::{Buffer, 
+Change, ChangeSet, Position, 
+Range, Selection, Transaction};
+  |                                
+                       ^^^^^
+  |
+  = note: 
+`#[warn(unused_imports)]` on by 
+default
+
+error[E0061]: this function takes 
+4 arguments but 3 arguments were 
+supplied
+   --> crates\forge-app\src\applica
+tion.rs:102:26
+    |
+102 |         let text_atlas = 
+TextAtlas::new(&gpu.device, 
+&gpu.queue, gpu.format());
+    |                          ^^^^
+^^^^^^^^^^-------------------------
+--------------
+    |                              
+          ||            |          
+ |
+    |                              
+          ||            |          
+ expected `&Cache`, found 
+`TextureFormat`
+    |                              
+          ||            expected 
+`wgpu::api::queue::Queue`, found 
+`wgpu::Queue`
+    |                              
+          |expected 
+`wgpu::api::device::Device`, found 
+`wgpu::Device`
+    |                              
+          argument #4 of type 
+`wgpu_types::TextureFormat` is 
+missing
+    |
+note: two different versions of 
+crate `wgpu` are being used; two 
+types coming from two different 
+versions of the same crate are 
+different types even if they look 
+the same
+   --> C:\Users\osaretin\.cargo\reg
+istry\src\index.crates.io-1949cf8c6
+b5b557f\wgpu-24.0.5\src\api\device.
+rs:18:1
+    |
+18  | pub struct Device {
+    | ^^^^^^^^^^^^^^^^^ this is 
+the found type `wgpu::Device`
+    |
+   ::: C:\Users\osaretin\.cargo\reg
+istry\src\index.crates.io-1949cf8c6
+b5b557f\wgpu-23.0.1\src\api\device.
+rs:17:1
+    |
+17  | pub struct Device {
+    | ^^^^^^^^^^^^^^^^^ this is 
+the expected type 
+`wgpu::api::device::Device`
+    |
+   ::: crates\forge-app\src\applica
+tion.rs:16:5
+    |
+16  | use glyphon::{
+    |     ------- one version of 
+crate `wgpu` used here, as a 
+dependency of crate `glyphon`
+...
+28  | const BG_COLOR: wgpu::Color 
+= wgpu::Color {
+    |                 ---- one 
+version of crate `wgpu` used here, 
+as a direct dependency of the 
+current crate
+    = help: you can use `cargo 
+tree` to explore your dependency 
+tree
+note: two different versions of 
+crate `wgpu` are being used; two 
+types coming from two different 
+versions of the same crate are 
+different types even if they look 
+the same
+   --> C:\Users\osaretin\.cargo\reg
+istry\src\index.crates.io-1949cf8c6
+b5b557f\wgpu-24.0.5\src\api\queue.r
+s:13:1
+    |
+13  | pub struct Queue {
+    | ^^^^^^^^^^^^^^^^ this is the 
+found type `wgpu::Queue`
+    |
+   ::: C:\Users\osaretin\.cargo\reg
+istry\src\index.crates.io-1949cf8c6
+b5b557f\wgpu-23.0.1\src\api\queue.r
+s:18:1
+    |
+18  | pub struct Queue {
+    | ^^^^^^^^^^^^^^^^ this is the 
+expected type 
+`wgpu::api::queue::Queue`
+    |
+   ::: crates\forge-app\src\applica
+tion.rs:16:5
+    |
+16  | use glyphon::{
+    |     ------- one version of 
+crate `wgpu` used here, as a 
+dependency of crate `glyphon`
+...
+28  | const BG_COLOR: wgpu::Color 
+= wgpu::Color {
+    |                 ---- one 
+version of crate `wgpu` used here, 
+as a direct dependency of the 
+current crate
+    = help: you can use `cargo 
+tree` to explore your dependency 
+tree
+note: associated function defined 
+here
+   --> C:\Users\osaretin\.cargo\reg
+istry\src\index.crates.io-1949cf8c6
+b5b557f\glyphon-0.7.0\src\text_atla
+s.rs:304:12
+    |
+304 |     pub fn new(device: 
+&Device, queue: &Queue, cache: 
+&Cache, format: TextureFormat) -> 
+Self {
+    |            ^^^
+help: provide the argument
+    |
+102 -         let text_atlas = 
+TextAtlas::new(&gpu.device, 
+&gpu.queue, gpu.format());
+102 +         let text_atlas = 
+TextAtlas::new(/* 
+&wgpu::api::device::Device */, /* 
+&wgpu::api::queue::Queue */, /* 
+&Cache */, /* 
+wgpu_types::TextureFormat */);
+    |
+
+error[E0308]: arguments to this 
+function are incorrect
+    --> crates\forge-app\src\applic
+ation.rs:103:29
+     |
+103  |         let text_renderer = 
+TextRenderer::new(
+     |                             
+^^^^^^^^^^^^^^^^^
+104  |             &mut text_atlas,
+105  |             &gpu.device,
+     |             ----------- 
+expected 
+`wgpu::api::device::Device`, found 
+`wgpu::Device`
+106  |             
+wgpu::MultisampleState::default(),
+     |             
+--------------------------------- 
+expected 
+`wgpu_types::MultisampleState`, 
+found `MultisampleState`
+     |
+note: two different versions of 
+crate `wgpu` are being used; two 
+types coming from two different 
+versions of the same crate are 
+different types even if they look 
+the same
+    --> C:\Users\osaretin\.cargo\re
+gistry\src\index.crates.io-1949cf8c
+6b5b557f\wgpu-24.0.5\src\api\device
+.rs:18:1
+     |
+18   | pub struct Device {
+     | ^^^^^^^^^^^^^^^^^ this is 
+the found type `wgpu::Device`
+     |
+    ::: C:\Users\osaretin\.cargo\re
+gistry\src\index.crates.io-1949cf8c
+6b5b557f\wgpu-23.0.1\src\api\device
+.rs:17:1
+     |
+17   | pub struct Device {
+     | ^^^^^^^^^^^^^^^^^ this is 
+the expected type 
+`wgpu::api::device::Device`
+     |
+    ::: crates\forge-app\src\applic
+ation.rs:16:5
+     |
+16   | use glyphon::{
+     |     ------- one version of 
+crate `wgpu` used here, as a 
+dependency of crate `glyphon`
+...
+28   | const BG_COLOR: wgpu::Color 
+= wgpu::Color {
+     |                 ---- one 
+version of crate `wgpu` used here, 
+as a direct dependency of the 
+current crate
+     = help: you can use `cargo 
+tree` to explore your dependency 
+tree
+note: two different versions of 
+crate `wgpu_types` are being used; 
+two types coming from two 
+different versions of the same 
+crate are different types even if 
+they look the same
+    --> C:\Users\osaretin\.cargo\re
+gistry\src\index.crates.io-1949cf8c
+6b5b557f\wgpu-types-24.0.0\src\lib.
+rs:2348:1
+     |
+2348 | pub struct MultisampleState 
+{
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
+this is the found type 
+`MultisampleState`
+     |
+    ::: C:\Users\osaretin\.cargo\re
+gistry\src\index.crates.io-1949cf8c
+6b5b557f\wgpu-types-23.0.0\src\lib.
+rs:2319:1
+     |
+2319 | pub struct MultisampleState 
+{
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
+this is the expected type 
+`wgpu_types::MultisampleState`
+     |
+    ::: crates\forge-app\src\applic
+ation.rs:16:5
+     |
+16   | use glyphon::{
+     |     ------- one version of 
+crate `wgpu_types` used here, as a 
+dependency of crate `wgpu`
+...
+28   | const BG_COLOR: wgpu::Color 
+= wgpu::Color {
+     |                 ---- one 
+version of crate `wgpu_types` used 
+here, as a dependency of crate 
+`wgpu`
+     = help: you can use `cargo 
+tree` to explore your dependency 
+tree
+note: associated function defined 
+here
+    --> C:\Users\osaretin\.cargo\re
+gistry\src\index.crates.io-1949cf8c
+6b5b557f\glyphon-0.7.0\src\text_ren
+der.rs:24:12
+     |
+24   |     pub fn new(
+     |            ^^^
+
+error[E0308]: arguments to this 
+method are incorrect
+   --> crates\forge-app\src\applica
+tion.rs:190:14
+    |
+190 |             .prepare(
+    |              ^^^^^^^
+191 |                 
+&state.gpu.device,
+    |                 
+----------------- expected 
+`wgpu::api::device::Device`, found 
+`wgpu::Device`
+192 |                 
+&state.gpu.queue,
+    |                 
+---------------- expected 
+`wgpu::api::queue::Queue`, found 
+`wgpu::Queue`
+...
+195 |                 Resolution { 
+width, height },
+    |                 
+---------------------------- 
+expected `&Viewport`, found 
+`Resolution`
+    |
+note: two different versions of 
+crate `wgpu` are being used; two 
+types coming from two different 
+versions of the same crate are 
+different types even if they look 
+the same
+   --> C:\Users\osaretin\.cargo\reg
+istry\src\index.crates.io-1949cf8c6
+b5b557f\wgpu-24.0.5\src\api\device.
+rs:18:1
+    |
+18  | pub struct Device {
+    | ^^^^^^^^^^^^^^^^^ this is 
+the found type `wgpu::Device`
+    |
+   ::: C:\Users\osaretin\.cargo\reg
+istry\src\index.crates.io-1949cf8c6
+b5b557f\wgpu-23.0.1\src\api\device.
+rs:17:1
+    |
+17  | pub struct Device {
+    | ^^^^^^^^^^^^^^^^^ this is 
+the expected type 
+`wgpu::api::device::Device`
+    |
+   ::: crates\forge-app\src\applica
+tion.rs:16:5
+    |
+16  | use glyphon::{
+    |     ------- one version of 
+crate `wgpu` used here, as a 
+dependency of crate `glyphon`
+...
+28  | const BG_COLOR: wgpu::Color 
+= wgpu::Color {
+    |                 ---- one 
+version of crate `wgpu` used here, 
+as a direct dependency of the 
+current crate
+    = help: you can use `cargo 
+tree` to explore your dependency 
+tree
+note: two different versions of 
+crate `wgpu` are being used; two 
+types coming from two different 
+versions of the same crate are 
+different types even if they look 
+the same
+   --> C:\Users\osaretin\.cargo\reg
+istry\src\index.crates.io-1949cf8c6
+b5b557f\wgpu-24.0.5\src\api\queue.r
+s:13:1
+    |
+13  | pub struct Queue {
+    | ^^^^^^^^^^^^^^^^ this is the 
+found type `wgpu::Queue`
+    |
+   ::: C:\Users\osaretin\.cargo\reg
+istry\src\index.crates.io-1949cf8c6
+b5b557f\wgpu-23.0.1\src\api\queue.r
+s:18:1
+    |
+18  | pub struct Queue {
+    | ^^^^^^^^^^^^^^^^ this is the 
+expected type 
+`wgpu::api::queue::Queue`
+    |
+   ::: crates\forge-app\src\applica
+tion.rs:16:5
+    |
+16  | use glyphon::{
+    |     ------- one version of 
+crate `wgpu` used here, as a 
+dependency of crate `glyphon`
+...
+28  | const BG_COLOR: wgpu::Color 
+= wgpu::Color {
+    |                 ---- one 
+version of crate `wgpu` used here, 
+as a direct dependency of the 
+current crate
+    = help: you can use `cargo 
+tree` to explore your dependency 
+tree
+note: method defined here
+   --> C:\Users\osaretin\.cargo\reg
+istry\src\index.crates.io-1949cf8c6
+b5b557f\glyphon-0.7.0\src\text_rend
+er.rs:49:12
+    |
+49  |     pub fn prepare<'a>(
+    |            ^^^^^^^
+
+error[E0061]: this method takes 3 
+arguments but 2 arguments were 
+supplied
+   --> crates\forge-app\src\applica
+tion.rs:241:18
+    |
+241 |                 
+.render(&state.text_atlas, &mut 
+pass)
+    |                  ^^^^^^------
+------------------------
+    |                        |     
+              |
+    |                        |     
+              expected 
+`&Viewport`, found `&mut 
+RenderPass<'_>`
+    |                        
+argument #3 of type `&mut wgpu::api
+::render_pass::RenderPass<'_>` is 
+missing
+    |
+    = note:      expected 
+reference `&Viewport`
+            found mutable 
+reference `&mut 
+wgpu::RenderPass<'_>`
+note: method defined here
+   --> C:\Users\osaretin\.cargo\reg
+istry\src\index.crates.io-1949cf8c6
+b5b557f\glyphon-0.7.0\src\text_rend
+er.rs:334:12
+    |
+334 |     pub fn render(
+    |            ^^^^^^
+help: provide the argument
+    |
+241 -                 
+.render(&state.text_atlas, &mut 
+pass)
+241 +                 
+.render(&state.text_atlas, /* 
+&Viewport */, /* &mut wgpu::api::re
+nder_pass::RenderPass<'_> */)
+    |
+
+Some errors have detailed 
+explanations: E0061, E0308.
+For more information about an 
+error, try `rustc --explain E0061`.
+warning: `forge-app` (bin "forge") 
+generated 1 warning
+error: could not compile 
+`forge-app` (bin "forge") due to 4 
+previous errors; 1 warning emitted

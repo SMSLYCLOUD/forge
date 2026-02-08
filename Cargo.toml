@@ -37,9 +37,12 @@ encoding_rs = "0.8"
 # GPU Rendering
 wgpu = "24"
 cosmic-text = "0.12"
+glyphon = "0.7"
 
 # Windowing
 winit = "0.30"
+pollster = "0.4"
+arboard = "3"
 
 # Configuration
 toml = "0.8"
