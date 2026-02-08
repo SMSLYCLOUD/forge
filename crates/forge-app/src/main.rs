@@ -11,6 +11,8 @@ mod gutter;
 mod status_bar;
 mod cursor;
 mod breadcrumb;
+mod tab_bar;
+mod activity_bar;
 
 use anyhow::Result;
 use tracing::info;
