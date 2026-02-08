@@ -4,6 +4,7 @@
 
 use crate::editor::Editor;
 use crate::gpu::GpuContext;
+use crate::modes::UiMode;
 use std::sync::Arc;
 use tracing::info;
 use winit::application::ApplicationHandler;
@@ -39,6 +40,8 @@ pub struct Application {
     state: Option<AppState>,
     /// Keyboard modifier state
     modifiers: ModifiersState,
+    /// Current UI mode
+    current_mode: UiMode,
 }
 
 struct AppState {
@@ -61,6 +64,7 @@ impl Application {
             file_path,
             state: None,
             modifiers: ModifiersState::empty(),
+            current_mode: UiMode::default(),
         }
     }
 
@@ -135,8 +139,11 @@ impl Application {
         });
     }
 
-    fn render(state: &mut AppState) {
-        // Build the display text with line numbers
+    fn render(state: &mut AppState, mode: &UiMode) {
+        // Layout config from mode
+        let mode_config = mode.layout_config();
+
+        // Build the display text with line numbers (if gutter enabled)
         let text = state.editor.text();
         let scroll_top = state.editor.scroll_y as usize;
         let (_, h) = state.gpu.size();
@@ -153,17 +160,25 @@ impl Application {
             .skip(scroll_top)
             .take(visible_lines)
         {
-            let line_num = i + 1;
-            display.push_str(&format!(
-                "{:>width$}  {}\n",
-                line_num,
-                line,
-                width = width_digits
-            ));
+            if mode_config.gutter {
+                let line_num = i + 1;
+                display.push_str(&format!(
+                    "{:>width$}  {}\n",
+                    line_num,
+                    line,
+                    width = width_digits
+                ));
+            } else {
+                display.push_str(&format!("{}\n", line));
+            }
         }
         // Handle empty buffer
         if display.is_empty() {
-            display.push_str(&format!("{:>width$}  \n", 1, width = width_digits));
+            if mode_config.gutter {
+                display.push_str(&format!("{:>width$}  \n", 1, width = width_digits));
+            } else {
+                display.push_str("\n");
+            }
         }
 
         // Update glyphon buffer with display text
@@ -280,11 +295,6 @@ impl ApplicationHandler for Application {
         _window_id: WindowId,
         event: WindowEvent,
     ) {
-        let state = match self.state.as_mut() {
-            Some(s) => s,
-            None => return,
-        };
-
         match event {
             WindowEvent::CloseRequested => {
                 info!("Goodbye from Forge 🔥");
@@ -292,13 +302,15 @@ impl ApplicationHandler for Application {
             }
 
             WindowEvent::Resized(size) => {
-                state.gpu.resize(size.width, size.height);
-                state.glyphon_buffer.set_size(
-                    &mut state.font_system,
-                    Some(size.width as f32 - LEFT_PADDING),
-                    Some(size.height as f32),
-                );
-                state.window.request_redraw();
+                if let Some(state) = self.state.as_mut() {
+                    state.gpu.resize(size.width, size.height);
+                    state.glyphon_buffer.set_size(
+                        &mut state.font_system,
+                        Some(size.width as f32 - LEFT_PADDING),
+                        Some(size.height as f32),
+                    );
+                    state.window.request_redraw();
+                }
             }
 
             WindowEvent::ModifiersChanged(mods) => {
@@ -312,76 +324,84 @@ impl ApplicationHandler for Application {
 
                 let ctrl = self.modifiers.control_key();
 
-                // Get state reference again (borrow checker)
-                let state = self.state.as_mut().unwrap();
-
-                match event.logical_key {
-                    // Ctrl shortcuts
-                    Key::Character(ref c) if ctrl => match c.as_str() {
-                        "s" => {
-                            if let Err(e) = state.editor.save() {
-                                tracing::error!("Save failed: {}", e);
+                if let Some(state) = self.state.as_mut() {
+                    match event.logical_key {
+                        // Ctrl shortcuts
+                        Key::Character(ref c) if ctrl => match c.as_str() {
+                            "s" => {
+                                if let Err(e) = state.editor.save() {
+                                    tracing::error!("Save failed: {}", e);
+                                }
+                                state.window.set_title(&state.editor.window_title());
                             }
-                            state.window.set_title(&state.editor.window_title());
+                            "z" => {
+                                state.editor.buffer.undo();
+                            }
+                            "y" => {
+                                state.editor.buffer.redo();
+                            }
+                            "m" => {
+                                // Mutate mode (allowed because state only borrows self.state)
+                                self.current_mode = self.current_mode.next();
+                                // We'll update title at the end
+                            }
+                            _ => {}
+                        },
+
+                        // Navigation keys
+                        Key::Named(NamedKey::ArrowLeft) => state.editor.move_left(),
+                        Key::Named(NamedKey::ArrowRight) => state.editor.move_right(),
+                        Key::Named(NamedKey::ArrowUp) => state.editor.move_up(),
+                        Key::Named(NamedKey::ArrowDown) => state.editor.move_down(),
+                        Key::Named(NamedKey::Home) => state.editor.move_home(),
+                        Key::Named(NamedKey::End) => state.editor.move_end(),
+
+                        // Editing keys
+                        Key::Named(NamedKey::Backspace) => state.editor.backspace(),
+                        Key::Named(NamedKey::Delete) => state.editor.delete(),
+                        Key::Named(NamedKey::Enter) => state.editor.insert_newline(),
+                        Key::Named(NamedKey::Tab) => {
+                            // Insert 4 spaces
+                            for _ in 0..4 {
+                                state.editor.insert_char(' ');
+                            }
                         }
-                        "z" => {
-                            state.editor.buffer.undo();
+
+                        // Character input
+                        Key::Character(ref c) if !ctrl => {
+                            for ch in c.chars() {
+                                state.editor.insert_char(ch);
+                            }
                         }
-                        "y" => {
-                            state.editor.buffer.redo();
-                        }
+
                         _ => {}
-                    },
-
-                    // Navigation keys
-                    Key::Named(NamedKey::ArrowLeft) => state.editor.move_left(),
-                    Key::Named(NamedKey::ArrowRight) => state.editor.move_right(),
-                    Key::Named(NamedKey::ArrowUp) => state.editor.move_up(),
-                    Key::Named(NamedKey::ArrowDown) => state.editor.move_down(),
-                    Key::Named(NamedKey::Home) => state.editor.move_home(),
-                    Key::Named(NamedKey::End) => state.editor.move_end(),
-
-                    // Editing keys
-                    Key::Named(NamedKey::Backspace) => state.editor.backspace(),
-                    Key::Named(NamedKey::Delete) => state.editor.delete(),
-                    Key::Named(NamedKey::Enter) => state.editor.insert_newline(),
-                    Key::Named(NamedKey::Tab) => {
-                        // Insert 4 spaces
-                        for _ in 0..4 {
-                            state.editor.insert_char(' ');
-                        }
                     }
 
-                    // Character input
-                    Key::Character(ref c) if !ctrl => {
-                        for ch in c.chars() {
-                            state.editor.insert_char(ch);
-                        }
-                    }
+                    // Ensure cursor is visible and request redraw
+                    let visible_lines = (state.gpu.config.height as f32 / LINE_HEIGHT) as usize;
+                    state.editor.ensure_cursor_visible(visible_lines);
 
-                    _ => {}
+                    let title = state.editor.window_title();
+                    state.window.set_title(&format!("{} - {}", title, self.current_mode.label()));
+                    state.window.request_redraw();
                 }
-
-                // Ensure cursor is visible and request redraw
-                let visible_lines = (state.gpu.config.height as f32 / LINE_HEIGHT) as usize;
-                state.editor.ensure_cursor_visible(visible_lines);
-                state.window.set_title(&state.editor.window_title());
-                state.window.request_redraw();
             }
 
             WindowEvent::MouseWheel { delta, .. } => {
-                let scroll = match delta {
-                    winit::event::MouseScrollDelta::LineDelta(_, y) => -y as f64 * 3.0,
-                    winit::event::MouseScrollDelta::PixelDelta(pos) => -pos.y / LINE_HEIGHT as f64,
-                };
-                let state = self.state.as_mut().unwrap();
-                state.editor.scroll(scroll);
-                state.window.request_redraw();
+                if let Some(state) = self.state.as_mut() {
+                    let scroll = match delta {
+                        winit::event::MouseScrollDelta::LineDelta(_, y) => -y as f64 * 3.0,
+                        winit::event::MouseScrollDelta::PixelDelta(pos) => -pos.y / LINE_HEIGHT as f64,
+                    };
+                    state.editor.scroll(scroll);
+                    state.window.request_redraw();
+                }
             }
 
             WindowEvent::RedrawRequested => {
-                let state = self.state.as_mut().unwrap();
-                Self::render(state);
+                if let Some(state) = self.state.as_mut() {
+                    Self::render(state, &self.current_mode);
+                }
             }
 
             _ => {}

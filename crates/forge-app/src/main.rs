@@ -5,6 +5,8 @@
 mod application;
 mod editor;
 mod gpu;
+mod extensions;
+mod modes;
 
 use anyhow::Result;
 use tracing::info;
