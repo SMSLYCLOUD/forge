@@ -5,6 +5,7 @@
 mod buffer;
 pub mod git;
 mod history;
+pub mod layout;
 mod position;
 pub mod project;
 mod selection;
@@ -15,6 +16,7 @@ mod transaction;
 pub use buffer::Buffer;
 pub use git::GitIntegration;
 pub use history::{History, HistoryNode};
+pub use layout::Layout;
 pub use position::Position;
 pub use project::Project;
 pub use selection::{Range, Selection};
