@@ -1,3 +1,5 @@
+/// Stub for RectRenderer needed for Part 2 compilation.
+#[derive(Clone, Debug, Copy)]
 use wgpu::util::DeviceExt;
 
 /// A colored rectangle to render on screen
@@ -33,6 +35,13 @@ pub struct Rect {
     pub color: [f32; 4],
 }
 
+pub struct RectRenderer;
+
+impl RectRenderer {
+    pub fn new(_device: &wgpu::Device, _format: wgpu::TextureFormat) -> Self {
+        Self
+    }
+}
 /// GPU pipeline for rendering colored rectangles
 pub struct RectRenderer {
     pipeline: wgpu::RenderPipeline,

@@ -164,6 +164,12 @@ impl CursorRenderer {
             (sel_start_col, sel_end_col)
         } else {
             (sel_end_col, sel_start_col)
+        let (start_col, end_col) = if sel_start_line < sel_end_line {
+            (sel_start_col, sel_end_col)
+        } else if sel_start_line > sel_end_line {
+            (sel_end_col, sel_start_col)
+        } else {
+            (sel_start_col.min(sel_end_col), sel_start_col.max(sel_end_col))
         };
 
         for line in start_line..=end_line {

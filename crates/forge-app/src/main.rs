@@ -13,6 +13,8 @@ mod tab_bar;
 mod activity_bar;
 
 // Part 2
+mod rect_renderer;
+mod ui;
 mod gutter;
 mod status_bar;
 mod cursor;
@@ -22,6 +24,8 @@ mod breadcrumb;
 mod guard;
 mod scrollbar;
 mod organism;
+mod tab_bar;
+mod activity_bar;
 
 use anyhow::Result;
 use tracing::info;
