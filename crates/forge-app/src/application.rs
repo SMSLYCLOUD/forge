@@ -4,6 +4,7 @@
 
 use crate::editor::Editor;
 use crate::gpu::GpuContext;
+use crate::modes::UiMode;
 use std::sync::Arc;
 use tracing::info;
 use winit::application::ApplicationHandler;
@@ -18,6 +19,11 @@ use glyphon::{
     Resolution, Shaping, SwashCache, TextArea, TextAtlas, TextBounds, TextRenderer, Viewport,
 };
 
+/// Font metrics
+const FONT_SIZE: f32 = 16.0;
+const LINE_HEIGHT: f32 = 22.0;
+const LEFT_PADDING: f32 = 8.0;
+const TOP_PADDING: f32 = 8.0;
 use crate::rect_renderer::RectRenderer;
 use crate::ui::{LayoutZones, LayoutConstants};
 use crate::tab_bar::TabBar;
@@ -111,6 +117,18 @@ pub struct Application {
     /// File path to open (from CLI)
     file_path: Option<String>,
     /// Created after window is ready
+    state: Option<AppState>,
+    /// Keyboard modifier state
+    modifiers: ModifiersState,
+    /// Current UI mode
+    current_mode: UiMode,
+}
+
+struct AppState {
+    window: Arc<Window>,
+    gpu: GpuContext,
+    editor: Editor,
+    // Text rendering (glyphon 0.7)
     state: Option<ForgeApplication>,
     /// Keyboard modifier state
     modifiers: ModifiersState,
@@ -169,6 +187,7 @@ impl Application {
             file_path,
             state: None,
             modifiers: ModifiersState::empty(),
+            current_mode: UiMode::default(),
         }
     }
 
@@ -179,6 +198,12 @@ impl Application {
             .with_inner_size(LogicalSize::new(1280, 800));
         let window = Arc::new(event_loop.create_window(attrs).unwrap());
 
+        // Init GPU
+        let gpu = GpuContext::new(window.clone()).expect("Failed to initialize GPU");
+        info!(
+            "GPU initialized: {}x{}",
+            gpu.config.width, gpu.config.height
+        );
         // Init GPU (using GpuContext logic inline or extracting parts)
         // Since ForgeApplication needs individual fields, we'll extract them from GpuContext or recreate logic.
         // But GpuContext is in crate::gpu. Let's use it to bootstrap then destructure if needed,
@@ -205,6 +230,7 @@ impl Application {
             ed
         };
 
+        // Set window title
         window.set_title(&editor.window_title());
 
         // Init text rendering with glyphon 0.7
@@ -220,6 +246,20 @@ impl Application {
             None,
         );
         let mut glyphon_buffer =
+            GlyphonBuffer::new(&mut font_system, Metrics::new(FONT_SIZE, LINE_HEIGHT));
+
+        // Set initial buffer size
+        let (w, h) = gpu.size();
+        glyphon_buffer.set_size(
+            &mut font_system,
+            Some(w as f32 - LEFT_PADDING),
+            Some(h as f32),
+        );
+
+        self.state = Some(AppState {
+            window,
+            gpu,
+            editor,
             GlyphonBuffer::new(&mut font_system, Metrics::new(LayoutConstants::FONT_SIZE, LayoutConstants::LINE_HEIGHT));
 
         glyphon_buffer.set_size(
@@ -276,6 +316,55 @@ impl Application {
             viewport,
             text_renderer,
             glyphon_buffer,
+        });
+    }
+
+    fn render(state: &mut AppState, mode: &UiMode) {
+        // Layout config from mode
+        let mode_config = mode.layout_config();
+
+        // Build the display text with line numbers (if gutter enabled)
+        let text = state.editor.text();
+        let scroll_top = state.editor.scroll_y as usize;
+        let (_, h) = state.gpu.size();
+        let visible_lines = (h as f32 / LINE_HEIGHT) as usize + 1;
+
+        let mut display = String::new();
+        let lines: Vec<&str> = text.lines().collect();
+        let total_lines = lines.len().max(1);
+        let width_digits = total_lines.to_string().len().max(3);
+
+        for (i, line) in lines
+            .iter()
+            .enumerate()
+            .skip(scroll_top)
+            .take(visible_lines)
+        {
+            if mode_config.gutter {
+                let line_num = i + 1;
+                display.push_str(&format!(
+                    "{:>width$}  {}\n",
+                    line_num,
+                    line,
+                    width = width_digits
+                ));
+            } else {
+                display.push_str(&format!("{}\n", line));
+            }
+        }
+        // Handle empty buffer
+        if display.is_empty() {
+            if mode_config.gutter {
+                display.push_str(&format!("{:>width$}  \n", 1, width = width_digits));
+            } else {
+                display.push_str("\n");
+            }
+        }
+
+        // Update glyphon buffer with display text
+        state.glyphon_buffer.set_text(
+            &mut state.font_system,
+            &display,
             editor,
             rect_renderer,
             layout,
@@ -447,6 +536,74 @@ impl Application {
                 .color(GlyphonColor::rgb(224, 227, 236)),
             Shaping::Advanced,
         );
+        state
+            .glyphon_buffer
+            .shape_until_scroll(&mut state.font_system, false);
+
+        // Get surface texture
+        let surface_texture = match state.gpu.surface.get_current_texture() {
+            Ok(t) => t,
+            Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
+                let (w, h) = state.gpu.size();
+                state.gpu.resize(w, h);
+                return;
+            }
+            Err(e) => {
+                tracing::error!("Surface error: {}", e);
+                return;
+            }
+        };
+
+        let view = surface_texture
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
+
+        let (width, height) = state.gpu.size();
+
+        // Update viewport
+        state
+            .viewport
+            .update(&state.gpu.queue, Resolution { width, height });
+
+        // Prepare text rendering
+        state
+            .text_renderer
+            .prepare(
+                &state.gpu.device,
+                &state.gpu.queue,
+                &mut state.font_system,
+                &mut state.text_atlas,
+                &state.viewport,
+                [TextArea {
+                    buffer: &state.glyphon_buffer,
+                    left: LEFT_PADDING,
+                    top: TOP_PADDING,
+                    scale: 1.0,
+                    bounds: TextBounds {
+                        left: 0,
+                        top: 0,
+                        right: width as i32,
+                        bottom: height as i32,
+                    },
+                    default_color: GlyphonColor::rgb(224, 227, 236),
+                    custom_glyphs: &[],
+                }],
+                &mut state.swash_cache,
+            )
+            .unwrap();
+
+        // Render
+        let mut encoder =
+            state
+                .gpu
+                .device
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("forge-render"),
+                });
+
+        {
+            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("forge-render-pass"),
         state.glyphon_buffer.shape_until_scroll(&mut state.font_system, false);
 
         // Update viewport
@@ -507,6 +664,14 @@ impl Application {
                 occlusion_query_set: None,
             });
 
+            state
+                .text_renderer
+                .render(&state.text_atlas, &state.viewport, &mut pass)
+                .unwrap();
+        }
+
+        state.gpu.queue.submit(std::iter::once(encoder.finish()));
+        surface_texture.present();
             // Render rectangles first (background)
             state.rect_renderer.render(&mut render_pass);
 
@@ -620,6 +785,8 @@ impl ApplicationHandler for Application {
         _window_id: WindowId,
         event: WindowEvent,
     ) {
+        match event {
+            WindowEvent::CloseRequested => {
         let state = match self.state.as_mut() {
             Some(s) => s,
             None => return,
@@ -633,6 +800,13 @@ impl ApplicationHandler for Application {
             }
 
             WindowEvent::Resized(size) => {
+                if let Some(state) = self.state.as_mut() {
+                    state.gpu.resize(size.width, size.height);
+                    state.glyphon_buffer.set_size(
+                        &mut state.font_system,
+                        Some(size.width as f32 - LEFT_PADDING),
+                        Some(size.height as f32),
+                    );
                 if size.width > 0 && size.height > 0 {
                     state.config.width = size.width;
                     state.config.height = size.height;
@@ -662,6 +836,15 @@ impl ApplicationHandler for Application {
                 self.modifiers = mods.state();
             }
 
+            WindowEvent::KeyboardInput { event, .. } => {
+                if event.state != ElementState::Pressed {
+                    return;
+                }
+
+                let ctrl = self.modifiers.control_key();
+
+                if let Some(state) = self.state.as_mut() {
+                    match event.logical_key {
             WindowEvent::KeyboardInput { event: key_event, .. } => {
                  // Forward to handle_input helper (for blink reset etc)
                  Application::handle_input(state, &event);
@@ -684,6 +867,11 @@ impl ApplicationHandler for Application {
                             }
                             "y" => {
                                 state.editor.buffer.redo();
+                            }
+                            "m" => {
+                                // Mutate mode (allowed because state only borrows self.state)
+                                self.current_mode = self.current_mode.next();
+                                // We'll update title at the end
                             }
                             _ => {}
                         },
@@ -717,6 +905,34 @@ impl ApplicationHandler for Application {
                         _ => {}
                     }
 
+                    // Ensure cursor is visible and request redraw
+                    let visible_lines = (state.gpu.config.height as f32 / LINE_HEIGHT) as usize;
+                    state.editor.ensure_cursor_visible(visible_lines);
+
+                    let title = state.editor.window_title();
+                    state.window.set_title(&format!("{} - {}", title, self.current_mode.label()));
+                    state.window.request_redraw();
+                }
+            }
+
+            WindowEvent::MouseWheel { delta, .. } => {
+                if let Some(state) = self.state.as_mut() {
+                    let scroll = match delta {
+                        winit::event::MouseScrollDelta::LineDelta(_, y) => -y as f64 * 3.0,
+                        winit::event::MouseScrollDelta::PixelDelta(pos) => -pos.y / LINE_HEIGHT as f64,
+                    };
+                    state.editor.scroll(scroll);
+                    state.window.request_redraw();
+                }
+            }
+
+            WindowEvent::RedrawRequested => {
+                if let Some(state) = self.state.as_mut() {
+                    Self::render(state, &self.current_mode);
+                }
+            }
+
+            _ => {}
                     // Rule 4: Clamp scroll position
                     // Ensure cursor is visible (this logic was in original, update it)
                     let visible_lines = (state.layout.editor.height / LayoutConstants::LINE_HEIGHT) as usize;

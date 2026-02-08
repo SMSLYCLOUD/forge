@@ -5,6 +5,8 @@
 mod application;
 mod editor;
 mod gpu;
+mod extensions;
+mod modes;
 
 // Part 1
 mod rect_renderer;

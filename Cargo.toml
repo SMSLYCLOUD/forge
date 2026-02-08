@@ -17,6 +17,8 @@ members = [
     "crates/forge-developer",
     "crates/forge-surfaces",
     "crates/forge-feedback",
+    "crates/forge-agent",
+    "crates/forge-net",
 ]
 resolver = "2"
 
@@ -65,6 +67,17 @@ petgraph = "0.6"
 uuid = { version = "1", features = ["v4", "serde"] }
 serde_json = "1"
 git2 = "0.20"
+
+# AI Agent
+reqwest = { version = "0.12", features = ["json", "stream", "rustls-tls", "gzip", "brotli"] }
+tokio = { version = "1", features = ["full"] }
+futures = "0.3"
+async-trait = "0.1"
+dirs-next = "2"
+rand = "0.8"
+
+# Rectangle Renderer
+bytemuck = { version = "1", features = ["derive"] }
 
 [profile.release]
 opt-level = 3
