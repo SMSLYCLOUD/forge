@@ -7,14 +7,6 @@ pub struct Syntax {
     tree: Option<Tree>,
 }
 
-impl std::fmt::Debug for Syntax {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Syntax")
-            .field("tree", &self.tree)
-            .finish_non_exhaustive()
-    }
-}
-
 impl Syntax {
     pub fn new(language: Language) -> Self {
         let mut parser = Parser::new();
@@ -103,6 +95,27 @@ impl Syntax {
 
     pub fn tree(&self) -> Option<&Tree> {
         self.tree.as_ref()
+    }
+}
+
+// Implement manual Debug for Parser wrapper if needed, but the struct derive works if Parser implements Debug
+// If Parser doesn't implement Debug, we need:
+/*
+impl std::fmt::Debug for Syntax {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Syntax")
+            .field("tree", &self.tree)
+            .finish_non_exhaustive()
+    }
+}
+*/
+// The previous attempt showed Parser DOES NOT implement Debug. So removing derive and adding impl.
+
+impl std::fmt::Debug for Syntax {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Syntax")
+            .field("tree", &self.tree)
+            .finish_non_exhaustive()
     }
 }
 
