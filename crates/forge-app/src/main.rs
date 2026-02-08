@@ -5,6 +5,10 @@
 mod application;
 mod editor;
 mod gpu;
+mod rect_renderer;
+mod ui;
+mod tab_bar;
+mod activity_bar;
 
 use anyhow::Result;
 use tracing::info;
