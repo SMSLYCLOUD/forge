@@ -4,30 +4,22 @@
 
 mod application;
 mod editor;
-mod gpu;
 mod extensions;
+mod gpu;
 mod modes;
 
-// Part 1
-mod rect_renderer;
-mod ui;
-mod tab_bar;
+// UI components
 mod activity_bar;
-
-// Part 2
-mod rect_renderer;
-mod ui;
-mod gutter;
-mod status_bar;
-mod cursor;
 mod breadcrumb;
-
-// Part 3
+mod cursor;
 mod guard;
-mod scrollbar;
+mod gutter;
 mod organism;
+mod rect_renderer;
+mod scrollbar;
+mod status_bar;
 mod tab_bar;
-mod activity_bar;
+mod ui;
 
 use anyhow::Result;
 use tracing::info;

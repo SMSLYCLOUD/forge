@@ -26,8 +26,17 @@ impl Guard {
     }
 
     /// Clamp cursor to valid buffer position
-    pub fn clamp_cursor(line: usize, col: usize, total_lines: usize, line_len: usize) -> (usize, usize) {
-        let safe_line = if total_lines == 0 { 0 } else { line.min(total_lines - 1) };
+    pub fn clamp_cursor(
+        line: usize,
+        col: usize,
+        total_lines: usize,
+        line_len: usize,
+    ) -> (usize, usize) {
+        let safe_line = if total_lines == 0 {
+            0
+        } else {
+            line.min(total_lines - 1)
+        };
         let safe_col = col.min(line_len);
         (safe_line, safe_col)
     }
@@ -38,10 +47,36 @@ impl Guard {
             ""
         } else {
             let end = (start + max_len).min(s.len());
-            // Find valid char boundaries
-            let start = s.floor_char_boundary(start);
-            let end = s.ceil_char_boundary(end.min(s.len()));
+            // Find valid char boundaries (stable equivalent of floor/ceil_char_boundary)
+            let start = Self::floor_char_boundary(s, start);
+            let end = Self::ceil_char_boundary(s, end.min(s.len()));
             &s[start..end]
+        }
+    }
+
+    /// Stable equivalent of str::floor_char_boundary (nightly-only)
+    fn floor_char_boundary(s: &str, index: usize) -> usize {
+        if index >= s.len() {
+            s.len()
+        } else {
+            let mut i = index;
+            while i > 0 && !s.is_char_boundary(i) {
+                i -= 1;
+            }
+            i
+        }
+    }
+
+    /// Stable equivalent of str::ceil_char_boundary (nightly-only)
+    fn ceil_char_boundary(s: &str, index: usize) -> usize {
+        if index >= s.len() {
+            s.len()
+        } else {
+            let mut i = index;
+            while i < s.len() && !s.is_char_boundary(i) {
+                i += 1;
+            }
+            i
         }
     }
 }

@@ -160,16 +160,15 @@ impl CursorRenderer {
 
         let start_line = sel_start_line.min(sel_end_line);
         let end_line = sel_start_line.max(sel_end_line);
-        let (start_col, end_col) = if sel_start_line <= sel_end_line {
-            (sel_start_col, sel_end_col)
-        } else {
-            (sel_end_col, sel_start_col)
         let (start_col, end_col) = if sel_start_line < sel_end_line {
             (sel_start_col, sel_end_col)
         } else if sel_start_line > sel_end_line {
             (sel_end_col, sel_start_col)
         } else {
-            (sel_start_col.min(sel_end_col), sel_start_col.max(sel_end_col))
+            (
+                sel_start_col.min(sel_end_col),
+                sel_start_col.max(sel_end_col),
+            )
         };
 
         for line in start_line..=end_line {
@@ -189,7 +188,8 @@ impl CursorRenderer {
             }
 
             let x = editor_zone.x + (col_start as f32 * LayoutConstants::CHAR_WIDTH);
-            let width = ((col_end - col_start) as f32 * LayoutConstants::CHAR_WIDTH).max(LayoutConstants::CHAR_WIDTH);
+            let width = ((col_end - col_start) as f32 * LayoutConstants::CHAR_WIDTH)
+                .max(LayoutConstants::CHAR_WIDTH);
 
             rects.push(Rect {
                 x,

@@ -1,5 +1,3 @@
-/// Stub for RectRenderer needed for Part 2 compilation.
-#[derive(Clone, Debug, Copy)]
 use wgpu::util::DeviceExt;
 
 /// A colored rectangle to render on screen
@@ -35,27 +33,15 @@ pub struct Rect {
     pub color: [f32; 4],
 }
 
-pub struct RectRenderer;
-
-impl RectRenderer {
-    pub fn new(_device: &wgpu::Device, _format: wgpu::TextureFormat) -> Self {
-        Self
-    }
-}
 /// GPU pipeline for rendering colored rectangles
 pub struct RectRenderer {
     pipeline: wgpu::RenderPipeline,
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
-    /// Pre-allocated CPU-side vertex data
     vertices: Vec<RectVertex>,
-    /// Pre-allocated CPU-side index data
     indices: Vec<u32>,
-    /// Number of indices to draw this frame
     num_indices: u32,
-    /// Maximum number of rectangles (pre-allocated)
     max_rects: usize,
-    /// Uniform buffer for screen dimensions
     uniform_buffer: wgpu::Buffer,
     uniform_bind_group: wgpu::BindGroup,
 }
@@ -71,13 +57,11 @@ impl RectRenderer {
     pub fn new(device: &wgpu::Device, surface_format: wgpu::TextureFormat) -> Self {
         let max_rects = 1024;
 
-        // Create shader module
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Rect Shader"),
             source: wgpu::ShaderSource::Wgsl(RECT_SHADER.into()),
         });
 
-        // Create uniform buffer
         let uniforms = Uniforms {
             screen_size: [1920.0, 1080.0],
             _padding: [0.0; 2],
@@ -151,7 +135,6 @@ impl RectRenderer {
             cache: None,
         });
 
-        // Pre-allocate buffers
         let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Rect Vertex Buffer"),
             size: (max_rects * 4 * std::mem::size_of::<RectVertex>()) as u64,
@@ -196,7 +179,6 @@ impl RectRenderer {
         for (i, rect) in rects.iter().enumerate().take(self.max_rects) {
             let base = (i * 4) as u32;
 
-            // Four corners: top-left, top-right, bottom-right, bottom-left
             self.vertices.push(RectVertex {
                 position: [rect.x, rect.y],
                 color: rect.color,
@@ -214,7 +196,6 @@ impl RectRenderer {
                 color: rect.color,
             });
 
-            // Two triangles per rect
             self.indices.push(base);
             self.indices.push(base + 1);
             self.indices.push(base + 2);
@@ -265,7 +246,6 @@ struct VertexOutput {
 @vertex
 fn vs_main(in: VertexInput) -> VertexOutput {
     var out: VertexOutput;
-    // Convert pixel coordinates to NDC (-1 to 1)
     let x = (in.position.x / uniforms.screen_size.x) * 2.0 - 1.0;
     let y = 1.0 - (in.position.y / uniforms.screen_size.y) * 2.0;
     out.clip_position = vec4<f32>(x, y, 0.0, 1.0);

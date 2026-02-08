@@ -2,10 +2,23 @@
 //!
 //! This is the main loop that ties GPU, editor, and text rendering together.
 
+use crate::activity_bar::ActivityBar;
+use crate::breadcrumb::BreadcrumbBar;
+use crate::cursor::CursorRenderer;
 use crate::editor::Editor;
 use crate::gpu::GpuContext;
+use crate::guard::Guard;
+use crate::gutter::Gutter;
 use crate::modes::UiMode;
+use crate::organism::{self, SharedOrganismState};
+use crate::rect_renderer::RectRenderer;
+use crate::scrollbar::Scrollbar;
+use crate::status_bar::StatusBar;
+use crate::tab_bar::TabBar;
+use crate::ui::{LayoutConstants, LayoutZones};
+
 use std::sync::Arc;
+use std::time::Instant;
 use tracing::info;
 use winit::application::ApplicationHandler;
 use winit::dpi::LogicalSize;
@@ -19,28 +32,19 @@ use glyphon::{
     Resolution, Shaping, SwashCache, TextArea, TextAtlas, TextBounds, TextRenderer, Viewport,
 };
 
-/// Font metrics
-const FONT_SIZE: f32 = 16.0;
-const LINE_HEIGHT: f32 = 22.0;
-const LEFT_PADDING: f32 = 8.0;
-const TOP_PADDING: f32 = 8.0;
-use crate::rect_renderer::RectRenderer;
-use crate::ui::{LayoutZones, LayoutConstants};
-use crate::tab_bar::TabBar;
-use crate::activity_bar::ActivityBar;
-use crate::gutter::Gutter;
-use crate::status_bar::StatusBar;
-use crate::cursor::CursorRenderer;
-use crate::breadcrumb::BreadcrumbBar;
-use crate::scrollbar::Scrollbar;
-use crate::organism::{self, SharedOrganismState};
-use crate::guard::Guard;
-use std::time::{Duration, Instant};
+// ─── Theme ───
+const BG_COLOR: wgpu::Color = wgpu::Color {
+    r: 0.102,
+    g: 0.106,
+    b: 0.149,
+    a: 1.0,
+}; // #1a1b26
 
-/// Frame timing state (Task 10)
+// ─── Performance (Task 10) ───
+
 pub struct FrameTimer {
     last_frame: Instant,
-    frame_times: [f32; 60], // Rolling window
+    frame_times: [f32; 60],
     frame_index: usize,
     pub avg_frame_time_ms: f32,
 }
@@ -73,9 +77,7 @@ impl Default for FrameTimer {
     }
 }
 
-/// Pre-allocated render collections (avoid allocating in hot loop) (Task 10)
 pub struct RenderBatch {
-    /// Pre-allocated rectangle collection
     pub rects: Vec<crate::rect_renderer::Rect>,
 }
 
@@ -105,45 +107,21 @@ impl Default for RenderBatch {
     }
 }
 
-/// Theme colors (Forge Dark — matching forge-renderer theme)
-const BG_COLOR: wgpu::Color = wgpu::Color {
-    r: 0.102,
-    g: 0.106,
-    b: 0.149,
-    a: 1.0,
-}; // #1a1b26
+// ─── Application ───
 
 pub struct Application {
-    /// File path to open (from CLI)
     file_path: Option<String>,
-    /// Created after window is ready
     state: Option<AppState>,
-    /// Keyboard modifier state
     modifiers: ModifiersState,
-    /// Current UI mode
     current_mode: UiMode,
 }
 
+/// Unified application state — everything lives here after init
 struct AppState {
     window: Arc<Window>,
     gpu: GpuContext,
-    editor: Editor,
-    // Text rendering (glyphon 0.7)
-    state: Option<ForgeApplication>,
-    /// Keyboard modifier state
-    modifiers: ModifiersState,
-}
 
-/// The main application state (Task 12)
-struct ForgeApplication {
-    window: Arc<Window>,
-    // GPU resources
-    device: wgpu::Device,
-    queue: wgpu::Queue,
-    surface: wgpu::Surface<'static>,
-    config: wgpu::SurfaceConfiguration,
-
-    // Text rendering
+    // Text rendering (glyphon)
     font_system: FontSystem,
     swash_cache: SwashCache,
     cache: Cache,
@@ -152,13 +130,13 @@ struct ForgeApplication {
     text_renderer: TextRenderer,
     glyphon_buffer: GlyphonBuffer,
 
-    // Editor state
+    // Editor
     editor: Editor,
 
-    // NEW: Rectangle renderer
+    // Rectangle renderer (Task 1)
     rect_renderer: RectRenderer,
 
-    // NEW: UI components
+    // UI components (Tasks 2-8)
     layout: LayoutZones,
     tab_bar: TabBar,
     activity_bar: ActivityBar,
@@ -168,16 +146,16 @@ struct ForgeApplication {
     breadcrumb_bar: BreadcrumbBar,
     scrollbar: Scrollbar,
 
-    // NEW: UI state
+    // UI state
     sidebar_open: bool,
     ai_panel_open: bool,
     last_mouse_position: Option<(f32, f32)>,
 
-    // NEW: Performance
+    // Performance (Task 10)
     frame_timer: FrameTimer,
     render_batch: RenderBatch,
 
-    // NEW: Organism
+    // Organism (Task 11)
     organism_state: SharedOrganismState,
 }
 
@@ -200,18 +178,8 @@ impl Application {
 
         // Init GPU
         let gpu = GpuContext::new(window.clone()).expect("Failed to initialize GPU");
-        info!(
-            "GPU initialized: {}x{}",
-            gpu.config.width, gpu.config.height
-        );
-        // Init GPU (using GpuContext logic inline or extracting parts)
-        // Since ForgeApplication needs individual fields, we'll extract them from GpuContext or recreate logic.
-        // But GpuContext is in crate::gpu. Let's use it to bootstrap then destructure if needed,
-        // OR just keep GpuContext inside ForgeApplication if strictly needed, but the Task 12 struct flattened it.
-        // Let's flatten it as per Task 12 instructions.
-
-        let gpu = GpuContext::new(window.clone()).expect("Failed to initialize GPU");
         let (width, height) = gpu.size();
+        info!("GPU initialized: {}x{}", width, height);
 
         // Init editor
         let editor = if let Some(ref path) = self.file_path {
@@ -221,8 +189,7 @@ impl Application {
             })
         } else {
             let mut ed = Editor::new();
-            // Show welcome text in empty buffer
-            let welcome = "Welcome to Forge Editor\n\nOpen a file: forge <filename>\n\nShortcuts:\n  Ctrl+S  Save\n  Ctrl+Z  Undo\n  Ctrl+Y  Redo\n  Arrows  Navigate\n  Home    Start of line\n  End     End of line\n";
+            let welcome = "Welcome to Forge Editor\n\nOpen a file: forge <filename>\n\nShortcuts:\n  Ctrl+S  Save\n  Ctrl+Z  Undo\n  Ctrl+Y  Redo\n  Ctrl+M  Cycle UI Mode\n  Arrows  Navigate\n  Home    Start of line\n  End     End of line\n";
             for c in welcome.chars() {
                 ed.insert_char(c);
             }
@@ -233,7 +200,7 @@ impl Application {
         // Set window title
         window.set_title(&editor.window_title());
 
-        // Init text rendering with glyphon 0.7
+        // Init text rendering (glyphon 0.7)
         let mut font_system = FontSystem::new();
         let swash_cache = SwashCache::new();
         let cache = Cache::new(&gpu.device);
@@ -245,39 +212,24 @@ impl Application {
             wgpu::MultisampleState::default(),
             None,
         );
-        let mut glyphon_buffer =
-            GlyphonBuffer::new(&mut font_system, Metrics::new(FONT_SIZE, LINE_HEIGHT));
-
-        // Set initial buffer size
-        let (w, h) = gpu.size();
-        glyphon_buffer.set_size(
+        let mut glyphon_buffer = GlyphonBuffer::new(
             &mut font_system,
-            Some(w as f32 - LEFT_PADDING),
-            Some(h as f32),
+            Metrics::new(LayoutConstants::FONT_SIZE, LayoutConstants::LINE_HEIGHT),
         );
+        glyphon_buffer.set_size(&mut font_system, Some(width as f32), Some(height as f32));
 
-        self.state = Some(AppState {
-            window,
-            gpu,
-            editor,
-            GlyphonBuffer::new(&mut font_system, Metrics::new(LayoutConstants::FONT_SIZE, LayoutConstants::LINE_HEIGHT));
+        // Init rectangle renderer (Task 1)
+        let rect_renderer = RectRenderer::new(&gpu.device, gpu.format());
 
-        glyphon_buffer.set_size(
-            &mut font_system,
-            Some(width as f32),
-            Some(height as f32),
-        );
-
-        // Task 12: Initialization
-        let rect_renderer = RectRenderer::new(&gpu.device, gpu.config.format);
-
+        // Compute layout (Task 2)
         let layout = LayoutZones::compute(
             width as f32,
             height as f32,
-            true, // sidebar open initially for demo
-            false, // AI panel closed initially
+            true,  // sidebar open initially
+            false, // AI panel closed
         );
 
+        // Init UI components (Tasks 3-8)
         let mut tab_bar = TabBar::new();
         let activity_bar = ActivityBar::new();
         let gutter = Gutter::new();
@@ -285,8 +237,6 @@ impl Application {
         let cursor_renderer = CursorRenderer::new();
         let mut breadcrumb_bar = BreadcrumbBar::new();
         let scrollbar = Scrollbar::new();
-        let frame_timer = FrameTimer::new();
-        let render_batch = RenderBatch::new();
 
         if let Some(path) = &self.file_path {
             let filename = std::path::Path::new(path)
@@ -297,18 +247,20 @@ impl Application {
             breadcrumb_bar.update_from_path(path);
         }
 
+        // Performance (Task 10)
+        let frame_timer = FrameTimer::new();
+        let render_batch = RenderBatch::new();
+
+        // Organism (Task 11)
         let organism_state = organism::new_shared_state();
         let _heartbeat = organism::start_heartbeat(
             organism_state.clone(),
             std::time::Duration::from_millis(250),
         );
 
-        self.state = Some(ForgeApplication {
+        self.state = Some(AppState {
             window,
-            device: gpu.device,
-            queue: gpu.queue,
-            surface: gpu.surface,
-            config: gpu.config,
+            gpu,
             font_system,
             swash_cache,
             cache,
@@ -316,55 +268,6 @@ impl Application {
             viewport,
             text_renderer,
             glyphon_buffer,
-        });
-    }
-
-    fn render(state: &mut AppState, mode: &UiMode) {
-        // Layout config from mode
-        let mode_config = mode.layout_config();
-
-        // Build the display text with line numbers (if gutter enabled)
-        let text = state.editor.text();
-        let scroll_top = state.editor.scroll_y as usize;
-        let (_, h) = state.gpu.size();
-        let visible_lines = (h as f32 / LINE_HEIGHT) as usize + 1;
-
-        let mut display = String::new();
-        let lines: Vec<&str> = text.lines().collect();
-        let total_lines = lines.len().max(1);
-        let width_digits = total_lines.to_string().len().max(3);
-
-        for (i, line) in lines
-            .iter()
-            .enumerate()
-            .skip(scroll_top)
-            .take(visible_lines)
-        {
-            if mode_config.gutter {
-                let line_num = i + 1;
-                display.push_str(&format!(
-                    "{:>width$}  {}\n",
-                    line_num,
-                    line,
-                    width = width_digits
-                ));
-            } else {
-                display.push_str(&format!("{}\n", line));
-            }
-        }
-        // Handle empty buffer
-        if display.is_empty() {
-            if mode_config.gutter {
-                display.push_str(&format!("{:>width$}  \n", 1, width = width_digits));
-            } else {
-                display.push_str("\n");
-            }
-        }
-
-        // Update glyphon buffer with display text
-        state.glyphon_buffer.set_text(
-            &mut state.font_system,
-            &display,
             editor,
             rect_renderer,
             layout,
@@ -384,54 +287,46 @@ impl Application {
         });
     }
 
-    fn render(state: &mut ForgeApplication) -> Result<(), wgpu::SurfaceError> {
+    /// Main render function — called every frame
+    fn render(state: &mut AppState, mode: &UiMode) {
         state.frame_timer.begin_frame();
 
-        // Rule 2: Guard against zero-size windows
-        if state.config.width == 0 || state.config.height == 0 {
-            return Ok(());
+        let (width, height) = state.gpu.size();
+
+        // Guard against zero-size windows (Task 9 Rule 2)
+        if width == 0 || height == 0 {
+            return;
         }
 
-        // Rule 1: Never unwrap in render path
-        let surface_texture = match state.surface.get_current_texture() {
-            Ok(texture) => texture,
-            Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
-                state.surface.configure(&state.device, &state.config);
-                return Ok(());
-            }
-            Err(wgpu::SurfaceError::OutOfMemory) => {
-                tracing::error!("GPU out of memory!");
-                return Ok(());
-            }
-            Err(e) => {
-                tracing::warn!("Surface error: {:?}, skipping frame", e);
-                return Ok(());
-            }
-        };
+        let mode_config = mode.layout_config();
 
-        let view = surface_texture.texture.create_view(&wgpu::TextureViewDescriptor::default());
-
-        // --- COLLECT ALL RECTANGLES (no allocations - reuse batch) ---
+        // ─── COLLECT RECTANGLES ───
         state.render_batch.clear();
 
-        // 1. Background rectangles (layout chrome)
+        // 1. Background rectangles
         let bg_rects = state.layout.background_rects();
         state.render_batch.extend(&bg_rects);
 
         // 2. Tab bar
-        let tab_rects = state.tab_bar.render_rects(&state.layout.tab_bar);
-        state.render_batch.extend(&tab_rects);
+        if mode_config.tab_bar {
+            let tab_rects = state.tab_bar.render_rects(&state.layout.tab_bar);
+            state.render_batch.extend(&tab_rects);
+        }
 
         // 3. Activity bar
-        let ab_rects = state.activity_bar.render_rects(&state.layout.activity_bar);
-        state.render_batch.extend(&ab_rects);
+        if mode_config.activity_bar {
+            let ab_rects = state.activity_bar.render_rects(&state.layout.activity_bar);
+            state.render_batch.extend(&ab_rects);
+        }
 
-        // 4. Gutter (line numbers + breakpoints)
-        state.gutter.scroll_top = state.editor.scroll_top();
-        state.gutter.total_lines = state.editor.total_lines();
-        state.gutter.cursor_line = state.editor.cursor_line();
-        let gutter_rects = state.gutter.render_rects(&state.layout.gutter);
-        state.render_batch.extend(&gutter_rects);
+        // 4. Gutter
+        if mode_config.gutter {
+            state.gutter.scroll_top = state.editor.scroll_top();
+            state.gutter.total_lines = state.editor.total_lines();
+            state.gutter.cursor_line = state.editor.cursor_line();
+            let gutter_rects = state.gutter.render_rects(&state.layout.gutter);
+            state.render_batch.extend(&gutter_rects);
+        }
 
         // 5. Current line highlight
         if let Some(hl_rect) = state.cursor_renderer.current_line_rect(
@@ -443,7 +338,9 @@ impl Application {
         }
 
         // 6. Cursor
-        state.cursor_renderer.update();
+        if mode_config.cursor_blink {
+            state.cursor_renderer.update();
+        }
         if let Some(cursor_rect) = state.cursor_renderer.render_rect(
             state.editor.cursor_line(),
             state.editor.cursor_col(),
@@ -464,62 +361,40 @@ impl Application {
         state.render_batch.extend(&sb_rects);
 
         // 8. Breadcrumb separators
-        let bc_rects = state.breadcrumb_bar.render_rects(&state.layout.breadcrumb_bar);
-        state.render_batch.extend(&bc_rects);
-
-        // --- UPLOAD & RENDER RECTANGLES ---
-        state.rect_renderer.prepare(&state.queue, &state.render_batch.rects);
-
-        // --- PREPARE TEXT ---
-        // Update status bar with current state
-        state.status_bar_state.cursor_line = state.editor.cursor_line() + 1;
-        state.status_bar_state.cursor_col = state.editor.cursor_col() + 1;
-        state.status_bar_state.frame_time_ms = state.frame_timer.avg_frame_time_ms;
-
-        // Read organism state (non-blocking)
-        if let Some(org_state) = organism::read_state(&state.organism_state) {
-            state.status_bar_state.confidence_score = Some(org_state.confidence_score);
+        if mode_config.breadcrumbs {
+            let bc_rects = state
+                .breadcrumb_bar
+                .render_rects(&state.layout.breadcrumb_bar);
+            state.render_batch.extend(&bc_rects);
         }
 
-        // Collect text for Glyphon
-        // For simplicity in this step, we'll mostly render the editor text as before,
-        // but offset to the editor zone.
-        // Also render tab titles, gutter numbers, status bar text.
+        // ─── UPLOAD RECTANGLES ───
+        state
+            .rect_renderer
+            .prepare(&state.gpu.queue, &state.render_batch.rects);
 
-        let mut text_display = String::new();
+        // ─── UPDATE STATUS BAR ───
+        if mode_config.status_bar {
+            state.status_bar_state.cursor_line = state.editor.cursor_line() + 1;
+            state.status_bar_state.cursor_col = state.editor.cursor_col() + 1;
+            state.status_bar_state.frame_time_ms = state.frame_timer.avg_frame_time_ms;
 
-        // Editor text
+            if let Some(org_state) = organism::read_state(&state.organism_state) {
+                state.status_bar_state.confidence_score = Some(org_state.confidence_score);
+            }
+        }
+
+        // ─── TEXT ───
         let scroll_top = state.editor.scroll_top();
-        let visible_lines = (state.layout.editor.height / LayoutConstants::LINE_HEIGHT) as usize + 1;
-        let text = state.editor.text();
-
-        // We need to render text line by line to handle positioning?
-        // Glyphon supports a buffer. Let's try to populate the buffer with the visible text.
-        // However, standard glyphon usage is one large buffer or multiple TextAreas.
-        // Let's use multiple TextAreas for UI elements if possible, or clear/reuse buffer.
-        // For now, let's just render the editor text in the editor zone.
-
-        // Rule 3: Guard against index out of bounds
-        // Rule 5: Guard against division by zero (already handled by min(1) or similar logic in logic)
-
-        let lines: Vec<std::borrow::Cow<str>> = text.lines().map(|l| std::borrow::Cow::from(l)).collect();
-        // Note: ropey iterator might need care. state.editor.text() returns String (Cow?)?
-        // Editor::text() usually returns Rope or String. In `editor.rs` check implementation.
-        // Assuming it returns `Rope` or something compatible.
-        // The previous `application.rs` used `state.editor.text()` which returned `Rope` or `String`.
+        let visible_lines =
+            (state.layout.editor.height / LayoutConstants::LINE_HEIGHT) as usize + 1;
 
         let mut display_text = String::new();
-
-        // Use Guard for safe line access (Rule 3)
-        // Actually, we iterate lines.
-
         for i in 0..visible_lines {
             let line_idx = scroll_top + i;
             if line_idx >= state.editor.total_lines() {
                 break;
             }
-
-            // Guard: Safe line access
             let line_text = Guard::get_line(state.editor.buffer.rope(), line_idx);
             display_text.push_str(&line_text);
             if !line_text.ends_with('\n') {
@@ -527,7 +402,6 @@ impl Application {
             }
         }
 
-        // Update glyphon buffer
         state.glyphon_buffer.set_text(
             &mut state.font_system,
             &display_text,
@@ -540,16 +414,53 @@ impl Application {
             .glyphon_buffer
             .shape_until_scroll(&mut state.font_system, false);
 
-        // Get surface texture
+        // Update viewport
+        state
+            .viewport
+            .update(&state.gpu.queue, Resolution { width, height });
+
+        // Position text at editor zone
+        let editor_left = state.layout.editor.x;
+        let editor_top = state.layout.editor.y;
+
+        if let Err(e) = state.text_renderer.prepare(
+            &state.gpu.device,
+            &state.gpu.queue,
+            &mut state.font_system,
+            &mut state.text_atlas,
+            &state.viewport,
+            [TextArea {
+                buffer: &state.glyphon_buffer,
+                left: editor_left,
+                top: editor_top,
+                scale: 1.0,
+                bounds: TextBounds {
+                    left: editor_left as i32,
+                    top: editor_top as i32,
+                    right: (state.layout.editor.x + state.layout.editor.width) as i32,
+                    bottom: (state.layout.editor.y + state.layout.editor.height) as i32,
+                },
+                default_color: GlyphonColor::rgb(224, 227, 236),
+                custom_glyphs: &[],
+            }],
+            &mut state.swash_cache,
+        ) {
+            tracing::warn!("Text prepare error: {:?}", e);
+        }
+
+        // ─── GPU RENDER PASS ───
         let surface_texture = match state.gpu.surface.get_current_texture() {
             Ok(t) => t,
             Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
-                let (w, h) = state.gpu.size();
-                state.gpu.resize(w, h);
+                state.gpu.resize(width, height);
+                return;
+            }
+            Err(wgpu::SurfaceError::OutOfMemory) => {
+                tracing::error!("GPU out of memory!");
                 return;
             }
             Err(e) => {
-                tracing::error!("Surface error: {}", e);
+                tracing::warn!("Surface error: {:?}, skipping frame", e);
                 return;
             }
         };
@@ -558,41 +469,6 @@ impl Application {
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
-        let (width, height) = state.gpu.size();
-
-        // Update viewport
-        state
-            .viewport
-            .update(&state.gpu.queue, Resolution { width, height });
-
-        // Prepare text rendering
-        state
-            .text_renderer
-            .prepare(
-                &state.gpu.device,
-                &state.gpu.queue,
-                &mut state.font_system,
-                &mut state.text_atlas,
-                &state.viewport,
-                [TextArea {
-                    buffer: &state.glyphon_buffer,
-                    left: LEFT_PADDING,
-                    top: TOP_PADDING,
-                    scale: 1.0,
-                    bounds: TextBounds {
-                        left: 0,
-                        top: 0,
-                        right: width as i32,
-                        bottom: height as i32,
-                    },
-                    default_color: GlyphonColor::rgb(224, 227, 236),
-                    custom_glyphs: &[],
-                }],
-                &mut state.swash_cache,
-            )
-            .unwrap();
-
-        // Render
         let mut encoder =
             state
                 .gpu
@@ -600,53 +476,6 @@ impl Application {
                 .create_command_encoder(&wgpu::CommandEncoderDescriptor {
                     label: Some("forge-render"),
                 });
-
-        {
-            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("forge-render-pass"),
-        state.glyphon_buffer.shape_until_scroll(&mut state.font_system, false);
-
-        // Update viewport
-        state.viewport.update(&state.queue, Resolution {
-            width: state.config.width,
-            height: state.config.height
-        });
-
-        // Prepare text rendering
-        // We position the editor text at layout.editor.x, layout.editor.y
-        let editor_left = state.layout.editor.x as i32;
-        let editor_top = state.layout.editor.y as i32;
-
-        // Note: We are only rendering editor text for now to keep it simple and working.
-        // Ideally we would render all UI text.
-
-        state.text_renderer.prepare(
-            &state.device,
-            &state.queue,
-            &mut state.font_system,
-            &mut state.text_atlas,
-            &state.viewport,
-            [TextArea {
-                buffer: &state.glyphon_buffer,
-                left: editor_left as f32,
-                top: editor_top as f32,
-                scale: 1.0,
-                bounds: TextBounds {
-                    left: editor_left,
-                    top: editor_top,
-                    right: (state.layout.editor.x + state.layout.editor.width) as i32,
-                    bottom: (state.layout.editor.y + state.layout.editor.height) as i32,
-                },
-                default_color: GlyphonColor::rgb(224, 227, 236),
-                custom_glyphs: &[],
-            }],
-            &mut state.swash_cache,
-        ).unwrap();
-
-        // --- GPU RENDER PASS ---
-        let mut encoder = state.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Render Encoder"),
-        });
 
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -664,53 +493,50 @@ impl Application {
                 occlusion_query_set: None,
             });
 
-            state
-                .text_renderer
-                .render(&state.text_atlas, &state.viewport, &mut pass)
-                .unwrap();
+            // Rectangles first (background)
+            state.rect_renderer.render(&mut render_pass);
+
+            // Text on top
+            if let Err(e) =
+                state
+                    .text_renderer
+                    .render(&state.text_atlas, &state.viewport, &mut render_pass)
+            {
+                tracing::warn!("Text render error: {:?}", e);
+            }
         }
 
         state.gpu.queue.submit(std::iter::once(encoder.finish()));
         surface_texture.present();
-            // Render rectangles first (background)
-            state.rect_renderer.render(&mut render_pass);
-
-            // Render text on top
-            state.text_renderer.render(&state.text_atlas, &state.viewport, &mut render_pass).unwrap_or_else(|e| {
-                tracing::warn!("Text render error: {:?}", e);
-            });
-        }
-
-        state.queue.submit(std::iter::once(encoder.finish()));
-        surface_texture.present();
 
         state.frame_timer.end_frame();
-        Ok(())
     }
 
-    fn handle_input(state: &mut ForgeApplication, event: &WindowEvent) {
+    /// Handle mouse/input events on UI components
+    fn handle_input(state: &mut AppState, event: &WindowEvent) {
         match event {
-            WindowEvent::MouseInput { state: element_state, button, .. } => {
+            WindowEvent::MouseInput {
+                state: element_state,
+                button,
+                ..
+            } => {
                 if *element_state == ElementState::Pressed
                     && *button == winit::event::MouseButton::Left
                 {
-                    // Check what was clicked
                     if let Some((mx, my)) = state.last_mouse_position {
                         if state.layout.activity_bar.contains(mx, my) {
-                            if let Some(item) = state.activity_bar.handle_click(my, &state.layout.activity_bar) {
-                                // Toggle sidebar based on click
+                            if let Some(item) = state
+                                .activity_bar
+                                .handle_click(my, &state.layout.activity_bar)
+                            {
                                 if item == crate::activity_bar::ActivityItem::AiAgent {
-                                     state.ai_panel_open = !state.ai_panel_open;
-                                } else {
-                                     // For other items, maybe ensure sidebar is open?
-                                     // For now just toggle sidebar if it's not the AI agent (simplification)
-                                     // state.sidebar_open = !state.sidebar_open;
+                                    state.ai_panel_open = !state.ai_panel_open;
                                 }
-
                                 // Recompute layout
+                                let (w, h) = state.gpu.size();
                                 state.layout = LayoutZones::compute(
-                                    state.config.width as f32,
-                                    state.config.height as f32,
+                                    w as f32,
+                                    h as f32,
                                     state.sidebar_open,
                                     state.ai_panel_open,
                                 );
@@ -724,7 +550,7 @@ impl Application {
                         }
                     }
                 } else if *element_state == ElementState::Released {
-                     state.scrollbar.stop_drag();
+                    state.scrollbar.stop_drag();
                 }
             }
             WindowEvent::CursorMoved { position, .. } => {
@@ -733,13 +559,16 @@ impl Application {
                 state.last_mouse_position = Some((mx, my));
 
                 if state.layout.activity_bar.contains(mx, my) {
-                    state.activity_bar.handle_hover(my, &state.layout.activity_bar);
+                    state
+                        .activity_bar
+                        .handle_hover(my, &state.layout.activity_bar);
                 } else {
                     state.activity_bar.hovered_item = None;
                 }
 
                 if state.scrollbar.dragging {
-                    let visible = (state.layout.editor.height / LayoutConstants::LINE_HEIGHT) as usize;
+                    let visible =
+                        (state.layout.editor.height / LayoutConstants::LINE_HEIGHT) as usize;
                     let new_scroll = state.scrollbar.update_drag(
                         my,
                         &state.layout.scrollbar_v,
@@ -749,28 +578,12 @@ impl Application {
                     state.editor.set_scroll_top(new_scroll);
                 }
             }
-            WindowEvent::KeyboardInput { event, .. } => {
-                // Reset cursor blink on any keypress
-                state.cursor_renderer.reset_blink();
-
-                // Existing keyboard handling adapted
-                if event.state != ElementState::Pressed {
-                    return;
-                }
-
-                // We need to access modifiers from the outer Application struct, but we are inside a static method
-                // or passed as arg. Here we assume we handle it or modifiers are stored in state.
-                // Actually `handle_input` in Task 12 example was a method on `ForgeApplication` or `Application`.
-                // We'll handle keyboard logic here directly or call editor methods.
-
-                // NOTE: Modifiers handling is tricky here because they are stored in `Application` not `ForgeApplication`.
-                // We might need to pass modifiers or move modifiers to `ForgeApplication`.
-                // Let's assume we handle it in `window_event` and pass relevant info or move modifiers to ForgeApplication.
-            }
             _ => {}
         }
     }
 }
+
+// ─── winit ApplicationHandler ───
 
 impl ApplicationHandler for Application {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
@@ -785,34 +598,22 @@ impl ApplicationHandler for Application {
         _window_id: WindowId,
         event: WindowEvent,
     ) {
-        match event {
-            WindowEvent::CloseRequested => {
         let state = match self.state.as_mut() {
             Some(s) => s,
             None => return,
         };
 
-        // Handle specific window events first
-        match &event {
-             WindowEvent::CloseRequested => {
+        match event {
+            WindowEvent::CloseRequested => {
                 info!("Goodbye from Forge 🔥");
                 event_loop.exit();
             }
 
             WindowEvent::Resized(size) => {
-                if let Some(state) = self.state.as_mut() {
-                    state.gpu.resize(size.width, size.height);
-                    state.glyphon_buffer.set_size(
-                        &mut state.font_system,
-                        Some(size.width as f32 - LEFT_PADDING),
-                        Some(size.height as f32),
-                    );
                 if size.width > 0 && size.height > 0 {
-                    state.config.width = size.width;
-                    state.config.height = size.height;
-                    state.surface.configure(&state.device, &state.config);
+                    state.gpu.resize(size.width, size.height);
 
-                    // Task 12: Resize handler
+                    // Recompute layout
                     state.layout = LayoutZones::compute(
                         size.width as f32,
                         size.height as f32,
@@ -820,7 +621,11 @@ impl ApplicationHandler for Application {
                         state.ai_panel_open,
                     );
 
-                    state.rect_renderer.resize(&state.queue, size.width as f32, size.height as f32);
+                    state.rect_renderer.resize(
+                        &state.gpu.queue,
+                        size.width as f32,
+                        size.height as f32,
+                    );
 
                     state.glyphon_buffer.set_size(
                         &mut state.font_system,
@@ -836,139 +641,96 @@ impl ApplicationHandler for Application {
                 self.modifiers = mods.state();
             }
 
-            WindowEvent::KeyboardInput { event, .. } => {
-                if event.state != ElementState::Pressed {
+            WindowEvent::KeyboardInput {
+                event: ref key_event,
+                ..
+            } => {
+                // Reset cursor blink on any keypress
+                state.cursor_renderer.reset_blink();
+
+                if key_event.state != ElementState::Pressed {
                     return;
                 }
 
                 let ctrl = self.modifiers.control_key();
 
-                if let Some(state) = self.state.as_mut() {
-                    match event.logical_key {
-            WindowEvent::KeyboardInput { event: key_event, .. } => {
-                 // Forward to handle_input helper (for blink reset etc)
-                 Application::handle_input(state, &event);
-
-                 // Editor logic (copied from original application.rs but using state fields)
-                 if key_event.state == ElementState::Pressed {
-                    let ctrl = self.modifiers.control_key();
-
-                    match key_event.logical_key {
-                        // Ctrl shortcuts
-                        Key::Character(ref c) if ctrl => match c.as_str() {
-                            "s" => {
-                                if let Err(e) = state.editor.save() {
-                                    tracing::error!("Save failed: {}", e);
-                                }
-                                state.window.set_title(&state.editor.window_title());
+                match key_event.logical_key {
+                    // Ctrl shortcuts
+                    Key::Character(ref c) if ctrl => match c.as_str() {
+                        "s" => {
+                            if let Err(e) = state.editor.save() {
+                                tracing::error!("Save failed: {}", e);
                             }
-                            "z" => {
-                                state.editor.buffer.undo();
-                            }
-                            "y" => {
-                                state.editor.buffer.redo();
-                            }
-                            "m" => {
-                                // Mutate mode (allowed because state only borrows self.state)
-                                self.current_mode = self.current_mode.next();
-                                // We'll update title at the end
-                            }
-                            _ => {}
-                        },
-
-                        // Navigation keys
-                        Key::Named(NamedKey::ArrowLeft) => state.editor.move_left(),
-                        Key::Named(NamedKey::ArrowRight) => state.editor.move_right(),
-                        Key::Named(NamedKey::ArrowUp) => state.editor.move_up(),
-                        Key::Named(NamedKey::ArrowDown) => state.editor.move_down(),
-                        Key::Named(NamedKey::Home) => state.editor.move_home(),
-                        Key::Named(NamedKey::End) => state.editor.move_end(),
-
-                        // Editing keys
-                        Key::Named(NamedKey::Backspace) => state.editor.backspace(),
-                        Key::Named(NamedKey::Delete) => state.editor.delete(),
-                        Key::Named(NamedKey::Enter) => state.editor.insert_newline(),
-                        Key::Named(NamedKey::Tab) => {
-                            // Insert 4 spaces
-                            for _ in 0..4 {
-                                state.editor.insert_char(' ');
-                            }
+                            state.window.set_title(&state.editor.window_title());
                         }
-
-                        // Character input
-                        Key::Character(ref c) if !ctrl => {
-                            for ch in c.chars() {
-                                state.editor.insert_char(ch);
-                            }
+                        "z" => {
+                            state.editor.buffer.undo();
                         }
-
+                        "y" => {
+                            state.editor.buffer.redo();
+                        }
+                        "m" => {
+                            self.current_mode = self.current_mode.next();
+                        }
                         _ => {}
+                    },
+
+                    // Navigation keys
+                    Key::Named(NamedKey::ArrowLeft) => state.editor.move_left(),
+                    Key::Named(NamedKey::ArrowRight) => state.editor.move_right(),
+                    Key::Named(NamedKey::ArrowUp) => state.editor.move_up(),
+                    Key::Named(NamedKey::ArrowDown) => state.editor.move_down(),
+                    Key::Named(NamedKey::Home) => state.editor.move_home(),
+                    Key::Named(NamedKey::End) => state.editor.move_end(),
+
+                    // Editing keys
+                    Key::Named(NamedKey::Backspace) => state.editor.backspace(),
+                    Key::Named(NamedKey::Delete) => state.editor.delete(),
+                    Key::Named(NamedKey::Enter) => state.editor.insert_newline(),
+                    Key::Named(NamedKey::Tab) => {
+                        for _ in 0..4 {
+                            state.editor.insert_char(' ');
+                        }
                     }
 
-                    // Ensure cursor is visible and request redraw
-                    let visible_lines = (state.gpu.config.height as f32 / LINE_HEIGHT) as usize;
-                    state.editor.ensure_cursor_visible(visible_lines);
+                    // Character input
+                    Key::Character(ref c) if !ctrl => {
+                        for ch in c.chars() {
+                            state.editor.insert_char(ch);
+                        }
+                    }
 
-                    let title = state.editor.window_title();
-                    state.window.set_title(&format!("{} - {}", title, self.current_mode.label()));
-                    state.window.request_redraw();
+                    _ => {}
                 }
+
+                // Ensure cursor visible and request redraw
+                let visible_lines =
+                    (state.layout.editor.height / LayoutConstants::LINE_HEIGHT) as usize;
+                state.editor.ensure_cursor_visible(visible_lines);
+
+                let title = state.editor.window_title();
+                state
+                    .window
+                    .set_title(&format!("{} - {}", title, self.current_mode.label()));
+                state.window.request_redraw();
             }
 
             WindowEvent::MouseWheel { delta, .. } => {
-                if let Some(state) = self.state.as_mut() {
-                    let scroll = match delta {
-                        winit::event::MouseScrollDelta::LineDelta(_, y) => -y as f64 * 3.0,
-                        winit::event::MouseScrollDelta::PixelDelta(pos) => -pos.y / LINE_HEIGHT as f64,
-                    };
-                    state.editor.scroll(scroll);
-                    state.window.request_redraw();
-                }
-            }
-
-            WindowEvent::RedrawRequested => {
-                if let Some(state) = self.state.as_mut() {
-                    Self::render(state, &self.current_mode);
-                }
-            }
-
-            _ => {}
-                    // Rule 4: Clamp scroll position
-                    // Ensure cursor is visible (this logic was in original, update it)
-                    let visible_lines = (state.layout.editor.height / LayoutConstants::LINE_HEIGHT) as usize;
-                    state.editor.ensure_cursor_visible(visible_lines);
-
-                    // Additional clamp from Task 9 Rule 4
-                    let total = state.editor.total_lines();
-                    let max_scroll = total.saturating_sub(1);
-                    // editor.scroll_top is accessed via getter usually, but if public field:
-                    // state.editor.scroll_top = state.editor.scroll_top.min(max_scroll);
-                    // But `Editor` struct might encapsulate it. `ensure_cursor_visible` handles it mostly.
-
-                    state.window.set_title(&state.editor.window_title());
-                    state.window.request_redraw();
-                 }
-            }
-
-            WindowEvent::MouseWheel { delta, .. } => {
-                Application::handle_input(state, &event); // For other mouse handling if needed
-
                 let scroll = match delta {
                     winit::event::MouseScrollDelta::LineDelta(_, y) => -y as f64 * 3.0,
-                    winit::event::MouseScrollDelta::PixelDelta(pos) => -pos.y / LayoutConstants::LINE_HEIGHT as f64,
+                    winit::event::MouseScrollDelta::PixelDelta(pos) => {
+                        -pos.y / LayoutConstants::LINE_HEIGHT as f64
+                    }
                 };
                 state.editor.scroll(scroll);
                 state.window.request_redraw();
             }
 
             WindowEvent::RedrawRequested => {
-                if let Err(e) = Application::render(state) {
-                     tracing::error!("Render error: {:?}", e);
-                }
+                Application::render(state, &self.current_mode);
             }
 
             _ => {
-                // Other input
                 Application::handle_input(state, &event);
             }
         }

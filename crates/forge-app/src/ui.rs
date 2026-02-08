@@ -1,28 +1,5 @@
 use crate::rect_renderer::Rect;
 
-/// Stub for UI constants and structures needed for Part 2 compilation.
-
-pub mod colors {
-    pub const CURRENT_LINE: [f32; 4] = [0.165, 0.176, 0.18, 1.0];
-    pub const ERROR: [f32; 4] = [0.937, 0.325, 0.314, 1.0];
-    pub const WARNING: [f32; 4] = [0.804, 0.682, 0.263, 1.0];
-    pub const STATUS_BAR: [f32; 4] = [0.0, 0.478, 0.8, 1.0];
-    pub const TEXT_DIM: [f32; 4] = [0.522, 0.522, 0.522, 1.0];
-    pub const TEXT_WHITE: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
-    pub const SUCCESS: [f32; 4] = [0.345, 0.663, 0.369, 1.0];
-    pub const CURSOR: [f32; 4] = [0.682, 0.686, 0.678, 1.0];
-    pub const SELECTION: [f32; 4] = [0.149, 0.31, 0.471, 0.5];
-    pub const TEXT_FG: [f32; 4] = [0.8, 0.8, 0.8, 1.0];
-}
-
-pub struct LayoutConstants;
-
-impl LayoutConstants {
-    pub const LINE_HEIGHT: f32 = 20.0;
-    pub const CHAR_WIDTH: f32 = 8.4;
-    pub const SMALL_FONT_SIZE: f32 = 12.0;
-}
-
 /// VS Code color scheme — dark theme
 pub mod colors {
     /// Activity bar background (#333333)
@@ -85,7 +62,7 @@ impl LayoutConstants {
     pub const AI_PANEL_WIDTH: f32 = 400.0;
     pub const SEPARATOR_SIZE: f32 = 1.0;
     pub const LINE_HEIGHT: f32 = 20.0;
-    pub const CHAR_WIDTH: f32 = 8.4;  // Approximate for monospace at 14px
+    pub const CHAR_WIDTH: f32 = 8.4;
     pub const FONT_SIZE: f32 = 14.0;
     pub const SMALL_FONT_SIZE: f32 = 12.0;
 }
@@ -116,7 +93,12 @@ pub struct Zone {
 
 impl Zone {
     pub fn new(x: f32, y: f32, width: f32, height: f32) -> Self {
-        Self { x, y, width, height }
+        Self {
+            x,
+            y,
+            width,
+            height,
+        }
     }
 
     pub fn contains(&self, px: f32, py: f32) -> bool {
@@ -156,8 +138,17 @@ impl LayoutZones {
             None
         };
 
-        let content_x = activity_w + if sidebar_open { LayoutConstants::SIDEBAR_WIDTH } else { 0.0 };
-        let ai_panel_w = if ai_panel_open { LayoutConstants::AI_PANEL_WIDTH } else { 0.0 };
+        let content_x = activity_w
+            + if sidebar_open {
+                LayoutConstants::SIDEBAR_WIDTH
+            } else {
+                0.0
+            };
+        let ai_panel_w = if ai_panel_open {
+            LayoutConstants::AI_PANEL_WIDTH
+        } else {
+            0.0
+        };
         let content_w = (window_width - content_x - ai_panel_w).max(100.0);
 
         let tab_y = 0.0;
@@ -184,15 +175,35 @@ impl LayoutZones {
         Self {
             window_width,
             window_height,
-            activity_bar: Zone::new(activity_x, 0.0, activity_w, window_height - LayoutConstants::STATUS_BAR_HEIGHT),
+            activity_bar: Zone::new(
+                activity_x,
+                0.0,
+                activity_w,
+                window_height - LayoutConstants::STATUS_BAR_HEIGHT,
+            ),
             sidebar,
             tab_bar: Zone::new(content_x, tab_y, content_w, LayoutConstants::TAB_BAR_HEIGHT),
-            breadcrumb_bar: Zone::new(content_x, breadcrumb_y, content_w, LayoutConstants::BREADCRUMB_HEIGHT),
+            breadcrumb_bar: Zone::new(
+                content_x,
+                breadcrumb_y,
+                content_w,
+                LayoutConstants::BREADCRUMB_HEIGHT,
+            ),
             gutter: Zone::new(content_x, editor_y, gutter_w, editor_h),
             editor: Zone::new(content_x + gutter_w, editor_y, editor_text_w, editor_h),
-            status_bar: Zone::new(0.0, status_y, window_width, LayoutConstants::STATUS_BAR_HEIGHT),
+            status_bar: Zone::new(
+                0.0,
+                status_y,
+                window_width,
+                LayoutConstants::STATUS_BAR_HEIGHT,
+            ),
             ai_panel,
-            scrollbar_v: Zone::new(content_x + gutter_w + editor_text_w, editor_y, scrollbar_w, editor_h),
+            scrollbar_v: Zone::new(
+                content_x + gutter_w + editor_text_w,
+                editor_y,
+                scrollbar_w,
+                editor_h,
+            ),
         }
     }
 
@@ -206,7 +217,6 @@ impl LayoutZones {
         // Sidebar (if open)
         if let Some(ref sb) = self.sidebar {
             rects.push(sb.to_rect(colors::SIDEBAR));
-            // Separator between sidebar and editor
             rects.push(Rect {
                 x: sb.x + sb.width,
                 y: 0.0,
@@ -237,7 +247,6 @@ impl LayoutZones {
         // AI Panel (if open)
         if let Some(ref ai) = self.ai_panel {
             rects.push(ai.to_rect(colors::AI_PANEL));
-            // Separator between editor and AI panel
             rects.push(Rect {
                 x: ai.x - LayoutConstants::SEPARATOR_SIZE,
                 y: 0.0,
