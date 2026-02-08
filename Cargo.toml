@@ -4,6 +4,9 @@ members = [
     "crates/forge-renderer",
     "crates/forge-window",
     "crates/forge-app",
+    "crates/forge-config",
+    "crates/forge-theme",
+    "crates/forge-input",
 ]
 resolver = "2"
 
