@@ -38,9 +38,9 @@ const BG_COLOR: wgpu::Color = wgpu::Color {
     g: 0.106,
     b: 0.149,
     a: 1.0,
-}; // #1a1b26
+};
 
-// ─── Performance (Task 10) ───
+// ─── Performance ───
 
 pub struct FrameTimer {
     last_frame: Instant,
@@ -116,7 +116,7 @@ pub struct Application {
     current_mode: UiMode,
 }
 
-/// Unified application state — everything lives here after init
+/// Unified application state
 struct AppState {
     window: Arc<Window>,
     gpu: GpuContext,
@@ -128,15 +128,22 @@ struct AppState {
     text_atlas: TextAtlas,
     viewport: Viewport,
     text_renderer: TextRenderer,
-    glyphon_buffer: GlyphonBuffer,
+
+    // Text buffers — one per UI region
+    editor_buffer: GlyphonBuffer,
+    gutter_buffer: GlyphonBuffer,
+    tab_buffer: GlyphonBuffer,
+    status_buffer: GlyphonBuffer,
+    breadcrumb_buffer: GlyphonBuffer,
+    sidebar_buffer: GlyphonBuffer,
 
     // Editor
     editor: Editor,
 
-    // Rectangle renderer (Task 1)
+    // Rectangle renderer
     rect_renderer: RectRenderer,
 
-    // UI components (Tasks 2-8)
+    // UI components
     layout: LayoutZones,
     tab_bar: TabBar,
     activity_bar: ActivityBar,
@@ -151,11 +158,11 @@ struct AppState {
     ai_panel_open: bool,
     last_mouse_position: Option<(f32, f32)>,
 
-    // Performance (Task 10)
+    // Performance
     frame_timer: FrameTimer,
     render_batch: RenderBatch,
 
-    // Organism (Task 11)
+    // Organism
     organism_state: SharedOrganismState,
 }
 
@@ -170,13 +177,11 @@ impl Application {
     }
 
     fn init_state(&mut self, event_loop: &ActiveEventLoop) {
-        // Create window
         let attrs = WindowAttributes::default()
             .with_title("Forge")
             .with_inner_size(LogicalSize::new(1280, 800));
         let window = Arc::new(event_loop.create_window(attrs).unwrap());
 
-        // Init GPU
         let gpu = GpuContext::new(window.clone()).expect("Failed to initialize GPU");
         let (width, height) = gpu.size();
         info!("GPU initialized: {}x{}", width, height);
@@ -189,7 +194,7 @@ impl Application {
             })
         } else {
             let mut ed = Editor::new();
-            let welcome = "Welcome to Forge Editor\n\nOpen a file: forge <filename>\n\nShortcuts:\n  Ctrl+S  Save\n  Ctrl+Z  Undo\n  Ctrl+Y  Redo\n  Ctrl+M  Cycle UI Mode\n  Arrows  Navigate\n  Home    Start of line\n  End     End of line\n";
+            let welcome = "Welcome to Forge Editor\n\nOpen a file: forge <filename>\n\nShortcuts:\n  Ctrl+S  Save\n  Ctrl+Z  Undo\n  Ctrl+Y  Redo\n  Ctrl+M  Cycle UI Mode\n";
             for c in welcome.chars() {
                 ed.insert_char(c);
             }
@@ -197,10 +202,9 @@ impl Application {
             ed
         };
 
-        // Set window title
         window.set_title(&editor.window_title());
 
-        // Init text rendering (glyphon 0.7)
+        // Init text rendering
         let mut font_system = FontSystem::new();
         let swash_cache = SwashCache::new();
         let cache = Cache::new(&gpu.device);
@@ -212,24 +216,55 @@ impl Application {
             wgpu::MultisampleState::default(),
             None,
         );
-        let mut glyphon_buffer = GlyphonBuffer::new(
+
+        // Create text buffers for each UI region
+        let editor_buffer = GlyphonBuffer::new(
             &mut font_system,
             Metrics::new(LayoutConstants::FONT_SIZE, LayoutConstants::LINE_HEIGHT),
         );
-        glyphon_buffer.set_size(&mut font_system, Some(width as f32), Some(height as f32));
-
-        // Init rectangle renderer (Task 1)
-        let rect_renderer = RectRenderer::new(&gpu.device, gpu.format());
-
-        // Compute layout (Task 2)
-        let layout = LayoutZones::compute(
-            width as f32,
-            height as f32,
-            true,  // sidebar open initially
-            false, // AI panel closed
+        let gutter_buffer = GlyphonBuffer::new(
+            &mut font_system,
+            Metrics::new(
+                LayoutConstants::SMALL_FONT_SIZE,
+                LayoutConstants::LINE_HEIGHT,
+            ),
+        );
+        let tab_buffer = GlyphonBuffer::new(
+            &mut font_system,
+            Metrics::new(
+                LayoutConstants::SMALL_FONT_SIZE,
+                LayoutConstants::LINE_HEIGHT,
+            ),
+        );
+        let status_buffer = GlyphonBuffer::new(
+            &mut font_system,
+            Metrics::new(
+                LayoutConstants::SMALL_FONT_SIZE,
+                LayoutConstants::LINE_HEIGHT,
+            ),
+        );
+        let breadcrumb_buffer = GlyphonBuffer::new(
+            &mut font_system,
+            Metrics::new(
+                LayoutConstants::SMALL_FONT_SIZE,
+                LayoutConstants::LINE_HEIGHT,
+            ),
+        );
+        let sidebar_buffer = GlyphonBuffer::new(
+            &mut font_system,
+            Metrics::new(
+                LayoutConstants::SMALL_FONT_SIZE,
+                LayoutConstants::LINE_HEIGHT,
+            ),
         );
 
-        // Init UI components (Tasks 3-8)
+        // Init rectangle renderer
+        let rect_renderer = RectRenderer::new(&gpu.device, gpu.format());
+
+        // Compute layout
+        let layout = LayoutZones::compute(width as f32, height as f32, true, false);
+
+        // Init UI components
         let mut tab_bar = TabBar::new();
         let activity_bar = ActivityBar::new();
         let gutter = Gutter::new();
@@ -247,11 +282,7 @@ impl Application {
             breadcrumb_bar.update_from_path(path);
         }
 
-        // Performance (Task 10)
-        let frame_timer = FrameTimer::new();
-        let render_batch = RenderBatch::new();
-
-        // Organism (Task 11)
+        // Organism heartbeat
         let organism_state = organism::new_shared_state();
         let _heartbeat = organism::start_heartbeat(
             organism_state.clone(),
@@ -267,7 +298,12 @@ impl Application {
             text_atlas,
             viewport,
             text_renderer,
-            glyphon_buffer,
+            editor_buffer,
+            gutter_buffer,
+            tab_buffer,
+            status_buffer,
+            breadcrumb_buffer,
+            sidebar_buffer,
             editor,
             rect_renderer,
             layout,
@@ -281,19 +317,17 @@ impl Application {
             sidebar_open: true,
             ai_panel_open: false,
             last_mouse_position: None,
-            frame_timer,
-            render_batch,
+            frame_timer: FrameTimer::new(),
+            render_batch: RenderBatch::new(),
             organism_state,
         });
     }
 
-    /// Main render function — called every frame
+    /// Main render function
     fn render(state: &mut AppState, mode: &UiMode) {
         state.frame_timer.begin_frame();
 
         let (width, height) = state.gpu.size();
-
-        // Guard against zero-size windows (Task 9 Rule 2)
         if width == 0 || height == 0 {
             return;
         }
@@ -303,23 +337,23 @@ impl Application {
         // ─── COLLECT RECTANGLES ───
         state.render_batch.clear();
 
-        // 1. Background rectangles
+        // Background rectangles
         let bg_rects = state.layout.background_rects();
         state.render_batch.extend(&bg_rects);
 
-        // 2. Tab bar
+        // Tab bar
         if mode_config.tab_bar {
             let tab_rects = state.tab_bar.render_rects(&state.layout.tab_bar);
             state.render_batch.extend(&tab_rects);
         }
 
-        // 3. Activity bar
+        // Activity bar
         if mode_config.activity_bar {
             let ab_rects = state.activity_bar.render_rects(&state.layout.activity_bar);
             state.render_batch.extend(&ab_rects);
         }
 
-        // 4. Gutter
+        // Gutter
         if mode_config.gutter {
             state.gutter.scroll_top = state.editor.scroll_top();
             state.gutter.total_lines = state.editor.total_lines();
@@ -328,7 +362,7 @@ impl Application {
             state.render_batch.extend(&gutter_rects);
         }
 
-        // 5. Current line highlight
+        // Current line highlight
         if let Some(hl_rect) = state.cursor_renderer.current_line_rect(
             state.editor.cursor_line(),
             state.editor.scroll_top(),
@@ -337,7 +371,7 @@ impl Application {
             state.render_batch.push(hl_rect);
         }
 
-        // 6. Cursor
+        // Cursor
         if mode_config.cursor_blink {
             state.cursor_renderer.update();
         }
@@ -350,7 +384,7 @@ impl Application {
             state.render_batch.push(cursor_rect);
         }
 
-        // 7. Scrollbar
+        // Scrollbar
         let visible_lines = (state.layout.editor.height / LayoutConstants::LINE_HEIGHT) as usize;
         let sb_rects = state.scrollbar.render_rect(
             &state.layout.scrollbar_v,
@@ -360,7 +394,7 @@ impl Application {
         );
         state.render_batch.extend(&sb_rects);
 
-        // 8. Breadcrumb separators
+        // Breadcrumb
         if mode_config.breadcrumbs {
             let bc_rects = state
                 .breadcrumb_bar
@@ -368,60 +402,308 @@ impl Application {
             state.render_batch.extend(&bc_rects);
         }
 
-        // ─── UPLOAD RECTANGLES ───
+        // Upload rectangles
         state
             .rect_renderer
             .prepare(&state.gpu.queue, &state.render_batch.rects);
 
-        // ─── UPDATE STATUS BAR ───
-        if mode_config.status_bar {
-            state.status_bar_state.cursor_line = state.editor.cursor_line() + 1;
-            state.status_bar_state.cursor_col = state.editor.cursor_col() + 1;
-            state.status_bar_state.frame_time_ms = state.frame_timer.avg_frame_time_ms;
+        // ─── TEXT CONTENT ───
 
-            if let Some(org_state) = organism::read_state(&state.organism_state) {
-                state.status_bar_state.confidence_score = Some(org_state.confidence_score);
-            }
-        }
-
-        // ─── TEXT ───
+        // 1. Editor text
         let scroll_top = state.editor.scroll_top();
-        let visible_lines =
-            (state.layout.editor.height / LayoutConstants::LINE_HEIGHT) as usize + 1;
-
-        let mut display_text = String::new();
-        for i in 0..visible_lines {
+        let vis_lines = (state.layout.editor.height / LayoutConstants::LINE_HEIGHT) as usize + 1;
+        let mut editor_text = String::new();
+        for i in 0..vis_lines {
             let line_idx = scroll_top + i;
             if line_idx >= state.editor.total_lines() {
                 break;
             }
-            let line_text = Guard::get_line(state.editor.buffer.rope(), line_idx);
-            display_text.push_str(&line_text);
-            if !line_text.ends_with('\n') {
-                display_text.push('\n');
+            let line = Guard::get_line(state.editor.buffer.rope(), line_idx);
+            editor_text.push_str(&line);
+            if !line.ends_with('\n') {
+                editor_text.push('\n');
             }
         }
 
-        state.glyphon_buffer.set_text(
+        state.editor_buffer.set_size(
             &mut state.font_system,
-            &display_text,
+            Some(state.layout.editor.width),
+            Some(state.layout.editor.height),
+        );
+        state.editor_buffer.set_text(
+            &mut state.font_system,
+            &editor_text,
             Attrs::new()
                 .family(Family::Monospace)
-                .color(GlyphonColor::rgb(224, 227, 236)),
+                .color(GlyphonColor::rgb(212, 212, 212)),
             Shaping::Advanced,
         );
         state
-            .glyphon_buffer
+            .editor_buffer
             .shape_until_scroll(&mut state.font_system, false);
 
-        // Update viewport
+        // 2. Gutter (line numbers)
+        let mut gutter_text = String::new();
+        for i in 0..vis_lines {
+            let line_idx = scroll_top + i;
+            if line_idx >= state.editor.total_lines() {
+                break;
+            }
+            let line_num = line_idx + 1;
+            // Right-align line numbers in gutter
+            gutter_text.push_str(&format!("{:>4}\n", line_num));
+        }
+
+        state.gutter_buffer.set_size(
+            &mut state.font_system,
+            Some(state.layout.gutter.width - 8.0),
+            Some(state.layout.gutter.height),
+        );
+        state.gutter_buffer.set_text(
+            &mut state.font_system,
+            &gutter_text,
+            Attrs::new()
+                .family(Family::Monospace)
+                .color(GlyphonColor::rgb(133, 133, 133)),
+            Shaping::Advanced,
+        );
+        state
+            .gutter_buffer
+            .shape_until_scroll(&mut state.font_system, false);
+
+        // 3. Tab bar text
+        let tab_text = if state.tab_bar.tabs.is_empty() {
+            "  Welcome".to_string()
+        } else {
+            state
+                .tab_bar
+                .tabs
+                .iter()
+                .enumerate()
+                .map(|(i, tab)| {
+                    if i == state.tab_bar.active_index {
+                        format!(" ● {} ", tab.title)
+                    } else {
+                        format!("   {}  ", tab.title)
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join("│")
+        };
+
+        state.tab_buffer.set_size(
+            &mut state.font_system,
+            Some(state.layout.tab_bar.width),
+            Some(state.layout.tab_bar.height),
+        );
+        state.tab_buffer.set_text(
+            &mut state.font_system,
+            &tab_text,
+            Attrs::new()
+                .family(Family::SansSerif)
+                .color(GlyphonColor::rgb(200, 200, 200)),
+            Shaping::Advanced,
+        );
+        state
+            .tab_buffer
+            .shape_until_scroll(&mut state.font_system, false);
+
+        // 4. Status bar text
+        let cursor_line = state.editor.cursor_line() + 1;
+        let cursor_col = state.editor.cursor_col() + 1;
+        let fps = if state.frame_timer.avg_frame_time_ms > 0.0 {
+            (1000.0 / state.frame_timer.avg_frame_time_ms) as u32
+        } else {
+            0
+        };
+        let status_text = format!(
+            "  Forge IDE   │  Ln {}, Col {}  │  UTF-8  │  Rust  │  {} fps  │  {}  ",
+            cursor_line,
+            cursor_col,
+            fps,
+            mode.label()
+        );
+
+        state.status_buffer.set_size(
+            &mut state.font_system,
+            Some(state.layout.status_bar.width),
+            Some(state.layout.status_bar.height),
+        );
+        state.status_buffer.set_text(
+            &mut state.font_system,
+            &status_text,
+            Attrs::new()
+                .family(Family::SansSerif)
+                .color(GlyphonColor::rgb(255, 255, 255)),
+            Shaping::Advanced,
+        );
+        state
+            .status_buffer
+            .shape_until_scroll(&mut state.font_system, false);
+
+        // 5. Breadcrumb text
+        let breadcrumb_text = if state.breadcrumb_bar.segments.is_empty() {
+            "  src > main.rs".to_string()
+        } else {
+            let path: Vec<&str> = state
+                .breadcrumb_bar
+                .segments
+                .iter()
+                .map(|s| s.text.as_str())
+                .collect();
+            format!("  {}", path.join(" > "))
+        };
+
+        state.breadcrumb_buffer.set_size(
+            &mut state.font_system,
+            Some(state.layout.breadcrumb_bar.width),
+            Some(state.layout.breadcrumb_bar.height),
+        );
+        state.breadcrumb_buffer.set_text(
+            &mut state.font_system,
+            &breadcrumb_text,
+            Attrs::new()
+                .family(Family::SansSerif)
+                .color(GlyphonColor::rgb(170, 170, 170)),
+            Shaping::Advanced,
+        );
+        state
+            .breadcrumb_buffer
+            .shape_until_scroll(&mut state.font_system, false);
+
+        // 6. Sidebar text (file explorer placeholder)
+        let sidebar_text = if state.sidebar_open {
+            "  EXPLORER\n\n  📁 src\n    📄 main.rs\n    📄 editor.rs\n    📄 gpu.rs\n    📄 ui.rs\n  📁 crates\n  📄 Cargo.toml\n  📄 README.md".to_string()
+        } else {
+            String::new()
+        };
+
+        if let Some(ref sb) = state.layout.sidebar {
+            state.sidebar_buffer.set_size(
+                &mut state.font_system,
+                Some(sb.width - 8.0),
+                Some(sb.height),
+            );
+        }
+        state.sidebar_buffer.set_text(
+            &mut state.font_system,
+            &sidebar_text,
+            Attrs::new()
+                .family(Family::SansSerif)
+                .color(GlyphonColor::rgb(200, 200, 200)),
+            Shaping::Advanced,
+        );
+        state
+            .sidebar_buffer
+            .shape_until_scroll(&mut state.font_system, false);
+
+        // ─── UPDATE VIEWPORT ───
         state
             .viewport
             .update(&state.gpu.queue, Resolution { width, height });
 
-        // Position text at editor zone
-        let editor_left = state.layout.editor.x;
-        let editor_top = state.layout.editor.y;
+        // ─── PREPARE TEXT AREAS ───
+        let ed = &state.layout.editor;
+        let gut = &state.layout.gutter;
+        let tab = &state.layout.tab_bar;
+        let sb = &state.layout.status_bar;
+        let bc = &state.layout.breadcrumb_bar;
+
+        let mut text_areas: Vec<TextArea> = vec![
+            // Editor text
+            TextArea {
+                buffer: &state.editor_buffer,
+                left: ed.x,
+                top: ed.y,
+                scale: 1.0,
+                bounds: TextBounds {
+                    left: ed.x as i32,
+                    top: ed.y as i32,
+                    right: (ed.x + ed.width) as i32,
+                    bottom: (ed.y + ed.height) as i32,
+                },
+                default_color: GlyphonColor::rgb(212, 212, 212),
+                custom_glyphs: &[],
+            },
+            // Gutter line numbers
+            TextArea {
+                buffer: &state.gutter_buffer,
+                left: gut.x + 4.0,
+                top: gut.y,
+                scale: 1.0,
+                bounds: TextBounds {
+                    left: gut.x as i32,
+                    top: gut.y as i32,
+                    right: (gut.x + gut.width) as i32,
+                    bottom: (gut.y + gut.height) as i32,
+                },
+                default_color: GlyphonColor::rgb(133, 133, 133),
+                custom_glyphs: &[],
+            },
+            // Tab bar
+            TextArea {
+                buffer: &state.tab_buffer,
+                left: tab.x,
+                top: tab.y + 9.0, // vertically center in tab bar
+                scale: 1.0,
+                bounds: TextBounds {
+                    left: tab.x as i32,
+                    top: tab.y as i32,
+                    right: (tab.x + tab.width) as i32,
+                    bottom: (tab.y + tab.height) as i32,
+                },
+                default_color: GlyphonColor::rgb(200, 200, 200),
+                custom_glyphs: &[],
+            },
+            // Status bar
+            TextArea {
+                buffer: &state.status_buffer,
+                left: sb.x,
+                top: sb.y + 3.0,
+                scale: 1.0,
+                bounds: TextBounds {
+                    left: sb.x as i32,
+                    top: sb.y as i32,
+                    right: (sb.x + sb.width) as i32,
+                    bottom: (sb.y + sb.height) as i32,
+                },
+                default_color: GlyphonColor::rgb(255, 255, 255),
+                custom_glyphs: &[],
+            },
+            // Breadcrumb bar
+            TextArea {
+                buffer: &state.breadcrumb_buffer,
+                left: bc.x,
+                top: bc.y + 3.0,
+                scale: 1.0,
+                bounds: TextBounds {
+                    left: bc.x as i32,
+                    top: bc.y as i32,
+                    right: (bc.x + bc.width) as i32,
+                    bottom: (bc.y + bc.height) as i32,
+                },
+                default_color: GlyphonColor::rgb(170, 170, 170),
+                custom_glyphs: &[],
+            },
+        ];
+
+        // Sidebar text area (only if sidebar is open)
+        if let Some(ref sidebar) = state.layout.sidebar {
+            text_areas.push(TextArea {
+                buffer: &state.sidebar_buffer,
+                left: sidebar.x + 4.0,
+                top: sidebar.y + 8.0,
+                scale: 1.0,
+                bounds: TextBounds {
+                    left: sidebar.x as i32,
+                    top: sidebar.y as i32,
+                    right: (sidebar.x + sidebar.width) as i32,
+                    bottom: (sidebar.y + sidebar.height) as i32,
+                },
+                default_color: GlyphonColor::rgb(200, 200, 200),
+                custom_glyphs: &[],
+            });
+        }
 
         if let Err(e) = state.text_renderer.prepare(
             &state.gpu.device,
@@ -429,20 +711,7 @@ impl Application {
             &mut state.font_system,
             &mut state.text_atlas,
             &state.viewport,
-            [TextArea {
-                buffer: &state.glyphon_buffer,
-                left: editor_left,
-                top: editor_top,
-                scale: 1.0,
-                bounds: TextBounds {
-                    left: editor_left as i32,
-                    top: editor_top as i32,
-                    right: (state.layout.editor.x + state.layout.editor.width) as i32,
-                    bottom: (state.layout.editor.y + state.layout.editor.height) as i32,
-                },
-                default_color: GlyphonColor::rgb(224, 227, 236),
-                custom_glyphs: &[],
-            }],
+            text_areas,
             &mut state.swash_cache,
         ) {
             tracing::warn!("Text prepare error: {:?}", e);
@@ -493,7 +762,7 @@ impl Application {
                 occlusion_query_set: None,
             });
 
-            // Rectangles first (background)
+            // Rectangles first (background chrome)
             state.rect_renderer.render(&mut render_pass);
 
             // Text on top
@@ -532,7 +801,6 @@ impl Application {
                                 if item == crate::activity_bar::ActivityItem::AiAgent {
                                     state.ai_panel_open = !state.ai_panel_open;
                                 }
-                                // Recompute layout
                                 let (w, h) = state.gpu.size();
                                 state.layout = LayoutZones::compute(
                                     w as f32,
@@ -613,7 +881,6 @@ impl ApplicationHandler for Application {
                 if size.width > 0 && size.height > 0 {
                     state.gpu.resize(size.width, size.height);
 
-                    // Recompute layout
                     state.layout = LayoutZones::compute(
                         size.width as f32,
                         size.height as f32,
@@ -625,12 +892,6 @@ impl ApplicationHandler for Application {
                         &state.gpu.queue,
                         size.width as f32,
                         size.height as f32,
-                    );
-
-                    state.glyphon_buffer.set_size(
-                        &mut state.font_system,
-                        Some(state.layout.editor.width),
-                        Some(state.layout.editor.height),
                     );
 
                     state.window.request_redraw();
@@ -645,7 +906,6 @@ impl ApplicationHandler for Application {
                 event: ref key_event,
                 ..
             } => {
-                // Reset cursor blink on any keypress
                 state.cursor_renderer.reset_blink();
 
                 if key_event.state != ElementState::Pressed {
@@ -655,7 +915,6 @@ impl ApplicationHandler for Application {
                 let ctrl = self.modifiers.control_key();
 
                 match key_event.logical_key {
-                    // Ctrl shortcuts
                     Key::Character(ref c) if ctrl => match c.as_str() {
                         "s" => {
                             if let Err(e) = state.editor.save() {
@@ -675,7 +934,6 @@ impl ApplicationHandler for Application {
                         _ => {}
                     },
 
-                    // Navigation keys
                     Key::Named(NamedKey::ArrowLeft) => state.editor.move_left(),
                     Key::Named(NamedKey::ArrowRight) => state.editor.move_right(),
                     Key::Named(NamedKey::ArrowUp) => state.editor.move_up(),
@@ -683,7 +941,6 @@ impl ApplicationHandler for Application {
                     Key::Named(NamedKey::Home) => state.editor.move_home(),
                     Key::Named(NamedKey::End) => state.editor.move_end(),
 
-                    // Editing keys
                     Key::Named(NamedKey::Backspace) => state.editor.backspace(),
                     Key::Named(NamedKey::Delete) => state.editor.delete(),
                     Key::Named(NamedKey::Enter) => state.editor.insert_newline(),
@@ -693,7 +950,6 @@ impl ApplicationHandler for Application {
                         }
                     }
 
-                    // Character input
                     Key::Character(ref c) if !ctrl => {
                         for ch in c.chars() {
                             state.editor.insert_char(ch);
@@ -703,7 +959,6 @@ impl ApplicationHandler for Application {
                     _ => {}
                 }
 
-                // Ensure cursor visible and request redraw
                 let visible_lines =
                     (state.layout.editor.height / LayoutConstants::LINE_HEIGHT) as usize;
                 state.editor.ensure_cursor_visible(visible_lines);
