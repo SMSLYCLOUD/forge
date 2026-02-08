@@ -102,7 +102,7 @@ impl Application {
         let mut font_system = FontSystem::new();
         let swash_cache = SwashCache::new();
         let cache = Cache::new(&gpu.device);
-        let text_atlas = TextAtlas::new(&gpu.device, &gpu.queue, &cache, gpu.format());
+        let mut text_atlas = TextAtlas::new(&gpu.device, &gpu.queue, &cache, gpu.format());
         let viewport = Viewport::new(&gpu.device, &cache);
         let text_renderer = TextRenderer::new(
             &mut text_atlas,

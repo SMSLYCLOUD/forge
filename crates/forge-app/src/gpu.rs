@@ -19,7 +19,7 @@ impl GpuContext {
     }
 
     async fn init_async(window: Arc<Window>) -> Result<Self> {
-        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
             ..Default::default()
         });

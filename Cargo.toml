@@ -35,7 +35,7 @@ unicode-segmentation = "1"
 encoding_rs = "0.8"
 
 # GPU Rendering
-wgpu = "24"
+wgpu = "23"
 cosmic-text = "0.12"
 glyphon = "0.7"
 
