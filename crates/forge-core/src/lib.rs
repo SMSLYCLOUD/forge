@@ -3,18 +3,24 @@
 //! This is the heart of the Forge editor. Every text manipulation flows through this crate.
 
 mod buffer;
+pub mod git;
 mod history;
 mod position;
+pub mod project;
 mod selection;
 pub mod syntax;
+pub mod terminal;
 mod transaction;
 
 pub use buffer::Buffer;
+pub use git::GitIntegration;
 pub use history::{History, HistoryNode};
 pub use position::Position;
+pub use project::Project;
 pub use selection::{Range, Selection};
 pub use transaction::{Change, ChangeSet, Transaction};
 pub use syntax::Syntax;
+pub use terminal::Terminal;
 
 /// Line ending styles
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
