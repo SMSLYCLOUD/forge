@@ -10,6 +10,8 @@ members = [
     "crates/forge-confidence",
     "crates/forge-propagation",
     "crates/forge-semantic",
+    "crates/forge-surfaces",
+    "crates/forge-feedback",
 ]
 resolver = "2"
 
