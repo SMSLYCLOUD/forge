@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
 pub enum Key {
