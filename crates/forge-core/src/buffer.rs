@@ -171,6 +171,11 @@ impl Buffer {
         self.rope.to_string()
     }
 
+    /// Get the underlying rope
+    pub fn rope(&self) -> &Rope {
+        &self.rope
+    }
+
     /// Get a slice of the rope
     pub fn slice(&self, start: usize, end: usize) -> String {
         self.rope.slice(start..end).to_string()
