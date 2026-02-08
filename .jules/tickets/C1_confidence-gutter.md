@@ -40,7 +40,7 @@ pub struct LineConfidence {
 
 ### Initial Scoring (v1)
 - K_syntax = 1.0 if Tree-sitter parses without error, 0.0 otherwise
-- K_type = 1.0 if language server reports no type errors, 0.0 otherwise  
+- K_type = 1.0 if language server reports no type errors, 0.0 otherwise
 - K_lint = 1.0 if no lint warnings on this line, 0.9 if warnings, 0.0 if errors
 - K_runtime = 0.5 (default, improved by later modules)
 - K_behavior = 0.5 (default)

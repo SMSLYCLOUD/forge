@@ -10,6 +10,8 @@ members = [
     "crates/forge-confidence",
     "crates/forge-propagation",
     "crates/forge-semantic",
+    "crates/forge-bayesnet",
+    "crates/forge-ml",
     "crates/forge-anticipation",
     "crates/forge-immune",
     "crates/forge-developer",
