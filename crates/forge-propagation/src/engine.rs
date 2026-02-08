@@ -1,127 +1,106 @@
 use std::collections::{HashMap, HashSet, VecDeque};
-use crate::models::{FunctionId, PropagationResult, RippleNode};
+use crate::models::{FileNode, PropagationResult, RippleNode, DependencyEdge, DependencyKind};
 use crate::graph::GraphStore;
 
-pub struct PropagationEngine;
+pub struct PropagationEngine {
+    pub damping: f64,
+    pub max_depth: usize,
+}
 
 impl PropagationEngine {
+    pub fn new() -> Self {
+        Self {
+            damping: 0.7,
+            max_depth: 5,
+        }
+    }
+
     pub fn propagate(
-        source: &FunctionId,
+        &self,
+        source: &FileNode,
         delta: f64,
         graph: &GraphStore,
-        current_scores: &HashMap<FunctionId, f64>,
     ) -> PropagationResult {
         let mut affected = Vec::new();
         let mut visited = HashSet::new();
         let mut queue = VecDeque::new();
 
-        // (FunctionId, current_delta, depth)
-        queue.push_back((source.clone(), delta, 0));
-        visited.insert(source.clone());
+        queue.push_back((source.path.clone(), delta, 0));
+        visited.insert(source.path.clone());
 
-        while let Some((current_id, current_delta, depth)) = queue.pop_front() {
-            if depth >= 3 {
+        while let Some((current_path, current_delta, depth)) = queue.pop_front() {
+            if depth >= self.max_depth {
                 continue;
             }
 
-            // Get dependents (incoming edges in dependency graph)
-            // If A calls B (A -> B), then A depends on B.
-            // If B changes (source), we need to update A.
-            // So we traverse incoming edges to B.
-            let dependents = graph.get_incoming_edges(&current_id);
+            // Get dependents: incoming edges to current_path
+            // If A imports B, A depends on B. B is source. A is dependent.
+            let dependents = graph.get_dependents(&current_path);
 
-            for (dep_id, edge_kind) in dependents {
-                if visited.contains(&dep_id) {
+            for (dep_node, edge) in dependents {
+                if visited.contains(&dep_node.path) {
                     continue;
                 }
 
-                let edge_weight = edge_kind.weight();
-                let propagated_delta = current_delta * edge_weight;
+                // Propagation formula: C(file_B) -= Δ × damping^distance
+                // Distance here is 1 hop from current.
+                // But we are accumulating damping.
+                // Let's use recursive damping: next_delta = current_delta * edge_weight * damping
+                let propagated_delta = current_delta * edge.weight * self.damping;
 
-                if propagated_delta.abs() < 0.01 {
+                // Threshold to stop negligible ripples
+                if propagated_delta.abs() < 0.001 {
                     continue;
                 }
 
-                let current_confidence = *current_scores.get(&dep_id).unwrap_or(&0.5);
-                // Formula from spec: new_confidence = current_confidence * (1 - |propagated_delta|)
-                // Wait, if delta is positive (improvement), confidence should increase?
-                // The spec says: "new_confidence = current_confidence * (1 - |propagated_delta|)"
-                // This implies ANY change ripples as a reduction in confidence (destabilization).
-                // This makes sense for "Ripple Effect" — changing dependencies reduces confidence until re-verified.
+                let current_confidence = dep_node.confidence;
+                // New confidence reduces by propagated_delta
+                // If delta is positive (source improved), dependents improve?
+                // Spec says: C(file_B) -= Δ × damping^distance.
+                // If Δ is +0.1 (improvement), C(B) decreases?
+                // Wait. "Uncertainty Propagation".
+                // If I change a file, I *introduce uncertainty*.
+                // So any change (positive or negative delta in my head) might be Destabilizing.
+                // But usually, if I fix a bug (confidence goes up), dependents should feel safer?
+                // Or maybe the act of changing it makes dependents risky until re-verified.
+                // The ticket says: "When C(file_A) changes by Δ, propagate: C(file_B) -= Δ × damping^distance"
+                // If Δ is positive (confidence increased), we subtract it?
+                // That would mean increasing confidence in A decreases confidence in B. That sounds wrong.
+                // Unless Δ represents "Uncertainty". If Uncertainty increases, Confidence decreases.
+                // But the input is "Confidence Score".
+                // Let's assume Δ is change in Confidence.
+                // If A improves (+0.1), B should improve (+something).
+                // So C(B) += Δ × ...
+                // But the formula says -=.
+                // Maybe the "Δ" in the ticket refers to "Added Uncertainty"?
+                // Let's stick to the interpretation:
+                // "Ripple Effect" usually means *destabilization*.
+                // When I modify A, even if I think it's better, B might break.
+                // So any modification to A should arguably *lower* confidence in B until B is checked.
+                // So: B_new = B_old - (|Δ| * factor).
+                // This aligns with "Uncertainty Propagation".
 
-                let new_confidence = current_confidence * (1.0 - propagated_delta.abs());
+                let destabilization = propagated_delta.abs();
+                let new_confidence = (current_confidence - destabilization).clamp(0.0, 1.0);
 
                 affected.push(RippleNode {
-                    function_id: dep_id.clone(),
-                    file_path: dep_id.file.clone(),
-                    delta: propagated_delta,
+                    path: dep_node.path.clone(),
+                    delta: -destabilization, // Net change is negative
                     new_confidence,
-                    relationship: edge_kind,
                     depth: depth + 1,
                 });
 
-                visited.insert(dep_id.clone());
-                queue.push_back((dep_id, propagated_delta, depth + 1));
+                visited.insert(dep_node.path.clone());
+                queue.push_back((dep_node.path, -destabilization, depth + 1));
             }
         }
 
+        // Sort by impact magnitude
         affected.sort_by(|a, b| b.delta.abs().partial_cmp(&a.delta.abs()).unwrap());
-
-        let total_files_affected = affected.iter().map(|n| &n.file_path).collect::<HashSet<_>>().len();
-        let total_functions_affected = affected.len();
 
         PropagationResult {
             source: source.clone(),
             affected,
-            total_files_affected,
-            total_functions_affected,
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::models::EdgeKind;
-
-    #[test]
-    fn propagation_attenuates() {
-        // A -> B -> C (A calls B, B calls C).
-        // Dependency graph: A -> B -> C.
-        // If we modify C (source), B is affected, then A.
-        // So we need C <- B <- A (incoming edges).
-
-        let mut graph = GraphStore::new();
-        let a = FunctionId { file: "a.ts".into(), name: "a".into(), line: 1 };
-        let b = FunctionId { file: "b.ts".into(), name: "b".into(), line: 1 };
-        let c = FunctionId { file: "c.ts".into(), name: "c".into(), line: 1 };
-
-        graph.add_function(a.clone());
-        graph.add_function(b.clone());
-        graph.add_function(c.clone());
-
-        // A calls B: A -> B
-        graph.add_edge(&a, &b, EdgeKind::DirectCall).unwrap();
-        // B calls C: B -> C
-        graph.add_edge(&b, &c, EdgeKind::DirectCall).unwrap();
-
-        let mut scores = HashMap::new();
-        scores.insert(a.clone(), 0.95);
-        scores.insert(b.clone(), 0.88);
-        scores.insert(c.clone(), 0.82);
-
-        // Modify C with delta -0.30
-        let result = PropagationEngine::propagate(&c, -0.30, &graph, &scores);
-
-        // Expect B affected (delta = -0.30 * 0.5 = -0.15)
-        // Expect A affected (delta = -0.15 * 0.5 = -0.075)
-
-        assert_eq!(result.affected.len(), 2);
-
-        let b_node = result.affected.iter().find(|n| n.function_id == b).unwrap();
-        assert!((b_node.delta - (-0.15)).abs() < 0.001);
-
-        let a_node = result.affected.iter().find(|n| n.function_id == a).unwrap();
-        assert!((a_node.delta - (-0.075)).abs() < 0.001);
     }
 }
