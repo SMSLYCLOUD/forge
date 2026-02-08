@@ -8,6 +8,27 @@ mod gpu;
 mod extensions;
 mod modes;
 
+// Part 1
+mod rect_renderer;
+mod ui;
+mod tab_bar;
+mod activity_bar;
+
+// Part 2
+mod rect_renderer;
+mod ui;
+mod gutter;
+mod status_bar;
+mod cursor;
+mod breadcrumb;
+
+// Part 3
+mod guard;
+mod scrollbar;
+mod organism;
+mod tab_bar;
+mod activity_bar;
+
 use anyhow::Result;
 use tracing::info;
 use winit::event_loop::EventLoop;

@@ -1,6 +1,6 @@
 //! Editor state — manages the text buffer, cursor, and viewport
 
-use forge_core::{Buffer, Change, ChangeSet, Position, Range, Selection, Transaction};
+use forge_core::{Buffer, Change, ChangeSet, Position, Selection, Transaction};
 use tracing::info;
 
 /// The editor state: buffer + cursor logic + viewport
@@ -42,26 +42,51 @@ impl Editor {
         })
     }
 
-    /// Get the current cursor byte offset
-    pub fn cursor_offset(&self) -> usize {
-        self.buffer.selection().primary().head.offset
+    /// Get current scroll top line index
+    pub fn scroll_top(&self) -> usize {
+        self.scroll_y as usize
     }
 
-    /// Get cursor (line, col) — 0-indexed
+    /// Set scroll top
+    pub fn set_scroll_top(&mut self, line: usize) {
+        self.scroll_y = line as f64;
+    }
+
+    /// Get total lines
+    pub fn total_lines(&self) -> usize {
+        self.buffer.len_lines()
+    }
+
+    /// Get the current cursor byte offset
+    pub fn cursor_offset(&self) -> usize {
+        self.buffer.selection().primary().head.into()
+    }
+
+    /// Get current cursor (line, col) — 0-indexed
     pub fn cursor_line_col(&self) -> (usize, usize) {
         self.buffer.offset_to_line_col(self.cursor_offset())
+    }
+
+    /// Get current cursor line (0-indexed)
+    pub fn cursor_line(&self) -> usize {
+        self.cursor_line_col().0
+    }
+
+    /// Get current cursor column (0-indexed)
+    pub fn cursor_col(&self) -> usize {
+        self.cursor_line_col().1
     }
 
     /// Insert a character at the cursor
     pub fn insert_char(&mut self, c: char) {
         let offset = self.cursor_offset();
         let s = c.to_string();
-        let new_offset = offset + s.len();
 
-        let change = Change::insert(Position::new(offset), s);
+        let change = Change::insert(Position::new(offset), s.clone());
+        let new_pos = Position::new(offset + s.len());
         let tx = Transaction::new(
             ChangeSet::with_change(change),
-            Some(Selection::point(Position::new(new_offset))),
+            Some(Selection::point(new_pos)),
         );
         self.buffer.apply(tx);
     }
@@ -188,10 +213,17 @@ impl Editor {
     pub fn move_end(&mut self) {
         let (line, _) = self.cursor_line_col();
         // Get the line length by going to next line start and subtracting
+        // Or simpler: buffer.line_len(line)
+        // Assuming buffer has line_col_to_offset
+        // Let's rely on line_col_to_offset(line + 1, 0) - 1 or similar logic
+        // But safer is to iterate text.
+
         let line_start = self.buffer.line_col_to_offset(line, 0);
         let text = self.buffer.text();
-        let line_text: &str = text[line_start..].lines().next().unwrap_or("");
-        let new_offset = line_start + line_text.len();
+        let line_slice = &text[line_start..];
+        let line_len = line_slice.lines().next().unwrap_or("").len();
+
+        let new_offset = line_start + line_len;
         self.buffer
             .set_selection(Selection::point(Position::new(new_offset)));
     }

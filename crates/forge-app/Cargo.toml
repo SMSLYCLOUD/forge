@@ -10,6 +10,8 @@ name = "forge"
 path = "src/main.rs"
 
 [dependencies]
+ropey = { workspace = true }
+bytemuck = { version = "1", features = ["derive"] }
 forge-core = { path = "../forge-core" }
 forge-renderer = { path = "../forge-renderer" }
 forge-confidence = { path = "../forge-confidence" }
@@ -28,3 +30,4 @@ tracing-subscriber = { workspace = true }
 serde = { workspace = true }
 toml = { workspace = true }
 dirs-next.workspace = true
+bytemuck = { version = "1", features = ["derive"] }
