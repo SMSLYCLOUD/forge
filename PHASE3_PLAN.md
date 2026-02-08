@@ -19,20 +19,20 @@ graph TD
     APP[forge-app] --> TERM[forge-terminal]
     APP --> GIT[forge-git]
     APP --> LAYOUT[forge-layout]
-    
+
     TERM --> PTY[PTY Subprocess]
     TERM --> VT[VT100/ANSI Parser]
     TERM --> GRID[Terminal Grid Buffer]
-    
+
     GIT --> REPO[git2::Repository]
     GIT --> DIFF[Diff Engine]
     GIT --> BLAME[Blame Engine]
     GIT --> STATUS[Status Tracker]
-    
+
     LAYOUT --> SPLIT[Split Panes]
     LAYOUT --> TAB[Tab System]
     LAYOUT --> FOCUS[Focus Manager]
-    
+
     GRID --> RENDERER[forge-renderer]
     STATUS --> FILETREE[forge-filetree future]
 ```

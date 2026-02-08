@@ -2,6 +2,10 @@ use anyhow::Result;
 use forge_core::Buffer;
 use tracing::{error, info};
 use tracing_subscriber;
+use forge_confidence::engine::ConfidenceEngine;
+use forge_confidence::db::ConfidenceDb;
+use forge_propagation::graph::GraphStore;
+use std::path::Path;
 
 fn main() -> Result<()> {
     // Initialize logging
@@ -26,6 +30,13 @@ fn main() -> Result<()> {
         buffer.len_lines(),
         buffer.len_bytes()
     );
+
+    // Initialize engines
+    let _confidence_engine = ConfidenceEngine;
+    let _graph = GraphStore::new();
+    let _db = ConfidenceDb::open(Path::new("confidence.db")); // In-memory or local file
+
+    info!("Sub-Binary IDE engines initialized");
 
     // Phase 1: We just verify the buffer loads correctly
     // Future phases will add window, renderer, event loop

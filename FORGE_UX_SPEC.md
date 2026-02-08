@@ -351,7 +351,7 @@ constant        = "#b45309"   # Brown
 
 All syntax color pairs must be distinguishable under:
 - **Protanopia** (red-blind, 1% of males)
-- **Deuteranopia** (green-blind, 5% of males)  
+- **Deuteranopia** (green-blind, 5% of males)
 - **Tritanopia** (blue-blind, rare)
 
 **Validation rule:** For any two syntax colors, ΔE in simulated CVD color space must be ≥ 20. If not, the colors must also differ in **luminance** by ≥ 15 L* units as a fallback.
@@ -948,10 +948,10 @@ TIER 2: SIMPLE CONFIG (~20 settings for power users)
 │   font_size = 15
 │   theme = "forge-night"
 │   tab_size = 2
-│   
+│
 │   [keybindings]
 │   mode = "modal"   # or "standard"
-│   
+│
 │   [terminal]
 │   shell = "pwsh"
 └── No GUI settings page. Edit the file. It's a code editor — you edit files.
