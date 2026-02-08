@@ -160,6 +160,10 @@ impl CursorRenderer {
 
         let start_line = sel_start_line.min(sel_end_line);
         let end_line = sel_start_line.max(sel_end_line);
+        let (start_col, end_col) = if sel_start_line <= sel_end_line {
+            (sel_start_col, sel_end_col)
+        } else {
+            (sel_end_col, sel_start_col)
         let (start_col, end_col) = if sel_start_line < sel_end_line {
             (sel_start_col, sel_end_col)
         } else if sel_start_line > sel_end_line {
