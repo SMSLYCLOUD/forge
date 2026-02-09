@@ -1,520 +1,321 @@
-# Jules Session 1 — Copy-Paste Prompts (10 Agents)
+# Jules Session 1 — Copy-Paste Prompts (9 Agents: 2-10)
 
-> **Instructions**: Open 10 Jules sessions on repo `SMSLYCLOUD/forge` (master branch). Paste ONE prompt per session. All 10 run in parallel — they touch different files so no conflicts.
-
----
-
-## AGENT 1 — Fix Compiler Warnings + Create forge-types Crate
-
-```
-You are working on the Forge editor, a Rust workspace with 19 crates at the root of this repo.
-
-Follow these steps IN ORDER. Do not skip any step. Do not proceed to the next step until the current step compiles.
-
-STEP 1: Read the file tasks/GLOBAL_RULES.md to understand the project rules.
-
-STEP 2: Read the file tasks/session1/agent_01.md for full details on your task.
-
-STEP 3: Run `cargo check --workspace 2>&1` and note every compiler warning.
-
-STEP 4: Fix EVERY warning you found in step 3. For each warning:
-  - If it says "unused import" → remove the import
-  - If it says "unused variable" → prefix with underscore: `_var_name`
-  - If it says "dead code" or "never read" → add `#[allow(dead_code)]` with a `// TODO: will be used later` comment above it
-  - If it says "unused mut" → remove the `mut` keyword
-
-STEP 5: Run `cargo check --workspace 2>&1` again. If there are still warnings, go back to step 4. Repeat until ZERO warnings.
-
-STEP 6: Create the directory crates/forge-types/src/
-
-STEP 7: Create the file crates/forge-types/Cargo.toml with this exact content:
-[package]
-name = "forge-types"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-serde = { workspace = true }
-
-STEP 8: Create the file crates/forge-types/src/lib.rs with shared types: Color (rgba, rgb, to_u8_array), Rect (x, y, width, height, contains), Position (line, col), Size (width, height). All should derive Debug, Clone, Copy, PartialEq, Serialize, Deserialize. Add unit tests for Color::to_u8_array and Rect::contains.
-
-STEP 9: Open the root Cargo.toml. Add "crates/forge-types" to the [workspace] members list. Add `forge-types = { path = "crates/forge-types" }` under [workspace.dependencies].
-
-STEP 10: Run `cargo check --workspace`. Fix any errors.
-
-STEP 11: Run `cargo test -p forge-types`. All tests must pass.
-
-STEP 12: Run `cargo clippy -- -D warnings`. Fix any warnings.
-
-STEP 13: Run `cargo fmt`.
-
-DONE. All of cargo check, cargo test, cargo clippy, and cargo fmt must succeed with zero errors and zero warnings.
-```
+> No Agent 1 needed. Open 9 Jules sessions on `SMSLYCLOUD/forge` (master). Paste ONE prompt per session.
 
 ---
 
-## AGENT 2 — Implement forge-config + forge-keybindings
-
-```
-You are working on the Forge editor, a Rust workspace with 19 crates at the root of this repo.
-
-Follow these steps IN ORDER. Do not skip any step.
-
-STEP 1: Read tasks/GLOBAL_RULES.md for project rules.
-
-STEP 2: Read tasks/session1/agent_02.md for full code details.
-
-STEP 3: Open the existing file crates/forge-config/src/lib.rs. You will REPLACE its contents with a full TOML configuration system.
-
-STEP 4: Create the file crates/forge-config/src/editor.rs with EditorConfig struct containing: tab_size (usize, default 4), insert_spaces (bool, default true), word_wrap (bool, default false), line_numbers (bool, default true), minimap (bool, default true), auto_save_delay_ms (u64, default 30000), cursor_blink (bool, default true). Derive Serialize, Deserialize. Implement Default.
-
-STEP 5: Create the file crates/forge-config/src/terminal.rs with TerminalConfig struct containing: shell (Option<String>), scrollback (usize, default 10000), cursor_style (String, default "block"), font_size (f32, default 13.0). Derive Serialize, Deserialize. Implement Default.
-
-STEP 6: Replace crates/forge-config/src/lib.rs with ForgeConfig struct that contains editor: EditorConfig, terminal: TerminalConfig, theme: String (default "Forge Dark"), font_family: String (default "Cascadia Code"), font_size: f32 (default 14.0). Add load() that reads from ~/.config/forge/config.toml (use dirs-next crate), save() that writes TOML, and config_path(). Use #[serde(default)] so missing fields use defaults. Add `mod editor; mod terminal;` and re-export both.
-
-STEP 7: Add `dirs-next = { workspace = true }` and `toml = { workspace = true }` to crates/forge-config/Cargo.toml dependencies if not already there. Also add `anyhow = { workspace = true }` and `serde = { workspace = true }`.
-
-STEP 8: Run `cargo check -p forge-config`. Fix any errors before proceeding.
-
-STEP 9: Add tests to forge-config: test that Default creates valid config, test that save() then load() round-trips correctly using a temp directory.
-
-STEP 10: Run `cargo test -p forge-config`. All tests must pass.
-
-STEP 11: Create directory crates/forge-keybindings/src/
-
-STEP 12: Create crates/forge-keybindings/Cargo.toml:
-[package]
-name = "forge-keybindings"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-serde = { workspace = true }
-serde_json = { workspace = true }
-anyhow = { workspace = true }
-
-STEP 13: Create crates/forge-keybindings/src/lib.rs with:
-- KeyCombo struct { ctrl: bool, shift: bool, alt: bool, key: String } — derive Hash, Eq
-- Keybinding struct { key: KeyCombo, command: String, when: Option<String> }
-- KeybindingResolver struct with HashMap index for fast lookup
-- KeybindingResolver::new(bindings) builds the index
-- KeybindingResolver::resolve(&self, combo) -> Option<&str> returns last matching command (later bindings override earlier)
-- KeybindingResolver::default_keymap() returns Vec<Keybinding> with: Ctrl+S=file.save, Ctrl+Z=edit.undo, Ctrl+Y=edit.redo, Ctrl+F=edit.find, Ctrl+H=edit.replace, Ctrl+Shift+P=command_palette, Ctrl+P=file_picker, Ctrl+W=tab.close, Ctrl+G=go.line, F12=go.definition
-- Add tests: resolve Ctrl+S returns "file.save", override binding takes precedence
-
-STEP 14: Add "crates/forge-keybindings" to [workspace] members in root Cargo.toml.
-
-STEP 15: Run `cargo check --workspace`. Fix any errors.
-
-STEP 16: Run `cargo test -p forge-config -p forge-keybindings`. All tests must pass.
-
-STEP 17: Run `cargo clippy -- -D warnings`. Fix any clippy warnings.
-
-STEP 18: Run `cargo fmt`.
-
-DONE.
-```
-
----
-
-## AGENT 3 — forge-theme + forge-icons
+## AGENT 2 — Enhance forge-config + forge-keybindings crate
 
 ```
 You are working on the Forge editor, a Rust workspace at the root of this repo.
+
+IMPORTANT CONTEXT — READ BEFORE DOING ANYTHING:
+- forge-config already exists at crates/forge-config/ with structs: Config, EditorConfig, TypographyConfig, TerminalConfig, KeybindingConfig, OnboardingConfig
+- Config already has load_from_str() and load_from_file() methods
+- It already uses serde, toml, anyhow
+- forge-input already exists at crates/forge-input/ with Key, Modifiers, Keybinding, Command, Keymap structs and default_vscode() keymap
+- The root Cargo.toml already has dirs-next, toml, serde, anyhow in [workspace.dependencies]
+- DO NOT create a new forge-keybindings crate — keybindings already live in forge-input
+
+Follow these steps IN ORDER. Do not skip steps. Do not proceed until each step compiles.
+
+STEP 1: Read tasks/GLOBAL_RULES.md and tasks/session1/agent_02.md for context.
+
+STEP 2: Open and read crates/forge-config/src/lib.rs. Note what already exists.
+
+STEP 3: Open and read crates/forge-config/Cargo.toml. Note current dependencies.
+
+STEP 4: Add a save_to_file() method to the existing Config impl block:
+  pub fn save_to_file<P: AsRef<Path>>(&self, path: P) -> Result<()> {
+      let content = toml::to_string_pretty(self)?;
+      if let Some(parent) = path.as_ref().parent() {
+          std::fs::create_dir_all(parent)?;
+      }
+      std::fs::write(path, content)?;
+      Ok(())
+  }
+
+STEP 5: Add a config_dir() function that returns the config directory path:
+  pub fn config_dir() -> Option<std::path::PathBuf> {
+      dirs_next::config_dir().map(|d| d.join("forge"))
+  }
+
+STEP 6: Add a load_or_default() method:
+  pub fn load_or_default() -> Self {
+      if let Some(dir) = Self::config_dir() {
+          let path = dir.join("config.toml");
+          if path.exists() {
+              return Self::load_from_file(path).unwrap_or_default();
+          }
+      }
+      Self::default()
+  }
+
+STEP 7: Make sure dirs-next is in crates/forge-config/Cargo.toml dependencies. If not, add: dirs-next = { workspace = true }
+
+STEP 8: Run `cargo check -p forge-config`. Fix any errors.
+
+STEP 9: Add tests to crates/forge-config/src/lib.rs in a #[cfg(test)] mod tests block:
+  - test_default_config: Config::default() creates valid config with expected values
+  - test_round_trip: create Config::default(), save_to_file() to a tempdir, load_from_file() back, compare fields match
+  Use std::env::temp_dir() for temp paths.
+
+STEP 10: Run `cargo test -p forge-config`. Fix failures.
+
+STEP 11: Run `cargo clippy -p forge-config -- -D warnings`. Fix warnings.
+
+STEP 12: Run `cargo fmt --check`. Fix formatting.
+
+DONE. Do NOT create any new crates. Only modify crates/forge-config/.
+```
+
+---
+
+## AGENT 3 — Enhance forge-theme + Create forge-icons
+
+```
+You are working on the Forge editor, a Rust workspace at the root of this repo.
+
+IMPORTANT CONTEXT — READ BEFORE DOING ANYTHING:
+- forge-theme already exists at crates/forge-theme/ with: Color (hex wrapper), Theme, SyntaxColors, UiColors, DiagnosticColors
+- Theme already has forge_night() and forge_day() constructors with full color maps
+- Color uses String internally with new(hex) constructor
+- forge-theme Cargo.toml already uses serde, anyhow
+- DO NOT replace or rewrite Theme/Color — they are already complete
 
 Follow these steps IN ORDER.
 
 STEP 1: Read tasks/GLOBAL_RULES.md and tasks/session1/agent_03.md.
 
-STEP 2: Create crates/forge-theme/src/token.rs with TokenColor struct: scope (Vec<String>), settings (TokenSettings). TokenSettings: foreground (Option<String>), font_style (Option<String>). Derive Serialize, Deserialize.
+STEP 2: Open and read crates/forge-theme/src/lib.rs completely. Understand what exists.
 
-STEP 3: Create crates/forge-theme/src/builtin.rs with two functions:
-- forge_dark() -> Theme: returns Theme with name "Forge Dark", kind Dark, and a HashMap of 50+ VS Code color keys like "editor.background" => "#1a1b26", "editor.foreground" => "#d4d4d4", "activityBar.background" => "#1e1e2e", "sideBar.background" => "#181825", "statusBar.background" => "#007acc", "tab.activeBackground" => "#1e1e2e", "tab.inactiveBackground" => "#2d2d2d", etc. Also add a Vec of TokenColor entries for keyword (pink #ff79c6), function (green #50fa7b), type (cyan #8be9fd), string (yellow #f1fa8c), number (purple #bd93f9), comment (gray #6272a4).
-- forge_light() -> Theme: similar but light colors.
+STEP 3: Add a parse_hex_to_f32 method to the Color impl:
+  pub fn to_f32_array(&self) -> [f32; 4] {
+      let hex = self.0.trim_start_matches('#');
+      let r = u8::from_str_radix(&hex[0..2], 16).unwrap_or(0) as f32 / 255.0;
+      let g = u8::from_str_radix(&hex[2..4], 16).unwrap_or(0) as f32 / 255.0;
+      let b = u8::from_str_radix(&hex[4..6], 16).unwrap_or(0) as f32 / 255.0;
+      [r, g, b, 1.0]
+  }
 
-STEP 4: Replace crates/forge-theme/src/lib.rs with:
-- mod builtin; mod token; pub use token::TokenColor;
-- Theme struct { name: String, kind: ThemeKind, colors: HashMap<String, String>, token_colors: Vec<TokenColor> } with Serialize, Deserialize
-- ThemeKind enum { Dark, Light, HighContrast } with Default = Dark
-- Theme::color(&self, key) -> Option<[f32; 4]> that looks up key in colors map and converts hex to float array
-- Theme::default_dark() and default_light() calling builtin functions
-- parse_hex_color(hex: &str) -> Option<[f32; 4]> handling 6-digit and 8-digit hex with # prefix
-- Tests: parse "#ff8000" works, default_dark() has non-empty colors
+STEP 4: Add a color() method to Theme that looks up a UI color by name:
+  pub fn color(&self, key: &str) -> [f32; 4] {
+      match key {
+          "editor.background" => self.ui.editor_bg.to_f32_array(),
+          "editor.foreground" => self.ui.foreground.to_f32_array(),
+          "sideBar.background" => self.ui.sidebar_bg.to_f32_array(),
+          // ... map all UiColors fields
+          _ => [0.8, 0.8, 0.8, 1.0], // fallback
+      }
+  }
 
-STEP 5: Make sure crates/forge-theme/Cargo.toml has serde and serde_json as dependencies.
+STEP 5: Run `cargo check -p forge-theme`. Fix errors.
 
-STEP 6: Run `cargo check -p forge-theme`. Fix errors.
+STEP 6: Add tests: Color::new("#ff8000").unwrap().to_f32_array() approximately equals [1.0, 0.502, 0.0, 1.0]. Theme::forge_night().color("editor.background") returns non-zero values.
 
-STEP 7: Run `cargo test -p forge-theme`. Tests pass.
+STEP 7: Run `cargo test -p forge-theme`. All pass.
 
 STEP 8: Create directory crates/forge-icons/src/
 
-STEP 9: Create crates/forge-icons/Cargo.toml (name = "forge-icons", version/edition workspace, no dependencies needed).
+STEP 9: Create crates/forge-icons/Cargo.toml:
+  [package]
+  name = "forge-icons"
+  version = "0.1.0"
+  edition = "2021"
 
 STEP 10: Create crates/forge-icons/src/lib.rs with:
-- FileIcon enum: Rust, JavaScript, TypeScript, Python, Go, C, Cpp, Json, Toml, Yaml, Html, Css, Markdown, Shell, Docker, Git, Generic
-- FileIcon::from_extension(ext: &str) -> Self mapping file extensions
-- FileIcon::glyph(&self) -> &'static str returning emoji for each type
-- UiIcon enum: Folder, FolderOpen, Search, Settings, Git, Debug, Extensions, Terminal with glyph() method
-- Tests: from_extension("rs") == Rust, from_extension("xyz") == Generic
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+  pub enum FileIcon { Rust, JavaScript, TypeScript, Python, Go, C, Cpp, Json, Toml, Yaml, Html, Css, Markdown, Shell, Docker, Git, Generic }
 
-STEP 11: Add "crates/forge-icons" to [workspace] members in root Cargo.toml.
+  impl FileIcon {
+      pub fn from_extension(ext: &str) -> Self { match ext { "rs" => Self::Rust, "js" | "mjs" | "cjs" => Self::JavaScript, "ts" | "tsx" => Self::TypeScript, "py" => Self::Python, "go" => Self::Go, "c" | "h" => Self::C, "cpp" | "hpp" | "cc" => Self::Cpp, "json" => Self::Json, "toml" => Self::Toml, "yaml" | "yml" => Self::Yaml, "html" | "htm" => Self::Html, "css" | "scss" => Self::Css, "md" => Self::Markdown, "sh" | "bash" | "zsh" => Self::Shell, "dockerfile" => Self::Docker, "gitignore" => Self::Git, _ => Self::Generic } }
+      pub fn glyph(&self) -> &'static str { match self { Self::Rust => "🦀", Self::JavaScript => "📜", Self::TypeScript => "🔷", Self::Python => "🐍", Self::Go => "🐹", Self::C | Self::Cpp => "⚙️", Self::Json => "📋", Self::Toml => "⚙️", Self::Yaml => "📄", Self::Html => "🌐", Self::Css => "🎨", Self::Markdown => "📝", Self::Shell => "🐚", Self::Docker => "🐳", Self::Git => "📂", Self::Generic => "📄" } }
+  }
 
-STEP 12: Run `cargo check --workspace && cargo test -p forge-theme -p forge-icons`.
+  Add tests: from_extension("rs") == Rust, from_extension("xyz") == Generic
 
-STEP 13: Run `cargo clippy -- -D warnings` and `cargo fmt`.
+STEP 11: Add "crates/forge-icons" to [workspace] members in root Cargo.toml (add it after the last entry in the members array).
+
+STEP 12: Run `cargo check -p forge-icons`. Fix errors.
+
+STEP 13: Run `cargo test -p forge-icons`. All pass.
+
+STEP 14: Run `cargo clippy -- -D warnings` on both crates. Fix warnings.
+
+STEP 15: Run `cargo fmt`.
 
 DONE.
 ```
 
 ---
 
-## AGENT 4 — Buffer Tests + Clipboard + Recovery
+## AGENT 4 — Buffer Edge-Case Tests + Clipboard + Recovery
 
 ```
 You are working on the Forge editor, a Rust workspace at the root of this repo.
+
+IMPORTANT CONTEXT — READ BEFORE DOING ANYTHING:
+- Buffer lives at crates/forge-core/src/buffer.rs
+- Buffer API includes: new(), from_str(s), from_file(path), text(), len_lines(), len_bytes(), slice(start, end), apply(Transaction), undo(), redo(), is_dirty(), mark_clean(), save(), save_as(), selection(), set_selection(), offset_to_line_col(), line_col_to_offset()
+- Buffer uses ropey::Rope internally
+- Existing tests: test_buffer_creation, test_buffer_transactions, test_buffer_undo_redo, test_offset_to_line_col
+- forge-input already exists at crates/forge-input/
+- forge-core's lib.rs declares: mod buffer; pub mod git; mod history; pub mod layout; mod position; pub mod project; mod selection; pub mod syntax; pub mod terminal; mod transaction;
+- Root Cargo.toml already has arboard = "3" and dirs-next = "2" in workspace deps
 
 Follow these steps IN ORDER.
 
 STEP 1: Read tasks/GLOBAL_RULES.md and tasks/session1/agent_04.md.
 
-STEP 2: Open crates/forge-core/src/buffer.rs. Read the existing code to understand the Buffer API — what methods exist, what their signatures are.
+STEP 2: Open crates/forge-core/src/buffer.rs. Read the ENTIRE file. Note all existing methods and the existing #[cfg(test)] mod tests block.
 
-STEP 3: Add a new test module at the bottom of buffer.rs (or in an existing #[cfg(test)] block). Add edge case tests using the ACTUAL method names from step 2. Include tests for:
-- Empty buffer: creating new buffer has 1 line
-- Deleting from empty buffer doesn't panic
-- Inserting emoji "👋🌍" works correctly
-- Inserting CJK characters "你好世界" preserves string length
-- Large buffer: create string with 100,000 lines, verify line count
-- If there's CRLF handling, test that "\r\n" is normalized
+STEP 3: ADD new tests to the EXISTING #[cfg(test)] mod tests block (do NOT create a duplicate test module). Add these tests using the exact Buffer API:
 
-IMPORTANT: Use only methods that actually exist on Buffer. Do NOT write tests for methods that don't exist. Read the code first.
+  #[test]
+  fn test_empty_buffer_has_one_line() {
+      let buf = Buffer::new();
+      assert_eq!(buf.len_lines(), 1);
+  }
 
-STEP 4: Run `cargo test -p forge-core`. Fix any test failures by adjusting test code to match actual API.
+  #[test]
+  fn test_emoji_insertion() {
+      let buf = Buffer::from_str("Hello 👋🌍");
+      assert!(buf.text().contains("👋🌍"));
+  }
 
-STEP 5: Create crates/forge-input/src/clipboard.rs with a Clipboard struct wrapping arboard::Clipboard. Methods: new() -> Result<Self>, copy(&mut self, text: &str) -> Result<()>, paste(&mut self) -> Result<String>. Use anyhow for errors.
+  #[test]
+  fn test_cjk_characters() {
+      let buf = Buffer::from_str("你好世界");
+      assert_eq!(buf.text().trim(), "你好世界");
+  }
 
-STEP 6: Open crates/forge-input/src/lib.rs and add `pub mod clipboard;`.
+  #[test]
+  fn test_large_buffer() {
+      let content: String = (0..100_000).map(|i| format!("line {}\n", i)).collect();
+      let buf = Buffer::from_str(&content);
+      assert_eq!(buf.len_lines(), 100_001); // 100000 lines + trailing
+  }
 
-STEP 7: Make sure crates/forge-input/Cargo.toml has `arboard = { workspace = true }` and `anyhow = { workspace = true }` in dependencies.
+  #[test]
+  fn test_buffer_dirty_tracking() {
+      let mut buf = Buffer::from_str("hello");
+      assert!(!buf.is_dirty());
+      // Apply a transaction to make it dirty
+      let tx = Transaction::new(vec![ChangeSet::new(vec![
+          Change::Retain(5),
+          Change::Insert(" world".to_string()),
+      ])]);
+      buf.apply(tx);
+      assert!(buf.is_dirty());
+      buf.mark_clean();
+      assert!(!buf.is_dirty());
+  }
 
-STEP 8: Run `cargo check -p forge-input`. Fix errors.
+STEP 4: Run `cargo test -p forge-core`. If any test fails because the API doesn't match, READ the actual method signatures and fix the test code. Do NOT modify non-test code.
 
-STEP 9: Create crates/forge-core/src/recovery.rs with RecoveryManager struct. It uses dirs-next to find data dir, saves buffer content to ~/.local/share/forge/recovery/ (or AppData on Windows) with a hashed filename, and can recover or clear saved content. Add tests using temp directories.
+STEP 5: Open crates/forge-input/src/lib.rs. Read it to see what modules exist.
 
-STEP 10: Open crates/forge-core/src/lib.rs and add `pub mod recovery;`.
+STEP 6: Create crates/forge-input/src/clipboard.rs:
+  use anyhow::Result;
 
-STEP 11: Make sure forge-core Cargo.toml has `dirs-next = { workspace = true }` in dependencies.
+  pub struct Clipboard {
+      inner: arboard::Clipboard,
+  }
 
-STEP 12: Run `cargo check --workspace && cargo test -p forge-core -p forge-input`.
+  impl Clipboard {
+      pub fn new() -> Result<Self> {
+          Ok(Self { inner: arboard::Clipboard::new()? })
+      }
+      pub fn copy(&mut self, text: &str) -> Result<()> {
+          self.inner.set_text(text)?;
+          Ok(())
+      }
+      pub fn paste(&mut self) -> Result<String> {
+          Ok(self.inner.get_text()?)
+      }
+  }
 
-STEP 13: Run `cargo clippy -- -D warnings` and `cargo fmt`.
+STEP 7: Open crates/forge-input/src/lib.rs and add `pub mod clipboard;` at the top.
 
-DONE.
-```
+STEP 8: Open crates/forge-input/Cargo.toml. Add these if not present:
+  arboard = { workspace = true }
+  anyhow = { workspace = true }
 
----
+STEP 9: Run `cargo check -p forge-input`. Fix errors.
 
-## AGENT 5 — forge-syntax: Tree-sitter Parser + Language Detection
+STEP 10: Create crates/forge-core/src/recovery.rs:
+  use anyhow::Result;
+  use std::path::{Path, PathBuf};
+  use std::collections::hash_map::DefaultHasher;
+  use std::hash::{Hash, Hasher};
 
-```
-You are working on the Forge editor, a Rust workspace at the root of this repo.
+  pub struct RecoveryManager { recovery_dir: PathBuf }
 
-Follow these steps IN ORDER. This creates a NEW crate.
+  impl RecoveryManager {
+      pub fn new() -> Result<Self> {
+          let dir = dirs_next::data_dir()
+              .unwrap_or_else(|| PathBuf::from("."))
+              .join("forge").join("recovery");
+          std::fs::create_dir_all(&dir)?;
+          Ok(Self { recovery_dir: dir })
+      }
+      pub fn with_dir(dir: PathBuf) -> Result<Self> {
+          std::fs::create_dir_all(&dir)?;
+          Ok(Self { recovery_dir: dir })
+      }
+      fn hash_path(path: &str) -> String {
+          let mut h = DefaultHasher::new();
+          path.hash(&mut h);
+          format!("{:x}.forge-recovery", h.finish())
+      }
+      pub fn save(&self, file_path: &str, content: &str) -> Result<()> {
+          let name = Self::hash_path(file_path);
+          std::fs::write(self.recovery_dir.join(name), content)?;
+          Ok(())
+      }
+      pub fn recover(&self, file_path: &str) -> Result<Option<String>> {
+          let name = Self::hash_path(file_path);
+          let p = self.recovery_dir.join(name);
+          if p.exists() { Ok(Some(std::fs::read_to_string(p)?)) } else { Ok(None) }
+      }
+      pub fn clear(&self, file_path: &str) -> Result<()> {
+          let name = Self::hash_path(file_path);
+          let p = self.recovery_dir.join(name);
+          if p.exists() { std::fs::remove_file(p)?; }
+          Ok(())
+      }
+  }
 
-STEP 1: Read tasks/GLOBAL_RULES.md and tasks/session1/agent_05.md.
+  #[cfg(test)]
+  mod tests {
+      use super::*;
+      #[test]
+      fn test_save_and_recover() {
+          let dir = std::env::temp_dir().join("forge-recovery-test");
+          let _ = std::fs::remove_dir_all(&dir);
+          let mgr = RecoveryManager::with_dir(dir.clone()).unwrap();
+          mgr.save("test.rs", "fn main() {}").unwrap();
+          let recovered = mgr.recover("test.rs").unwrap();
+          assert_eq!(recovered, Some("fn main() {}".to_string()));
+          mgr.clear("test.rs").unwrap();
+          assert_eq!(mgr.recover("test.rs").unwrap(), None);
+          let _ = std::fs::remove_dir_all(&dir);
+      }
+  }
 
-STEP 2: Check crates.io for the latest versions of: tree-sitter, tree-sitter-rust, tree-sitter-javascript, tree-sitter-python, tree-sitter-json, tree-sitter-toml-ng. NOTE: some tree-sitter grammar crates may have different names or version requirements. Search crates.io to find the correct crate names and compatible versions.
+STEP 11: Open crates/forge-core/src/lib.rs and add `pub mod recovery;` in the module declarations.
 
-STEP 3: Add ALL tree-sitter dependencies to root Cargo.toml under [workspace.dependencies]. If a crate doesn't exist with that exact name, find the correct alternative on crates.io.
+STEP 12: Open crates/forge-core/Cargo.toml. Make sure `dirs-next = { workspace = true }` is in [dependencies]. Add it if not.
 
-STEP 4: Add "crates/forge-syntax" to [workspace] members in root Cargo.toml.
+STEP 13: Run `cargo check -p forge-core`. Fix errors.
 
-STEP 5: Create crates/forge-syntax/Cargo.toml referencing the workspace dependencies:
-[package]
-name = "forge-syntax"
-version = "0.1.0"
-edition = "2021"
+STEP 14: Run `cargo test -p forge-core`. All tests pass.
 
-[dependencies]
-tree-sitter = { workspace = true }
-tree-sitter-rust = { workspace = true }
-tree-sitter-javascript = { workspace = true }
-tree-sitter-python = { workspace = true }
-tree-sitter-json = { workspace = true }
-(add others as found in step 2)
-anyhow = { workspace = true }
-thiserror = { workspace = true }
+STEP 15: Run `cargo test -p forge-input`. All tests pass.
 
-STEP 6: Create crates/forge-syntax/src/language.rs with Language enum (Rust, JavaScript, TypeScript, Python, Go, C, Cpp, Json, Toml, Yaml, Html, Css, Markdown, Shell, Unknown). Add from_extension(ext) and from_path(path). Add tree_sitter_language(&self) -> Option<tree_sitter::Language> that returns the grammar for supported languages. Check tree-sitter grammar crate APIs — some use LANGUAGE constant, others use language() function.
+STEP 16: Run `cargo clippy -p forge-core -p forge-input -- -D warnings`. Fix warnings.
 
-STEP 7: Run `cargo check -p forge-syntax`. This is the critical step — tree-sitter grammar APIs vary between crates. Fix any compile errors by checking how each grammar crate exports its language. Common patterns:
-  - `tree_sitter_rust::LANGUAGE.into()`
-  - `tree_sitter_rust::language()` 
-  - Check the crate docs if unsure.
-
-STEP 8: Create crates/forge-syntax/src/parser.rs with SyntaxParser { parser, language }. Methods: new(lang), parse(text) -> Result<Tree>, reparse(text, old_tree) -> Result<Tree>.
-
-STEP 9: Create crates/forge-syntax/src/lib.rs: pub mod language; pub mod parser; pub use both.
-
-STEP 10: Run `cargo check -p forge-syntax`. Fix errors.
-
-STEP 11: Add tests: parse "fn main() {}" with Rust language, verify tree root node is "source_file". Test Language::from_extension("rs") == Rust. Test from_extension("unknown") == Unknown.
-
-STEP 12: Run `cargo test -p forge-syntax`. All pass.
-
-STEP 13: Run `cargo clippy -- -D warnings` and `cargo fmt`.
-
-DONE.
-```
-
----
-
-## AGENT 6 — Syntax Highlighter + Token Colors
-
-```
-You are working on the Forge editor, a Rust workspace at the root of this repo.
-
-Follow these steps IN ORDER.
-
-STEP 1: Read tasks/GLOBAL_RULES.md and tasks/session1/agent_06.md.
-
-STEP 2: Check if crates/forge-syntax/ exists. If it does NOT exist, you must create it first:
-  - Follow ALL steps from tasks/session1/agent_05.md to create the forge-syntax crate with language detection and parser.
-  - Run `cargo check -p forge-syntax` to confirm it works.
-  - Then continue with step 3.
-
-STEP 3: Create crates/forge-syntax/src/highlighter.rs with:
-- TokenType enum: Keyword, Function, Type, String, Number, Comment, Operator, Punctuation, Variable, Constant, Namespace, Property, Parameter, Macro, Attribute, Label, Builtin, Plain
-- HighlightSpan struct { start_byte: usize, end_byte: usize, token_type: TokenType }
-- Highlighter struct with highlight(tree, source_bytes, lang) -> Vec<HighlightSpan>
-- Walk tree-sitter CST recursively. For leaf nodes (child_count == 0), classify by node kind:
-  - "line_comment" | "block_comment" | "comment" => Comment
-  - "string_literal" | "string" | "raw_string_literal" => String
-  - "integer_literal" | "float_literal" | "number" => Number
-  - "fn" | "let" | "mut" | "pub" | "use" | "struct" | "if" | "else" | "return" etc. => Keyword
-  - Punctuation characters => Punctuation
-  - Operators => Operator
-  - Everything else => Plain
-
-STEP 4: Run `cargo check -p forge-syntax`. Fix errors.
-
-STEP 5: Create crates/forge-syntax/src/colors.rs with default_color(token: TokenType) -> [u8; 3] returning Dracula-style colors: Keyword=[255,121,198], Function=[80,250,123], Type=[139,233,253], String=[241,250,140], Number=[189,147,249], Comment=[98,114,164], Operator=[255,184,108], Variable/Plain=[248,248,242].
-
-STEP 6: Update crates/forge-syntax/src/lib.rs to add: pub mod highlighter; pub mod colors; and re-export Highlighter, HighlightSpan, TokenType.
-
-STEP 7: Run `cargo check -p forge-syntax`.
-
-STEP 8: Add test: parse "fn main() { let x = 42; }" with Rust, call Highlighter::highlight, verify spans contain at least one Keyword and one Number token type.
-
-STEP 9: Run `cargo test -p forge-syntax`. All pass.
-
-STEP 10: Run `cargo clippy -- -D warnings` and `cargo fmt`.
-
-DONE.
-```
-
----
-
-## AGENT 7 — Real File Tree + File Tree UI
-
-```
-You are working on the Forge editor, a Rust workspace at the root of this repo.
-
-Follow these steps IN ORDER.
-
-STEP 1: Read tasks/GLOBAL_RULES.md and tasks/session1/agent_07.md.
-
-STEP 2: Open crates/forge-surfaces/src/file_explorer.rs. Read whatever is there currently.
-
-STEP 3: REPLACE the contents of crates/forge-surfaces/src/file_explorer.rs with a real file tree implementation:
-- FileNode struct { name: String, path: PathBuf, kind: NodeKind, children: Vec<FileNode>, expanded: bool, depth: usize }
-- NodeKind enum { File, Directory }
-- FileNode::build_tree(root: &Path, max_depth: usize) -> Result<Self> that recursively walks directories
-- Skip hidden files (starting with '.'), skip "target" and "node_modules" directories
-- Sort children: directories first, then alphabetically case-insensitive
-- FileNode::toggle(target_path) -> bool to expand/collapse
-- FileNode::flatten_visible() -> Vec<&FileNode> that returns all visible nodes (expanded dirs show their children)
-
-STEP 4: Make sure crates/forge-surfaces/Cargo.toml has `anyhow = { workspace = true }` in dependencies.
-
-STEP 5: Run `cargo check -p forge-surfaces`. Fix errors.
-
-STEP 6: Add tests to file_explorer.rs:
-- Create a temp directory with some files/folders, build_tree, verify structure
-- Test toggle: expand a directory, flatten, verify children are visible
-
-STEP 7: Run `cargo test -p forge-surfaces`. All pass.
-
-STEP 8: Now open crates/forge-app/src/main.rs. Look at how it declares modules (mod statements at the top).
-
-STEP 9: Create crates/forge-app/src/file_tree_ui.rs with FileTreeUi struct that has scroll_offset, selected_index, hovered_index fields. It should have a render_rects() method that returns rectangles for hover highlight and selection highlight. Also create a DisplayNode struct { label, depth, is_dir, expanded }.
-
-STEP 10: Add `mod file_tree_ui;` to main.rs alongside the other mod declarations.
-
-STEP 11: Run `cargo check -p forge-app`. Fix errors — make sure the Rect type matches what forge-app uses (check rect_renderer.rs for the Rect struct definition and use that exact type).
-
-STEP 12: Run `cargo clippy -- -D warnings` and `cargo fmt`.
+STEP 17: Run `cargo fmt`.
 
 DONE.
 ```
-
----
-
-## AGENT 8 — Tab Manager + File I/O
-
-```
-You are working on the Forge editor, a Rust workspace at the root of this repo.
-
-Follow these steps IN ORDER.
-
-STEP 1: Read tasks/GLOBAL_RULES.md and tasks/session1/agent_08.md.
-
-STEP 2: Open crates/forge-app/src/editor.rs. Read how Editor is structured — what fields it has, how Editor::new() and Editor::open_file() work. You need this to create TabManager.
-
-STEP 3: Create crates/forge-app/src/tab_manager.rs with:
-- Tab struct { title: String, path: Option<PathBuf>, editor: Editor, is_modified: bool }
-- TabManager struct { tabs: Vec<Tab>, active: usize }
-- TabManager::new() -> Self (empty tabs)
-- open_file(&mut self, path: &str) -> Result<()>: check for duplicate paths first, if already open just switch to it, otherwise create new Tab with Editor::open_file()
-- close_tab(&mut self, idx): remove tab, adjust active index
-- close_current(&mut self): close active tab
-- next_tab(&mut self): cycle active forward
-- prev_tab(&mut self): cycle active backward
-- active_editor(&self) -> Option<&Editor>
-- active_editor_mut(&mut self) -> Option<&mut Editor>
-- tab_count(&self) -> usize
-
-STEP 4: Add `mod tab_manager;` to crates/forge-app/src/main.rs.
-
-STEP 5: Run `cargo check -p forge-app`. Fix errors — make sure you import the right Editor type and use the correct API.
-
-STEP 6: Create crates/forge-core/src/file_io.rs with:
-- FileIO struct (unit struct)
-- save_atomic(path: &Path, content: &str) -> Result<()>: write to path.with_extension("forge-tmp"), then std::fs::rename to path
-- is_binary(path: &Path) -> Result<bool>: read file, check first 8192 bytes for null byte (0x00)
-- detect_line_ending(content: &str) -> &'static str: if contains "\r\n" return "\r\n" else "\n"
-
-STEP 7: Add `pub mod file_io;` to crates/forge-core/src/lib.rs.
-
-STEP 8: Run `cargo check -p forge-core`. Fix errors.
-
-STEP 9: Add tests for file_io: atomic save round-trip using temp dir, detect_line_ending for LF and CRLF.
-
-STEP 10: Run `cargo test -p forge-core -p forge-app`.
-
-STEP 11: Run `cargo clippy -- -D warnings` and `cargo fmt`.
-
-DONE.
-```
-
----
-
-## AGENT 9 — forge-workspace + Project Detection
-
-```
-You are working on the Forge editor, a Rust workspace at the root of this repo.
-
-Follow these steps IN ORDER.
-
-STEP 1: Read tasks/GLOBAL_RULES.md and tasks/session1/agent_09.md.
-
-STEP 2: Create the directory crates/forge-workspace/src/
-
-STEP 3: Create crates/forge-workspace/Cargo.toml:
-[package]
-name = "forge-workspace"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-anyhow = { workspace = true }
-serde = { workspace = true }
-toml = { workspace = true }
-
-STEP 4: Create crates/forge-workspace/src/lib.rs with:
-- Workspace struct { name: String, roots: Vec<PathBuf> } with Serialize, Deserialize
-- from_dir(path: &Path) -> Result<Self>: single-root workspace from directory
-- add_root(&mut self, path: PathBuf): add if not already in roots
-- resolve_path(&self, relative: &str) -> Option<PathBuf>: check each root for existing file
-- contains(&self, path: &Path) -> bool: check if path starts_with any root
-
-STEP 5: Add "crates/forge-workspace" to [workspace] members in root Cargo.toml.
-
-STEP 6: Run `cargo check -p forge-workspace`. Fix errors.
-
-STEP 7: Add tests: single root workspace, add_root deduplication, resolve_path finds existing file.
-
-STEP 8: Run `cargo test -p forge-workspace`. All pass.
-
-STEP 9: Open crates/forge-core/src/project.rs. Read existing code.
-
-STEP 10: ADD (do not replace existing code) to project.rs:
-- ProjectKind enum { Rust, Node, Python, Go, Generic }
-- pub fn detect_project_kind(root: &Path) -> ProjectKind: check for Cargo.toml=Rust, package.json=Node, pyproject.toml or setup.py=Python, go.mod=Go, else Generic
-
-STEP 11: Run `cargo check -p forge-core`. Fix errors.
-
-STEP 12: Add test for detect_project_kind: test on the repo root (should detect Rust since Cargo.toml exists).
-
-STEP 13: Run `cargo test -p forge-workspace -p forge-core`. All pass.
-
-STEP 14: Run `cargo clippy -- -D warnings` and `cargo fmt`.
-
-DONE.
-```
-
----
-
-## AGENT 10 — Decoration Framework + Selection Rendering
-
-```
-You are working on the Forge editor, a Rust workspace at the root of this repo.
-
-Follow these steps IN ORDER.
-
-STEP 1: Read tasks/GLOBAL_RULES.md and tasks/session1/agent_10.md.
-
-STEP 2: Open crates/forge-renderer/src/lib.rs. Read what modules already exist.
-
-STEP 3: Create crates/forge-renderer/src/decorations.rs with:
-- UnderlineStyle enum { Solid, Wavy, Dashed, Dotted }
-- Decoration enum with three variants:
-  - Underline { line: usize, start_col: usize, end_col: usize, color: [u8; 4], style: UnderlineStyle }
-  - LineBackground { line: usize, color: [u8; 4] }
-  - InlineText { line: usize, col: usize, text: String, color: [u8; 4] }
-- DecorationLayer struct { decorations: Vec<Decoration> }
-- DecorationLayer::new() -> Self
-- add(&mut self, dec: Decoration)
-- clear(&mut self)
-- get_line_decorations(&self, line: usize) -> Vec<&Decoration>: filter by line number
-- count(&self) -> usize
-
-STEP 4: Add `pub mod decorations;` to crates/forge-renderer/src/lib.rs.
-
-STEP 5: Run `cargo check -p forge-renderer`. Fix errors.
-
-STEP 6: Add tests: add two decorations on different lines, get_line_decorations returns only matching, clear empties all.
-
-STEP 7: Run `cargo test -p forge-renderer`. All pass.
-
-STEP 8: Open crates/forge-app/src/ui.rs. Read the Zone struct (or whatever struct defines UI layout zones) — note the field names (x, y, width, height or similar).
-
-STEP 9: Open crates/forge-app/src/rect_renderer.rs. Read the Rect struct — note its exact field names and types.
-
-STEP 10: Create crates/forge-app/src/selection_render.rs with SelectionRenderer struct. Add render_selections() that takes: selection ranges as Vec of (start_line, start_col, end_line, end_col), scroll_top offset, and editor zone reference. Return Vec of Rect (using the EXACT Rect type from rect_renderer.rs you found in step 9). Generate translucent blue highlight rectangles for each selected range.
-
-STEP 11: Add `mod selection_render;` to crates/forge-app/src/main.rs.
-
-STEP 12: Run `cargo check -p forge-app`. Fix errors — make sure Rect fields match exactly.
-
-STEP 13: Run `cargo clippy -- -D warnings` and `cargo fmt`.
-
-DONE.
-```
-
----
-
-# After All 10 Complete
-
-Merge all branches. Then for Session 2, open tasks/session2/all_agents.md — each "## Agent XX" section is one Jules session. Follow the same pattern.
