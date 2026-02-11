@@ -1,4 +1,4 @@
-use crate::models::{ConfidenceScore, Signal, SignalKind};
+use crate::models::{ConfidenceScore, Signal};
 
 pub struct ConfidenceEngine;
 
@@ -36,6 +36,7 @@ mod tests {
 
     #[test]
     fn all_perfect_signals() {
+        use crate::models::SignalKind;
         let engine = ConfidenceEngine;
         let signals = vec![
             Signal { name: SignalKind::SyntaxValid, value: 1.0, weight: 0.20, available: true },

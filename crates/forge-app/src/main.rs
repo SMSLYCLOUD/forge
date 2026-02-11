@@ -5,6 +5,9 @@
 mod application;
 mod editor;
 mod extensions;
+pub mod file_tree_ui;
+pub mod tab_manager;
+pub mod selection_render;
 mod gpu;
 mod modes;
 

@@ -1,5 +1,5 @@
-use std::collections::{HashMap, HashSet, VecDeque};
-use crate::models::{FileNode, PropagationResult, RippleNode, DependencyEdge, DependencyKind};
+use std::collections::{HashSet, VecDeque};
+use crate::models::{FileNode, PropagationResult, RippleNode};
 use crate::graph::GraphStore;
 
 pub struct PropagationEngine {

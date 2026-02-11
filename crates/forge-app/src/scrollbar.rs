@@ -1,5 +1,5 @@
 use crate::rect_renderer::Rect;
-use crate::ui::{colors, LayoutConstants, Zone};
+use crate::ui::{colors, Zone};
 
 /// Vertical scrollbar state and rendering
 pub struct Scrollbar {

@@ -6,6 +6,7 @@ use crate::ui::{colors, LayoutConstants, Zone};
 pub struct Tab {
     pub title: String,
     pub file_path: Option<String>,
+    #[allow(dead_code)]
     pub is_modified: bool,
     pub is_active: bool,
 }
@@ -51,6 +52,7 @@ impl TabBar {
     }
 
     /// Close a tab by index
+    #[allow(dead_code)]
     pub fn close_tab(&mut self, index: usize) {
         if self.tabs.len() <= 1 {
             return; // Don't close last tab
@@ -74,6 +76,7 @@ impl TabBar {
     }
 
     /// Mark a tab as modified (unsaved)
+    #[allow(dead_code)]
     pub fn set_modified(&mut self, index: usize, modified: bool) {
         if index < self.tabs.len() {
             self.tabs[index].is_modified = modified;
@@ -136,6 +139,7 @@ impl TabBar {
     }
 
     /// Get tab titles for text rendering (returns (text, x, y, is_active, is_modified) tuples)
+    #[allow(dead_code)]
     pub fn text_positions(&self, zone: &Zone) -> Vec<(String, f32, f32, bool, bool)> {
         let mut result = Vec::with_capacity(self.tabs.len());
         let tab_width = LayoutConstants::TAB_WIDTH;

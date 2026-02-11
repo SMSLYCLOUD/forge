@@ -16,6 +16,7 @@ pub struct Gutter {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+#[allow(dead_code)]
 pub enum DiagnosticSeverity {
     Error,
     Warning,
@@ -95,6 +96,7 @@ impl Gutter {
     }
 
     /// Get line number text positions (returns (text, x, y, is_current_line))
+    #[allow(dead_code)]
     pub fn text_positions(&self, zone: &Zone) -> Vec<(String, f32, f32, bool)> {
         let visible = Self::visible_lines(zone);
         let mut result = Vec::with_capacity(visible);
@@ -116,6 +118,7 @@ impl Gutter {
     }
 
     /// Toggle breakpoint on a line
+    #[allow(dead_code)]
     pub fn toggle_breakpoint(&mut self, line: usize) {
         if let Some(idx) = self.breakpoints.iter().position(|l| *l == line) {
             self.breakpoints.remove(idx);
@@ -125,6 +128,7 @@ impl Gutter {
     }
 
     /// Handle click in gutter (toggle breakpoint)
+    #[allow(dead_code)]
     pub fn handle_click(&mut self, click_y: f32, zone: &Zone) -> Option<usize> {
         let relative_y = click_y - zone.y;
         if relative_y < 0.0 {

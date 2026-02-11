@@ -14,6 +14,7 @@ pub struct Embedding {
 pub struct EmbeddingEngine {
     // In a real implementation:
     // session: ort::Session,
+    #[allow(dead_code)]
     model_path: String,
 }
 

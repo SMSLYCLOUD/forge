@@ -1,6 +1,5 @@
-use git2::{Repository, Status, StatusOptions};
-use std::path::{Path, PathBuf};
-use anyhow::Result;
+use git2::{Repository, Status};
+use std::path::Path;
 
 pub struct GitIntegration {
     repo: Option<Repository>,
