@@ -38,9 +38,7 @@ impl TaskRunner {
             // Splitting command string is naive but sufficient for placeholder
             let parts: Vec<&str> = task.command.split_whitespace().collect();
             if let Some((cmd, args)) = parts.split_first() {
-                Command::new(cmd)
-                    .args(args)
-                    .spawn()?;
+                Command::new(cmd).args(args).spawn()?;
             }
         }
         Ok(())

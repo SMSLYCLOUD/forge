@@ -1,11 +1,11 @@
+pub mod colors;
+pub mod highlighter;
 pub mod language;
 pub mod parser;
-pub mod highlighter;
-pub mod colors;
 
+pub use highlighter::{HighlightSpan, Highlighter, TokenType};
 pub use language::Language;
 pub use parser::SyntaxParser;
-pub use highlighter::{Highlighter, HighlightSpan, TokenType};
 
 #[cfg(test)]
 mod tests {

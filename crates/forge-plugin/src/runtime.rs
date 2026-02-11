@@ -30,12 +30,7 @@ impl PluginRuntime {
         let module = Module::from_file(&self.engine, path)?;
         let name = "unknown".to_string(); // Extract from manifest?
 
-        let mut store = Store::new(
-            &self.engine,
-            PluginState {
-                name: name.clone(),
-            },
-        );
+        let mut store = Store::new(&self.engine, PluginState { name: name.clone() });
 
         let instance = self
             .linker

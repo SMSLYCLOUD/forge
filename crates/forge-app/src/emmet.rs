@@ -74,9 +74,9 @@ pub fn expand_abbreviation(abbr: &str) -> Result<String> {
 
     while let Some(rem) = current_remainder {
         if rem.starts_with('+') {
-             let (sibling, next_rem) = parse_node(&rem[1..])?;
-             root.siblings.push(sibling);
-             current_remainder = next_rem;
+            let (sibling, next_rem) = parse_node(&rem[1..])?;
+            root.siblings.push(sibling);
+            current_remainder = next_rem;
         } else {
             break;
         }
@@ -171,26 +171,26 @@ fn parse_node(input: &str) -> Result<(EmmetNode, Option<String>)> {
 
             while let Some(rem) = child_rem {
                 if rem.starts_with('+') {
-                     let (sibling, next_rem) = parse_node(&rem[1..])?;
-                     current_child.siblings.push(sibling);
+                    let (sibling, next_rem) = parse_node(&rem[1..])?;
+                    current_child.siblings.push(sibling);
 
-                     // NOTE: We keep appending to the FIRST child's siblings list.
-                     // A -> B -> C
-                     // This assumes parse_node returns single node.
-                     // But if we have `div>p+span+a`.
-                     // `parse_node("p+span+a")` -> returns `p`, remainder `+span+a`.
-                     // Loop 1: `parse_node("span+a")` -> returns `span`, remainder `+a`.
-                     // `p.siblings.push(span)`.
-                     // Loop 2: `parse_node("a")` -> returns `a`, remainder None.
-                     // `p.siblings.push(a)`.
-                     // `p.siblings` = `[span, a]`.
-                     // `p.render()` -> renders `p`, then `span`, then `a`.
-                     // Correct.
+                    // NOTE: We keep appending to the FIRST child's siblings list.
+                    // A -> B -> C
+                    // This assumes parse_node returns single node.
+                    // But if we have `div>p+span+a`.
+                    // `parse_node("p+span+a")` -> returns `p`, remainder `+span+a`.
+                    // Loop 1: `parse_node("span+a")` -> returns `span`, remainder `+a`.
+                    // `p.siblings.push(span)`.
+                    // Loop 2: `parse_node("a")` -> returns `a`, remainder None.
+                    // `p.siblings.push(a)`.
+                    // `p.siblings` = `[span, a]`.
+                    // `p.render()` -> renders `p`, then `span`, then `a`.
+                    // Correct.
 
-                     child_rem = next_rem;
+                    child_rem = next_rem;
                 } else {
-                     child_rem = Some(rem);
-                     break;
+                    child_rem = Some(rem);
+                    break;
                 }
             }
 
@@ -258,17 +258,35 @@ mod tests {
 
     #[test]
     fn test_class_id() {
-        assert_eq!(expand_abbreviation("div.foo").unwrap(), "<div class=\"foo\"></div>");
-        assert_eq!(expand_abbreviation("div#bar").unwrap(), "<div id=\"bar\"></div>");
-        assert_eq!(expand_abbreviation("div.foo#bar").unwrap(), "<div id=\"bar\" class=\"foo\"></div>");
+        assert_eq!(
+            expand_abbreviation("div.foo").unwrap(),
+            "<div class=\"foo\"></div>"
+        );
+        assert_eq!(
+            expand_abbreviation("div#bar").unwrap(),
+            "<div id=\"bar\"></div>"
+        );
+        assert_eq!(
+            expand_abbreviation("div.foo#bar").unwrap(),
+            "<div id=\"bar\" class=\"foo\"></div>"
+        );
         // Implicit div
-        assert_eq!(expand_abbreviation(".foo").unwrap(), "<div class=\"foo\"></div>");
-        assert_eq!(expand_abbreviation("#bar").unwrap(), "<div id=\"bar\"></div>");
+        assert_eq!(
+            expand_abbreviation(".foo").unwrap(),
+            "<div class=\"foo\"></div>"
+        );
+        assert_eq!(
+            expand_abbreviation("#bar").unwrap(),
+            "<div id=\"bar\"></div>"
+        );
     }
 
     #[test]
     fn test_child() {
-        assert_eq!(expand_abbreviation("div>span").unwrap(), "<div><span></span></div>");
+        assert_eq!(
+            expand_abbreviation("div>span").unwrap(),
+            "<div><span></span></div>"
+        );
         assert_eq!(expand_abbreviation("ul>li").unwrap(), "<ul><li></li></ul>");
     }
 
@@ -279,7 +297,10 @@ mod tests {
 
     #[test]
     fn test_multiply() {
-        assert_eq!(expand_abbreviation("ul>li*3").unwrap(), "<ul><li></li><li></li><li></li></ul>");
+        assert_eq!(
+            expand_abbreviation("ul>li*3").unwrap(),
+            "<ul><li></li><li></li><li></li></ul>"
+        );
     }
 
     #[test]
@@ -290,7 +311,10 @@ mod tests {
     #[test]
     fn test_complex() {
         // div>p+span
-        assert_eq!(expand_abbreviation("div>p+span").unwrap(), "<div><p></p><span></span></div>");
+        assert_eq!(
+            expand_abbreviation("div>p+span").unwrap(),
+            "<div><p></p><span></span></div>"
+        );
     }
 
     #[test]

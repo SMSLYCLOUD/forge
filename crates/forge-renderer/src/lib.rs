@@ -3,11 +3,11 @@
 //! Uses wgpu for cross-platform GPU acceleration and cosmic-text for text shaping.
 
 mod atlas;
+pub mod decorations;
 mod pipeline;
 mod text;
 mod theme;
 mod viewport;
-pub mod decorations;
 
 pub use atlas::GlyphAtlas;
 pub use pipeline::RenderPipeline;

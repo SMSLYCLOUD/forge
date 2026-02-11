@@ -17,9 +17,15 @@ pub struct EditorConfig {
 impl Default for EditorConfig {
     fn default() -> Self {
         Self {
-            tab_size: 4, insert_spaces: true, word_wrap: false,
-            line_numbers: true, minimap: true, auto_save_delay_ms: 30000,
-            cursor_blink: true, bracket_matching: true, indent_guides: true,
+            tab_size: 4,
+            insert_spaces: true,
+            word_wrap: false,
+            line_numbers: true,
+            minimap: true,
+            auto_save_delay_ms: 30000,
+            cursor_blink: true,
+            bracket_matching: true,
+            indent_guides: true,
         }
     }
 }

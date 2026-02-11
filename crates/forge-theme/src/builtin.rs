@@ -1,5 +1,5 @@
-use crate::{Theme, ThemeKind, TokenColor};
 use crate::token::TokenSettings;
+use crate::{Theme, ThemeKind, TokenColor};
 use std::collections::HashMap;
 
 pub fn forge_dark() -> Theme {
@@ -44,13 +44,28 @@ pub fn forge_dark() -> Theme {
     // Scrollbar
     colors.insert("scrollbarSlider.background".into(), "#79797966".into());
     colors.insert("scrollbarSlider.hoverBackground".into(), "#646464b3".into());
-    colors.insert("scrollbarSlider.activeBackground".into(), "#bfbfbf66".into());
+    colors.insert(
+        "scrollbarSlider.activeBackground".into(),
+        "#bfbfbf66".into(),
+    );
 
     // Git
-    colors.insert("gitDecoration.addedResourceForeground".into(), "#81b88b".into());
-    colors.insert("gitDecoration.modifiedResourceForeground".into(), "#e2c08d".into());
-    colors.insert("gitDecoration.deletedResourceForeground".into(), "#c74e39".into());
-    colors.insert("gitDecoration.untrackedResourceForeground".into(), "#73c991".into());
+    colors.insert(
+        "gitDecoration.addedResourceForeground".into(),
+        "#81b88b".into(),
+    );
+    colors.insert(
+        "gitDecoration.modifiedResourceForeground".into(),
+        "#e2c08d".into(),
+    );
+    colors.insert(
+        "gitDecoration.deletedResourceForeground".into(),
+        "#c74e39".into(),
+    );
+    colors.insert(
+        "gitDecoration.untrackedResourceForeground".into(),
+        "#73c991".into(),
+    );
 
     // Diagnostics
     colors.insert("editorError.foreground".into(), "#f48771".into());

@@ -1,35 +1,56 @@
+use forge_confidence::{ConfidenceField, ConfidenceMode};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::path::PathBuf;
 
-// Placeholder for now
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum ConfidenceMode {
-    Focus,
-    Broad,
-    Debug,
+pub enum SurfaceState {
+    Tree(Vec<TreeNode>),
+    List(Vec<ListItem>),
+    Empty,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SurfaceState {
-    pub content: String,
-    pub priority: f64,
-    pub notifications: Vec<String>,
+pub struct TreeNode {
+    pub id: String,
+    pub parent_id: Option<String>,
+    pub label: String,
+    pub description: Option<String>,
+    pub icon: Option<String>,
+    pub children: Vec<TreeNode>,
+    pub expanded: bool,
+    pub badge: Option<Badge>,
+    pub data: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListItem {
+    pub id: String,
+    pub label: String,
+    pub description: Option<String>,
+    pub icon: Option<String>,
+    pub badge: Option<Badge>,
+    pub data: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Badge {
+    pub text: Option<String>,
+    pub color: String, // Hex code or named color (e.g., "#FF0000", "red")
 }
 
 #[derive(Debug, Clone)]
 pub struct WorkspaceContext {
-    pub active_file: Option<String>,
-    pub recent_files: Vec<String>,
-    pub focus_level: f64,
+    pub project_root: PathBuf,
+    pub current_open_file: Option<PathBuf>,
+    pub open_files: Vec<PathBuf>,
+    pub active_language: Option<String>,
+    pub git_branch: Option<String>,
 }
-
-// Map from file path to confidence score
-pub type ConfidenceField = HashMap<String, f64>;
 
 pub trait SurfaceIntelligence {
     fn surface_id(&self) -> &str;
 
-    // Bits consumed from noise budget (lower is better for always-on surfaces)
+    /// Bits consumed from noise budget (lower is better for always-on surfaces)
     fn information_cost(&self) -> f64;
 
     fn render(&self, confidence: &ConfidenceField, mode: ConfidenceMode) -> SurfaceState;

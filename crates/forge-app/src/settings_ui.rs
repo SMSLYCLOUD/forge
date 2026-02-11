@@ -52,17 +52,19 @@ impl SettingsUi {
                 },
                 Category {
                     name: "Files".to_string(),
-                    settings: vec![
-                        SettingEntry {
-                            key: "files.autoSave".to_string(),
-                            label: "Auto Save".to_string(),
-                            value: SettingValue::Enum(
-                                vec!["off".to_string(), "afterDelay".to_string(), "onFocusChange".to_string()],
-                                0,
-                            ),
-                            description: "Controls auto save behavior.".to_string(),
-                        },
-                    ],
+                    settings: vec![SettingEntry {
+                        key: "files.autoSave".to_string(),
+                        label: "Auto Save".to_string(),
+                        value: SettingValue::Enum(
+                            vec![
+                                "off".to_string(),
+                                "afterDelay".to_string(),
+                                "onFocusChange".to_string(),
+                            ],
+                            0,
+                        ),
+                        description: "Controls auto save behavior.".to_string(),
+                    }],
                 },
             ],
             active_category: 0,
