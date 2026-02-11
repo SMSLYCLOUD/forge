@@ -63,8 +63,16 @@ impl SearchPanel {
             regex: self.regex,
             case_sensitive: self.case_sensitive,
             whole_word: self.whole_word,
-            include_glob: if self.include_glob.is_empty() { None } else { Some(self.include_glob.clone()) },
-            exclude_glob: if self.exclude_glob.is_empty() { None } else { Some(self.exclude_glob.clone()) },
+            include_glob: if self.include_glob.is_empty() {
+                None
+            } else {
+                Some(self.include_glob.clone())
+            },
+            exclude_glob: if self.exclude_glob.is_empty() {
+                None
+            } else {
+                Some(self.exclude_glob.clone())
+            },
         };
 
         let tx = self.tx.clone();
@@ -92,7 +100,13 @@ impl SearchPanel {
         }
     }
 
-    pub fn toggle_regex(&mut self) { self.regex = !self.regex; }
-    pub fn toggle_case(&mut self) { self.case_sensitive = !self.case_sensitive; }
-    pub fn toggle_word(&mut self) { self.whole_word = !self.whole_word; }
+    pub fn toggle_regex(&mut self) {
+        self.regex = !self.regex;
+    }
+    pub fn toggle_case(&mut self) {
+        self.case_sensitive = !self.case_sensitive;
+    }
+    pub fn toggle_word(&mut self) {
+        self.whole_word = !self.whole_word;
+    }
 }

@@ -38,13 +38,9 @@ impl DiffView {
         let mut opts = DiffOptions::new();
         opts.context_lines(3);
 
-        let patch = Patch::from_buffers(
-            old.as_bytes(),
-            None,
-            new.as_bytes(),
-            None,
-            Some(&mut opts),
-        ).context("Failed to compute diff")?;
+        let patch =
+            Patch::from_buffers(old.as_bytes(), None, new.as_bytes(), None, Some(&mut opts))
+                .context("Failed to compute diff")?;
 
         let mut hunks = Vec::new();
 
@@ -68,7 +64,10 @@ impl DiffView {
                     _ => DiffLineKind::Context,
                 };
 
-                let text = std::str::from_utf8(line.content()).unwrap_or("").trim_end().to_string();
+                let text = std::str::from_utf8(line.content())
+                    .unwrap_or("")
+                    .trim_end()
+                    .to_string();
 
                 diff_hunk.lines.push(DiffLine {
                     kind,

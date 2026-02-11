@@ -85,6 +85,7 @@ pub struct LayoutZones {
     pub editor: Zone,
     pub status_bar: Zone,
     pub ai_panel: Option<Zone>,
+    pub bottom_panel: Option<Zone>,
     pub scrollbar_v: Zone,
 }
 
@@ -128,6 +129,7 @@ impl LayoutZones {
         window_height: f32,
         sidebar_open: bool,
         ai_panel_open: bool,
+        bottom_panel_visible: bool,
     ) -> Self {
         let activity_x = 0.0;
         let activity_w = LayoutConstants::ACTIVITY_BAR_WIDTH;
@@ -159,8 +161,12 @@ impl LayoutZones {
         let tab_y = 0.0;
         let breadcrumb_y = LayoutConstants::TAB_BAR_HEIGHT;
         let editor_y = breadcrumb_y + LayoutConstants::BREADCRUMB_HEIGHT;
-        let editor_h = window_height - editor_y - LayoutConstants::STATUS_BAR_HEIGHT;
+
         let status_y = window_height - LayoutConstants::STATUS_BAR_HEIGHT;
+        let available_h = status_y - editor_y;
+
+        let bottom_panel_h = if bottom_panel_visible { 200.0 } else { 0.0 };
+        let editor_h = available_h - bottom_panel_h;
 
         let gutter_w = LayoutConstants::GUTTER_WIDTH;
         let scrollbar_w = LayoutConstants::SCROLLBAR_WIDTH;
@@ -172,6 +178,17 @@ impl LayoutZones {
                 tab_y,
                 ai_panel_w,
                 window_height - LayoutConstants::STATUS_BAR_HEIGHT,
+            ))
+        } else {
+            None
+        };
+
+        let bottom_panel = if bottom_panel_visible {
+            Some(Zone::new(
+                content_x,
+                editor_y + editor_h,
+                content_w,
+                bottom_panel_h,
             ))
         } else {
             None
@@ -203,6 +220,7 @@ impl LayoutZones {
                 LayoutConstants::STATUS_BAR_HEIGHT,
             ),
             ai_panel,
+            bottom_panel,
             scrollbar_v: Zone::new(
                 content_x + gutter_w + editor_text_w,
                 editor_y,
@@ -213,51 +231,85 @@ impl LayoutZones {
     }
 
     /// Generate all background rectangles for the UI chrome
-    pub fn background_rects(&self) -> Vec<Rect> {
+    pub fn background_rects(&self, theme: &forge_theme::Theme) -> Vec<Rect> {
         let mut rects = Vec::with_capacity(16);
 
+        let activity_bar_bg = theme
+            .color("activityBar.background")
+            .unwrap_or(colors::ACTIVITY_BAR);
+        let sidebar_bg = theme.color("sideBar.background").unwrap_or(colors::SIDEBAR);
+        let tab_bar_bg = theme
+            .color("editorGroupHeader.tabsBackground")
+            .unwrap_or(colors::TAB_BAR);
+        let breadcrumb_bg = theme
+            .color("breadcrumb.background")
+            .unwrap_or(colors::BREADCRUMB);
+        let gutter_bg = theme
+            .color("editorGutter.background")
+            .unwrap_or(colors::GUTTER);
+        let editor_bg = theme
+            .color("editor.background")
+            .unwrap_or(colors::EDITOR_BG);
+        let status_bar_bg = theme
+            .color("statusBar.background")
+            .unwrap_or(colors::STATUS_BAR);
+        let border_col = theme.color("contrastBorder").unwrap_or(colors::SEPARATOR);
+
         // Activity bar
-        rects.push(self.activity_bar.to_rect(colors::ACTIVITY_BAR));
+        rects.push(self.activity_bar.to_rect(activity_bar_bg));
 
         // Sidebar (if open)
         if let Some(ref sb) = self.sidebar {
-            rects.push(sb.to_rect(colors::SIDEBAR));
+            rects.push(sb.to_rect(sidebar_bg));
             rects.push(Rect {
                 x: sb.x + sb.width,
                 y: 0.0,
                 width: LayoutConstants::SEPARATOR_SIZE,
                 height: self.window_height - LayoutConstants::STATUS_BAR_HEIGHT,
-                color: colors::SEPARATOR,
+                color: border_col,
             });
         }
 
         // Tab bar
-        rects.push(self.tab_bar.to_rect(colors::TAB_BAR));
+        rects.push(self.tab_bar.to_rect(tab_bar_bg));
 
         // Breadcrumb bar
-        rects.push(self.breadcrumb_bar.to_rect(colors::BREADCRUMB));
+        rects.push(self.breadcrumb_bar.to_rect(breadcrumb_bg));
 
         // Gutter
-        rects.push(self.gutter.to_rect(colors::GUTTER));
+        rects.push(self.gutter.to_rect(gutter_bg));
 
         // Editor background
-        rects.push(self.editor.to_rect(colors::EDITOR_BG));
+        rects.push(self.editor.to_rect(editor_bg));
 
         // Scrollbar track
-        rects.push(self.scrollbar_v.to_rect(colors::EDITOR_BG));
+        rects.push(self.scrollbar_v.to_rect(editor_bg));
 
         // Status bar
-        rects.push(self.status_bar.to_rect(colors::STATUS_BAR));
+        rects.push(self.status_bar.to_rect(status_bar_bg));
 
         // AI Panel (if open)
         if let Some(ref ai) = self.ai_panel {
-            rects.push(ai.to_rect(colors::AI_PANEL));
+            rects.push(ai.to_rect(sidebar_bg));
             rects.push(Rect {
                 x: ai.x - LayoutConstants::SEPARATOR_SIZE,
                 y: 0.0,
                 width: LayoutConstants::SEPARATOR_SIZE,
                 height: self.window_height - LayoutConstants::STATUS_BAR_HEIGHT,
-                color: colors::SEPARATOR,
+                color: border_col,
+            });
+        }
+
+        // Bottom panel (if open)
+        if let Some(ref bp) = self.bottom_panel {
+            let panel_bg = theme.color("panel.background").unwrap_or(colors::EDITOR_BG);
+            rects.push(bp.to_rect(panel_bg));
+            rects.push(Rect {
+                x: bp.x,
+                y: bp.y,
+                width: bp.width,
+                height: LayoutConstants::SEPARATOR_SIZE,
+                color: border_col,
             });
         }
 
@@ -267,7 +319,7 @@ impl LayoutZones {
             y: self.tab_bar.y + self.tab_bar.height,
             width: self.tab_bar.width,
             height: LayoutConstants::SEPARATOR_SIZE,
-            color: colors::SEPARATOR,
+            color: border_col,
         });
 
         rects

@@ -29,7 +29,9 @@ impl BlameView {
         let mut opts = BlameOptions::new();
         // Maybe restrict range or other options?
 
-        let blame = repo.blame_file(file_path, Some(&mut opts)).context("Failed to blame file")?;
+        let blame = repo
+            .blame_file(file_path, Some(&mut opts))
+            .context("Failed to blame file")?;
 
         self.lines.clear();
 

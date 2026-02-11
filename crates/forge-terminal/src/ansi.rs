@@ -36,8 +36,8 @@ pub struct AnsiParser {
 enum State {
     Ground,
     Escape,
-    Csi,     // [
-    Osc,     // ]
+    Csi, // [
+    Osc, // ]
 }
 
 impl Default for AnsiParser {
@@ -142,7 +142,11 @@ impl AnsiParser {
     fn param(&self, idx: usize, default: usize) -> usize {
         if idx < self.params.len() {
             let val = self.params[idx];
-            if val == 0 { default } else { val }
+            if val == 0 {
+                default
+            } else {
+                val
+            }
         } else {
             default
         }
@@ -187,13 +191,17 @@ impl AnsiParser {
                     // Extended FG
                     if i + 1 < self.params.len() {
                         match self.params[i + 1] {
-                            5 => { // 256 color
+                            5 => {
+                                // 256 color
                                 if i + 2 < self.params.len() {
-                                    events.push(TermEvent::SetFg(Color::Indexed(self.params[i + 2] as u8)));
+                                    events.push(TermEvent::SetFg(Color::Indexed(
+                                        self.params[i + 2] as u8,
+                                    )));
                                     i += 2;
                                 }
                             }
-                            2 => { // RGB
+                            2 => {
+                                // RGB
                                 if i + 4 < self.params.len() {
                                     events.push(TermEvent::SetFg(Color::Rgb(
                                         self.params[i + 2] as u8,
@@ -211,13 +219,17 @@ impl AnsiParser {
                     // Extended BG
                     if i + 1 < self.params.len() {
                         match self.params[i + 1] {
-                            5 => { // 256 color
+                            5 => {
+                                // 256 color
                                 if i + 2 < self.params.len() {
-                                    events.push(TermEvent::SetBg(Color::Indexed(self.params[i + 2] as u8)));
+                                    events.push(TermEvent::SetBg(Color::Indexed(
+                                        self.params[i + 2] as u8,
+                                    )));
                                     i += 2;
                                 }
                             }
-                            2 => { // RGB
+                            2 => {
+                                // RGB
                                 if i + 4 < self.params.len() {
                                     events.push(TermEvent::SetBg(Color::Rgb(
                                         self.params[i + 2] as u8,
