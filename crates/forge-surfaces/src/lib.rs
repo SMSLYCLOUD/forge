@@ -4,7 +4,7 @@ pub use protocol::{
     ConfidenceField, ConfidenceMode, SurfaceIntelligence, SurfaceState, WorkspaceContext,
 };
 
-mod file_explorer;
+pub mod file_explorer;
 mod protocol;
 
 #[cfg(test)]
@@ -36,4 +36,3 @@ mod tests {
         assert_eq!(entries[2].badge, file_explorer::BadgeColor::Green);
     }
 }
-pub mod file_explorer;

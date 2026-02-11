@@ -1,0 +1,66 @@
+STDOUT:
+
+STDERR:
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Checking zstd v0.13.3
+    Checking reqwest v0.12.28
+crates\forge-lsp\src\client.rs:14:5: warning: unused import: `tokio::io::BufReader`
+crates\forge-lsp\src\server.rs:3:17: warning: unused import: `AsyncBufReadExt`
+crates\forge-lsp\src\server.rs:5:15: warning: unused import: `error`
+crates\forge-lsp\src\client.rs:48:13: warning: use of deprecated field `lsp_types::InitializeParams::root_uri`: Use `workspace_folders` instead when possible
+warning: `forge-lsp` (lib) generated 4 warnings (run `cargo fix --lib -p forge-lsp` to apply 3 suggestions)
+    Checking forge-config v0.1.0 (C:\Users\osaretin\Downloads\forge\crates\forge-config)
+    Checking forge-theme v0.1.0 (C:\Users\osaretin\Downloads\forge\crates\forge-theme)
+    Checking forge-propagation v0.1.0 (C:\Users\osaretin\Downloads\forge\crates\forge-propagation)
+    Checking forge-developer v0.1.0 (C:\Users\osaretin\Downloads\forge\crates\forge-developer)
+    Checking forge-bayesnet v0.1.0 (C:\Users\osaretin\Downloads\forge\crates\forge-bayesnet)
+    Checking forge-window v0.1.0 (C:\Users\osaretin\Downloads\forge\crates\forge-window)
+    Checking forge-feedback v0.1.0 (C:\Users\osaretin\Downloads\forge\crates\forge-feedback)
+    Checking forge-surfaces v0.1.0 (C:\Users\osaretin\Downloads\forge\crates\forge-surfaces)
+    Checking forge-anticipation v0.1.0 (C:\Users\osaretin\Downloads\forge\crates\forge-anticipation)
+    Checking forge-workspace v0.1.0 (C:\Users\osaretin\Downloads\forge\crates\forge-workspace)
+error: expected item, found keyword `let`
+  --> crates\forge-surfaces\src\file_explorer.rs:67:9
+   |
+67 |         let mut entries: Vec<FileExplorerEntry> = self
+   |         ^^^ `let` cannot be used for global variables
+   |
+   = help: consider using `static` and a `Mutex` instead of `let mut`
+   = note: for a full list of items that can appear in modules, see <https://doc.rust-lang.org/reference/items.html>
+
+error[E0428]: the name `file_explorer` is defined multiple times
+  --> crates\forge-surfaces\src\lib.rs:39:1
+   |
+7  | mod file_explorer;
+   | ------------------ previous definition of the module `file_explorer` here
+...
+39 | pub mod file_explorer;
+   | ^^^^^^^^^^^^^^^^^^^^^^ `file_explorer` redefined here
+   |
+   = note: `file_explorer` must be defined only once in the type namespace of this module
+
+warning: unused imports: `DependencyEdge` and `DependencyKind`
+ --> crates\forge-propagation\src\engine.rs:2:21
+  |
+2 | use crate::models::{DependencyEdge, DependencyKind, FileNode, PropagationResult, RippleNode};
+  |                     ^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `HashMap`
+ --> crates\forge-propagation\src\engine.rs:3:24
+  |
+3 | use std::collections::{HashMap, HashSet, VecDeque};
+  |                        ^^^^^^^
+
+    Checking forge-keybindings v0.1.0 (C:\Users\osaretin\Downloads\forge\crates\forge-keybindings)
+    Checking forge-semantic v0.1.0 (C:\Users\osaretin\Downloads\forge\crates\forge-semantic)
+For more information about this error, try `rustc --explain E0428`.
+    Checking forge-ml v0.1.0 (C:\Users\osaretin\Downloads\forge\crates\forge-ml)
+    Checking forge-types v0.1.0 (C:\Users\osaretin\Downloads\forge\crates\forge-types)
+error: could not compile `forge-surfaces` (lib) due to 2 previous errors
+warning: build failed, waiting for other jobs to finish...
+warning: `forge-propagation` (lib) generated 2 warnings (run `cargo fix --lib -p forge-propagation` to apply 2 suggestions)
+
+EXIT CODE: 101

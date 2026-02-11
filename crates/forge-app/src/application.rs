@@ -114,9 +114,8 @@ pub struct Application {
     state: Option<AppState>,
     modifiers: ModifiersState,
     current_mode: UiMode,
-    config: forge_config::Config,
+    config: forge_config::ForgeConfig,
     theme: forge_theme::Theme,
-
     // UI Panels (Task 8 - Missing modules)
     // find_bar: crate::find_bar::FindBar,
     // command_palette: crate::command_palette::CommandPalette,
@@ -189,8 +188,8 @@ struct AppState {
 
 impl Application {
     pub fn new(file_path: Option<String>) -> Self {
-        let config = forge_config::Config::default();
-        let theme = forge_theme::Theme::forge_night();
+        let config = forge_config::ForgeConfig::default();
+        let theme = forge_theme::Theme::default_dark();
 
         // Initialize UI Panels (Task 8 - Stubs/Missing)
         // let find_bar = crate::find_bar::FindBar::default();
@@ -1000,8 +999,8 @@ impl ApplicationHandler for Application {
                             tracing::info!("Ctrl+\\: Split Editor");
                         }
                         "k" => {
-                             // TODO: Handle Chords (Ctrl+K ...)
-                             tracing::info!("Ctrl+K: Chord started (Zen Mode TODO)");
+                            // TODO: Handle Chords (Ctrl+K ...)
+                            tracing::info!("Ctrl+K: Chord started (Zen Mode TODO)");
                         }
                         "s" => {
                             if let Err(e) = state.editor.save() {

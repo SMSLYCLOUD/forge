@@ -56,18 +56,6 @@ impl ForgeConfig {
         Ok(())
     }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TerminalConfig {
-    pub shell: Option<String>,
-    pub font_family: Option<String>,
-}
-
-impl Default for TerminalConfig {
-    fn default() -> Self {
-        Self {
-            shell: None,       // Auto-detect
-            font_family: None, // Same as editor
-        }
     pub fn config_path() -> PathBuf {
         dirs_next::config_dir()
             .unwrap_or_else(|| PathBuf::from("."))
@@ -93,11 +81,6 @@ mod tests {
         let temp_dir = std::env::temp_dir().join("forge_test_config");
         let config_path = temp_dir.join("config.toml");
 
-impl Default for OnboardingConfig {
-    fn default() -> Self {
-        Self { hints: true }
-    }
-}
         // Clean up previous run if any
         if temp_dir.exists() {
             fs::remove_dir_all(&temp_dir)?;

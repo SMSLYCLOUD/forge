@@ -1,9 +1,13 @@
 use crate::protocol::{
     ConfidenceField, ConfidenceMode, SurfaceIntelligence, SurfaceState, WorkspaceContext,
 };
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
-use anyhow::Result;
+
+// ---------------------------------------------------------------------------
+// FileNode — recursive file-system tree for the sidebar explorer
+// ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone)]
 pub struct FileNode {
@@ -16,7 +20,10 @@ pub struct FileNode {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum NodeKind { File, Directory }
+pub enum NodeKind {
+    File,
+    Directory,
+}
 
 impl FileNode {
     pub fn build_tree(root: &Path, max_depth: usize) -> Result<Self> {
@@ -24,7 +31,10 @@ impl FileNode {
     }
 
     fn build_recursive(path: &Path, depth: usize, max_depth: usize) -> Result<Self> {
-        let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+        let name = path
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
         if path.is_dir() && depth < max_depth {
             let mut children: Vec<FileNode> = std::fs::read_dir(path)?
                 .filter_map(|e| e.ok())
@@ -37,33 +47,93 @@ impl FileNode {
                 (NodeKind::File, NodeKind::Directory) => std::cmp::Ordering::Greater,
                 _ => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
             });
-            Ok(Self { name, path: path.to_path_buf(), kind: NodeKind::Directory, children, expanded: depth == 0, depth })
+            Ok(Self {
+                name,
+                path: path.to_path_buf(),
+                kind: NodeKind::Directory,
+                children,
+                expanded: depth == 0,
+                depth,
+            })
         } else {
-            Ok(Self { name, path: path.to_path_buf(), kind: if path.is_dir() { NodeKind::Directory } else { NodeKind::File }, children: vec![], expanded: false, depth })
+            Ok(Self {
+                name,
+                path: path.to_path_buf(),
+                kind: if path.is_dir() {
+                    NodeKind::Directory
+                } else {
+                    NodeKind::File
+                },
+                children: vec![],
+                expanded: false,
+                depth,
+            })
         }
     }
 
     pub fn toggle(&mut self, target: &Path) -> bool {
-        if self.path == target { self.expanded = !self.expanded; return true; }
-        for child in &mut self.children { if child.toggle(target) { return true; } }
+        if self.path == target {
+            self.expanded = !self.expanded;
+            return true;
+        }
+        for child in &mut self.children {
+            if child.toggle(target) {
+                return true;
+            }
+        }
         false
     }
 
     pub fn flatten_visible(&self) -> Vec<&FileNode> {
         let mut result = vec![self];
         if self.expanded {
-            for child in &self.children { result.extend(child.flatten_visible()); }
+            for child in &self.children {
+                result.extend(child.flatten_visible());
+            }
         }
         result
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use tempfile::tempdir;
-    use std::fs::File;
+// ---------------------------------------------------------------------------
+// IntelligentFileExplorer — confidence-aware file explorer surface
+// ---------------------------------------------------------------------------
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum BadgeColor {
+    Green,
+    Yellow,
+    Red,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FileExplorerEntry {
+    pub path: String,
+    pub confidence: f64,
+    pub badge: BadgeColor,
+    pub is_relevant: bool,
+}
+
+pub struct IntelligentFileExplorer {
+    files: Vec<String>,
+}
+
+impl IntelligentFileExplorer {
+    pub fn new(files: Vec<String>) -> Self {
+        Self { files }
+    }
+}
+
+impl SurfaceIntelligence for IntelligentFileExplorer {
+    fn surface_id(&self) -> &str {
+        "file_explorer"
+    }
+
+    fn information_cost(&self) -> f64 {
+        0.3 // Low cost — always visible in sidebar
+    }
+
+    fn render(&self, confidence: &ConfidenceField, _mode: ConfidenceMode) -> SurfaceState {
         let mut entries: Vec<FileExplorerEntry> = self
             .files
             .iter()
@@ -81,10 +151,40 @@ mod tests {
                     path: f.clone(),
                     confidence: score,
                     badge,
-                    is_relevant: false, // In real impl, would check relevance to task
+                    is_relevant: false,
                 }
             })
             .collect();
+
+        // Sort worst-first so attention goes to risky files
+        entries.sort_by(|a, b| a.confidence.partial_cmp(&b.confidence).unwrap());
+
+        SurfaceState {
+            content: serde_json::to_string(&entries).unwrap_or_default(),
+            priority: entries.first().map(|e| 1.0 - e.confidence).unwrap_or(0.0),
+            notifications: entries
+                .iter()
+                .filter(|e| e.confidence < 0.4)
+                .map(|e| format!("⚠ {} confidence: {:.0}%", e.path, e.confidence * 100.0))
+                .collect(),
+        }
+    }
+
+    fn priority(&self, _context: &WorkspaceContext) -> f64 {
+        0.5 // Medium priority — always relevant
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs::File;
+    use tempfile::tempdir;
+
     #[test]
     fn test_build_tree() {
         let dir = tempdir().unwrap();
