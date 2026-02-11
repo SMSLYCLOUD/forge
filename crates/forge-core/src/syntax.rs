@@ -1,6 +1,6 @@
+use crate::transaction::Change;
 use ropey::Rope;
 use tree_sitter::{InputEdit, Language, Parser, Point, Tree};
-use crate::transaction::Change;
 
 pub struct Syntax {
     parser: Parser,
@@ -14,10 +14,7 @@ impl Syntax {
             .set_language(&language)
             .expect("Error loading language");
 
-        Self {
-            parser,
-            tree: None,
-        }
+        Self { parser, tree: None }
     }
 
     /// Parse the entire buffer from scratch

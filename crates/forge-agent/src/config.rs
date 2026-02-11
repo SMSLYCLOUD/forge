@@ -56,14 +56,30 @@ pub struct OpenRouterConfig {
     pub model: String,
 }
 
-fn default_provider() -> String { "ollama".into() }
-fn default_openai_model() -> String { "gpt-4o".into() }
-fn default_openai_url() -> String { "https://api.openai.com/v1".into() }
-fn default_anthropic_model() -> String { "claude-sonnet-4-20250514".into() }
-fn default_google_model() -> String { "gemini-2.0-flash".into() }
-fn default_ollama_url() -> String { "http://localhost:11434".into() }
-fn default_ollama_model() -> String { "codellama:7b".into() }
-fn default_openrouter_model() -> String { "anthropic/claude-sonnet-4-20250514".into() }
+fn default_provider() -> String {
+    "ollama".into()
+}
+fn default_openai_model() -> String {
+    "gpt-4o".into()
+}
+fn default_openai_url() -> String {
+    "https://api.openai.com/v1".into()
+}
+fn default_anthropic_model() -> String {
+    "claude-sonnet-4-20250514".into()
+}
+fn default_google_model() -> String {
+    "gemini-2.0-flash".into()
+}
+fn default_ollama_url() -> String {
+    "http://localhost:11434".into()
+}
+fn default_ollama_model() -> String {
+    "codellama:7b".into()
+}
+fn default_openrouter_model() -> String {
+    "anthropic/claude-sonnet-4-20250514".into()
+}
 
 impl Default for OllamaConfig {
     fn default() -> Self {

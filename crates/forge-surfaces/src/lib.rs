@@ -1,9 +1,11 @@
 // Re-export common types
-pub use protocol::{SurfaceIntelligence, SurfaceState, ConfidenceMode, WorkspaceContext, ConfidenceField};
 pub use file_explorer::IntelligentFileExplorer;
+pub use protocol::{
+    ConfidenceField, ConfidenceMode, SurfaceIntelligence, SurfaceState, WorkspaceContext,
+};
 
-mod protocol;
 mod file_explorer;
+mod protocol;
 
 #[cfg(test)]
 mod tests {
@@ -21,7 +23,8 @@ mod tests {
         let explorer = IntelligentFileExplorer::new(files);
 
         let state = explorer.render(&field, ConfidenceMode::Focus);
-        let entries: Vec<file_explorer::FileExplorerEntry> = serde_json::from_str(&state.content).unwrap();
+        let entries: Vec<file_explorer::FileExplorerEntry> =
+            serde_json::from_str(&state.content).unwrap();
 
         // Should be sorted worst-first
         assert_eq!(entries[0].path, "bad.rs");
@@ -33,3 +36,4 @@ mod tests {
         assert_eq!(entries[2].badge, file_explorer::BadgeColor::Green);
     }
 }
+pub mod file_explorer;

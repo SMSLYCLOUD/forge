@@ -17,6 +17,7 @@ pub struct CursorRenderer {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+#[allow(dead_code)]
 pub enum CursorStyle {
     /// Thin vertical line (default, like VS Code)
     Line,
@@ -58,11 +59,13 @@ impl CursorRenderer {
     }
 
     /// Set cursor style
+    #[allow(dead_code)]
     pub fn set_style(&mut self, style: CursorStyle) {
         self.style = style;
     }
 
     /// Enable/disable blinking
+    #[allow(dead_code)]
     pub fn set_blink_enabled(&mut self, enabled: bool) {
         self.blink_enabled = enabled;
         if !enabled {
@@ -145,6 +148,7 @@ impl CursorRenderer {
     }
 
     /// Generate selection rectangles
+    #[allow(dead_code)]
     pub fn selection_rects(
         &self,
         sel_start_line: usize,

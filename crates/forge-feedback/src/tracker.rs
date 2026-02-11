@@ -12,8 +12,8 @@ pub enum ActionKind {
 impl ActionKind {
     pub fn impact(&self) -> f64 {
         match self {
-            Self::IgnoreWarning => -0.1,      // Negative reinforcement
-            Self::FixFlaggedLine => 0.2,      // Positive reinforcement
+            Self::IgnoreWarning => -0.1, // Negative reinforcement
+            Self::FixFlaggedLine => 0.2, // Positive reinforcement
             Self::DismissSuggestion => -0.05,
             Self::AddTest => 0.3,
             Self::CommitLowConfidence => -0.2,

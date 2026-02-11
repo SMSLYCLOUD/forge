@@ -1,8 +1,8 @@
-use crate::rect_renderer::Rect;
 use crate::ui::{colors, LayoutConstants, Zone};
 
 /// A single item displayed in the status bar
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct StatusItem {
     pub text: String,
     pub tooltip: String,
@@ -13,12 +13,14 @@ pub struct StatusItem {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+#[allow(dead_code)]
 pub enum StatusAlignment {
     Left,
     Right,
 }
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub enum StatusAction {
     ToggleAiPanel,
     ToggleSidebar,
@@ -31,6 +33,7 @@ pub enum StatusAction {
 }
 
 /// Status bar state and rendering
+#[allow(dead_code)]
 pub struct StatusBar {
     pub items: Vec<StatusItem>,
     /// Current cursor line (1-indexed for display)
@@ -82,6 +85,7 @@ impl StatusBar {
     }
 
     /// Build the ordered list of status items
+    #[allow(dead_code)]
     pub fn build_items(&self) -> Vec<StatusItem> {
         let mut items = Vec::with_capacity(16);
 
@@ -103,8 +107,15 @@ impl StatusBar {
         if self.error_count > 0 || self.warning_count > 0 {
             items.push(StatusItem {
                 text: format!("✕ {}  ⚠ {}", self.error_count, self.warning_count),
-                tooltip: format!("{} errors, {} warnings", self.error_count, self.warning_count),
-                color: if self.error_count > 0 { Some(colors::ERROR) } else { None },
+                tooltip: format!(
+                    "{} errors, {} warnings",
+                    self.error_count, self.warning_count
+                ),
+                color: if self.error_count > 0 {
+                    Some(colors::ERROR)
+                } else {
+                    None
+                },
                 alignment: StatusAlignment::Left,
                 priority: 90,
                 click_action: Some(StatusAction::ShowNotifications),
@@ -222,6 +233,7 @@ impl StatusBar {
 
     /// Get text positions for rendering
     /// Returns (text, x, y, color) tuples
+    #[allow(dead_code)]
     pub fn text_positions(&self, zone: &Zone) -> Vec<(String, f32, f32, [f32; 4])> {
         let items = self.build_items();
         let mut result = Vec::with_capacity(items.len());
@@ -231,7 +243,8 @@ impl StatusBar {
 
         // Left items
         let mut left_x = zone.x + padding;
-        let mut left_items: Vec<&StatusItem> = items.iter()
+        let mut left_items: Vec<&StatusItem> = items
+            .iter()
             .filter(|i| i.alignment == StatusAlignment::Left)
             .collect();
         left_items.sort_by(|a, b| b.priority.cmp(&a.priority));
@@ -244,7 +257,8 @@ impl StatusBar {
 
         // Right items (render from right edge leftward)
         let mut right_x = zone.x + zone.width - padding;
-        let mut right_items: Vec<&StatusItem> = items.iter()
+        let mut right_items: Vec<&StatusItem> = items
+            .iter()
             .filter(|i| i.alignment == StatusAlignment::Right)
             .collect();
         right_items.sort_by(|a, b| a.priority.cmp(&b.priority)); // Lowest priority = rightmost

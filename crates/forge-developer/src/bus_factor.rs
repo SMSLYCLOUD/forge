@@ -4,7 +4,8 @@ pub struct BusFactor;
 
 impl BusFactor {
     pub fn compute(graph: &KnowledgeGraph, module: &str, threshold: f64) -> usize {
-        graph.get_developers_for_module(module)
+        graph
+            .get_developers_for_module(module)
             .into_iter()
             .filter(|(_, conf)| *conf >= threshold)
             .count()

@@ -1,9 +1,9 @@
+use crate::health::HealthMonitor;
+use crate::retry::RetryPolicy;
+use anyhow::Result;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
-use crate::retry::RetryPolicy;
-use crate::health::HealthMonitor;
-use anyhow::Result;
 
 /// Connection state for status bar display
 #[derive(Debug, Clone)]
@@ -106,7 +106,8 @@ impl ForgeNet {
                         }
                         Ok(resp) if resp.status() == reqwest::StatusCode::TOO_MANY_REQUESTS => {
                             // Rate limited
-                            let retry_after = resp.headers()
+                            let retry_after = resp
+                                .headers()
                                 .get("retry-after")
                                 .and_then(|v| v.to_str().ok())
                                 .and_then(|v| v.parse::<u64>().ok())
@@ -122,7 +123,12 @@ impl ForgeNet {
                             attempt += 1;
                             let delay = self.retry_policy.next_delay(attempt, prev_delay);
                             prev_delay = delay;
-                            tracing::warn!("Request failed (attempt {}): {}, retrying in {:?}", attempt, e, delay);
+                            tracing::warn!(
+                                "Request failed (attempt {}): {}, retrying in {:?}",
+                                attempt,
+                                e,
+                                delay
+                            );
                             tokio::time::sleep(delay).await;
                         }
                         Err(e) => {
@@ -139,9 +145,7 @@ impl ForgeNet {
 
     /// Get current connection state (non-blocking, for UI)
     pub fn current_state(&self) -> ConnectionState {
-        self.state.try_read()
-            .map(|s| s.clone())
-            .unwrap_or_default()
+        self.state.try_read().map(|s| s.clone()).unwrap_or_default()
     }
 
     /// Get the underlying reqwest client for direct use

@@ -1,16 +1,35 @@
+pub mod clipboard;
+
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
 pub enum Key {
     Char(char),
-    F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12,
+    F1,
+    F2,
+    F3,
+    F4,
+    F5,
+    F6,
+    F7,
+    F8,
+    F9,
+    F10,
+    F11,
+    F12,
     Esc,
     Backspace,
     Enter,
     Space,
     Tab,
-    Up, Down, Left, Right,
-    Home, End, PageUp, PageDown,
+    Up,
+    Down,
+    Left,
+    Right,
+    Home,
+    End,
+    PageUp,
+    PageDown,
     Delete,
     Backtick,
     Backslash,
@@ -28,12 +47,45 @@ pub struct Modifiers {
 }
 
 impl Modifiers {
-    pub const NONE: Self = Self { ctrl: false, shift: false, alt: false, meta: false };
+    pub const NONE: Self = Self {
+        ctrl: false,
+        shift: false,
+        alt: false,
+        meta: false,
+    };
 
-    pub fn ctrl() -> Self { Self { ctrl: true, shift: false, alt: false, meta: false } }
-    pub fn shift() -> Self { Self { ctrl: false, shift: true, alt: false, meta: false } }
-    pub fn ctrl_shift() -> Self { Self { ctrl: true, shift: true, alt: false, meta: false } }
-    pub fn alt() -> Self { Self { ctrl: false, shift: false, alt: true, meta: false } }
+    pub fn ctrl() -> Self {
+        Self {
+            ctrl: true,
+            shift: false,
+            alt: false,
+            meta: false,
+        }
+    }
+    pub fn shift() -> Self {
+        Self {
+            ctrl: false,
+            shift: true,
+            alt: false,
+            meta: false,
+        }
+    }
+    pub fn ctrl_shift() -> Self {
+        Self {
+            ctrl: true,
+            shift: true,
+            alt: false,
+            meta: false,
+        }
+    }
+    pub fn alt() -> Self {
+        Self {
+            ctrl: false,
+            shift: false,
+            alt: true,
+            meta: false,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -45,17 +97,50 @@ pub struct Keybinding {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Command {
     // File
-    OpenFile, QuickOpen, NewFile, CloseTab, ReopenClosedTab, SwitchTab,
+    OpenFile,
+    QuickOpen,
+    NewFile,
+    CloseTab,
+    ReopenClosedTab,
+    SwitchTab,
     // Editing
-    Undo, Redo, Cut, Copy, Paste, SelectNextOccurence, DeleteLine, MoveLineUp, MoveLineDown,
-    ToggleComment, Indent, Dedent, JumpToMatchingBracket,
+    Undo,
+    Redo,
+    Cut,
+    Copy,
+    Paste,
+    SelectNextOccurence,
+    DeleteLine,
+    MoveLineUp,
+    MoveLineDown,
+    ToggleComment,
+    Indent,
+    Dedent,
+    JumpToMatchingBracket,
     // Navigation
-    GoToLine, GoToSymbol, GoToDefinition, FindReferences, NavigateBack, NavigateForward,
-    GoToFileStart, GoToFileEnd,
+    GoToLine,
+    GoToSymbol,
+    GoToDefinition,
+    FindReferences,
+    NavigateBack,
+    NavigateForward,
+    GoToFileStart,
+    GoToFileEnd,
     // Search
-    Find, Replace, FindInFiles, NextMatch, PreviousMatch, CloseSearch,
+    Find,
+    Replace,
+    FindInFiles,
+    NextMatch,
+    PreviousMatch,
+    CloseSearch,
     // View
-    ToggleSidePanel, ToggleTerminal, SplitEditor, CommandPalette, ZoomIn, ZoomOut, ResetZoom,
+    ToggleSidePanel,
+    ToggleTerminal,
+    SplitEditor,
+    CommandPalette,
+    ZoomIn,
+    ZoomOut,
+    ResetZoom,
 }
 
 pub struct Keymap {
@@ -94,7 +179,11 @@ impl Keymap {
         map.insert(Key::Char('x'), Modifiers::ctrl(), Command::Cut);
         map.insert(Key::Char('c'), Modifiers::ctrl(), Command::Copy);
         map.insert(Key::Char('v'), Modifiers::ctrl(), Command::Paste);
-        map.insert(Key::Char('d'), Modifiers::ctrl(), Command::SelectNextOccurence);
+        map.insert(
+            Key::Char('d'),
+            Modifiers::ctrl(),
+            Command::SelectNextOccurence,
+        );
         map.insert(Key::Slash, Modifiers::ctrl(), Command::ToggleComment);
 
         // Navigation
@@ -105,7 +194,11 @@ impl Keymap {
         map.insert(Key::Char('b'), Modifiers::ctrl(), Command::ToggleSidePanel);
         map.insert(Key::Backtick, Modifiers::ctrl(), Command::ToggleTerminal);
         map.insert(Key::Backslash, Modifiers::ctrl(), Command::SplitEditor);
-        map.insert(Key::Char('p'), Modifiers::ctrl_shift(), Command::CommandPalette);
+        map.insert(
+            Key::Char('p'),
+            Modifiers::ctrl_shift(),
+            Command::CommandPalette,
+        );
 
         map
     }

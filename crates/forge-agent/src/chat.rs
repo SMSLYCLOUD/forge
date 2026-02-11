@@ -24,7 +24,9 @@ impl ChatHistory {
         Self {
             messages: vec![ChatDisplayMessage {
                 role: ChatRole::System,
-                content: "Forge AI ready. Type a message or use /explain, /fix, /test, /refactor, /doc".into(),
+                content:
+                    "Forge AI ready. Type a message or use /explain, /fix, /test, /refactor, /doc"
+                        .into(),
                 timestamp: std::time::SystemTime::now(),
             }],
         }

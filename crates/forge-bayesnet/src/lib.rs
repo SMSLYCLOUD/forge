@@ -26,13 +26,20 @@ impl BayesNet {
         }
     }
 
-    pub fn add_node(&mut self, name: &str, parents: &[&str], probabilities: HashMap<Vec<bool>, f64>) -> Result<()> {
+    pub fn add_node(
+        &mut self,
+        name: &str,
+        parents: &[&str],
+        probabilities: HashMap<Vec<bool>, f64>,
+    ) -> Result<()> {
         // Validate probabilities cover all 2^n parent combinations
         let expected_combinations = 1 << parents.len();
         if probabilities.len() != expected_combinations {
             return Err(anyhow::anyhow!(
                 "Invalid CPT size for node {}. Expected {} entries, got {}.",
-                name, expected_combinations, probabilities.len()
+                name,
+                expected_combinations,
+                probabilities.len()
             ));
         }
 
@@ -55,7 +62,12 @@ impl BayesNet {
 
     /// Infer probability P(target=true | evidence)
     /// Using simple Rejection Sampling for MVP (exact inference is NP-hard generally, though easy for small DAGs)
-    pub fn infer(&self, target: &str, evidence: &HashMap<String, bool>, samples: usize) -> Result<f64> {
+    pub fn infer(
+        &self,
+        target: &str,
+        evidence: &HashMap<String, bool>,
+        samples: usize,
+    ) -> Result<f64> {
         if !self.nodes.contains_key(target) {
             return Err(anyhow::anyhow!("Target node {} not found", target));
         }
@@ -99,7 +111,7 @@ impl BayesNet {
         // Naive topological sort by just iterating until all set (slow but works for small graphs)
         // Better: store topological order
 
-        let mut sorted_nodes: Vec<&Node> = self.nodes.values().collect();
+        let _sorted_nodes: Vec<&Node> = self.nodes.values().collect();
         // This sorting is non-deterministic without proper topological sort logic.
         // Assuming user adds nodes in topological order for this MVP or we implement topological sort.
         // Let's implement a simple topological sort or just loop.
@@ -115,7 +127,9 @@ impl BayesNet {
 
                 let parents_ready = node.parents.iter().all(|p| values.contains_key(p));
                 if parents_ready {
-                    let parent_vals: Vec<bool> = node.parents.iter()
+                    let parent_vals: Vec<bool> = node
+                        .parents
+                        .iter()
                         .map(|p| *values.get(p).unwrap())
                         .collect();
 
@@ -160,11 +174,12 @@ mod tests {
         // GrassWet: P(G=T | S, R)
         let mut grass_cpt = HashMap::new();
         grass_cpt.insert(vec![false, false], 0.0); // No water
-        grass_cpt.insert(vec![false, true], 0.8);  // Rain only
-        grass_cpt.insert(vec![true, false], 0.9);  // Sprinkler only
-        grass_cpt.insert(vec![true, true], 0.99);  // Both
-        // Parent order: Sprinkler, Rain
-        net.add_node("GrassWet", &["Sprinkler", "Rain"], grass_cpt).unwrap();
+        grass_cpt.insert(vec![false, true], 0.8); // Rain only
+        grass_cpt.insert(vec![true, false], 0.9); // Sprinkler only
+        grass_cpt.insert(vec![true, true], 0.99); // Both
+                                                  // Parent order: Sprinkler, Rain
+        net.add_node("GrassWet", &["Sprinkler", "Rain"], grass_cpt)
+            .unwrap();
 
         // Infer: P(Rain=T | GrassWet=T)
         // Analytical result is approx 0.3577

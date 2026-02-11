@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use forge_confidence::score::{ConfidenceScore, LineConfidence, CriteriaBreakdown};
-    use forge_confidence::color::{color_from_confidence, RgbaColor};
     use forge_confidence::aggregate::aggregate_file_confidence;
+    use forge_confidence::color::{color_from_confidence, RgbaColor};
+    use forge_confidence::score::{ConfidenceScore, CriteriaBreakdown, LineConfidence};
 
     #[test]
     fn test_color_gradient() {

@@ -1,6 +1,6 @@
-use rusqlite::{params, Connection};
 use crate::models::ConfidenceScore;
 use anyhow::Result;
+use rusqlite::{params, Connection};
 use std::path::Path;
 
 pub struct ConfidenceDb {
@@ -37,7 +37,7 @@ impl ConfidenceDb {
         {
             let mut stmt = tx.prepare(
                 "INSERT OR REPLACE INTO confidence_scores (file_path, line, score, signals_json)
-                 VALUES (?1, ?2, ?3, ?4)"
+                 VALUES (?1, ?2, ?3, ?4)",
             )?;
 
             for score in scores {
@@ -52,7 +52,7 @@ impl ConfidenceDb {
 
     pub fn get_scores(&self, file: &str) -> Result<Vec<ConfidenceScore>> {
         let mut stmt = self.conn.prepare(
-            "SELECT line, score, signals_json FROM confidence_scores WHERE file_path = ?1"
+            "SELECT line, score, signals_json FROM confidence_scores WHERE file_path = ?1",
         )?;
 
         let score_iter = stmt.query_map(params![file], |row| {
@@ -93,14 +93,16 @@ mod tests {
     #[test]
     fn test_db_round_trip() {
         let mut db = ConfidenceDb::open(":memory:").unwrap();
-        let scores = vec![
-            ConfidenceScore::new(1, 0.9, vec![Signal {
+        let scores = vec![ConfidenceScore::new(
+            1,
+            0.9,
+            vec![Signal {
                 name: SignalKind::SyntaxValid,
                 value: 1.0,
                 weight: 0.2,
                 available: true,
-            }]),
-        ];
+            }],
+        )];
 
         db.upsert_scores("test.rs", &scores).unwrap();
         let loaded = db.get_scores("test.rs").unwrap();

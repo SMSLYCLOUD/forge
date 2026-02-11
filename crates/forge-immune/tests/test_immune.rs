@@ -1,6 +1,8 @@
-use forge_immune::{MutationValidator, MutationReport, AnomalyDetector, ActionType, MlCap, TemporalDecay, AuditLog};
+use chrono::{Duration, Utc};
+use forge_immune::{
+    ActionType, AnomalyDetector, AuditLog, MlCap, MutationReport, MutationValidator, TemporalDecay,
+};
 use std::collections::HashMap;
-use chrono::{Utc, Duration};
 
 #[test]
 fn test_immune_components_integration() {

@@ -1,6 +1,6 @@
 pub mod client;
-pub mod retry;
 pub mod health;
+pub mod retry;
 
-pub use client::{ForgeNet, ConnectionState, NetConfig};
+pub use client::{ConnectionState, ForgeNet, NetConfig};
 pub use retry::RetryPolicy;

@@ -1,7 +1,7 @@
-mod models;
-pub mod graph;
 mod engine;
+pub mod graph;
+mod models;
 
-pub use models::{FileNode, DependencyKind, DependencyEdge, PropagationResult, RippleNode};
-pub use graph::GraphStore;
 pub use engine::PropagationEngine;
+pub use graph::GraphStore;
+pub use models::{DependencyEdge, DependencyKind, FileNode, PropagationResult, RippleNode};

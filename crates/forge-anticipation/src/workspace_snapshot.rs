@@ -1,8 +1,8 @@
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
-use anyhow::Result;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WorkspaceSnapshot {
@@ -24,11 +24,13 @@ pub struct FileState {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(tag = "type")]
 pub enum LayoutNode {
-    Leaf { file_path: Option<String> },
+    Leaf {
+        file_path: Option<String>,
+    },
     Split {
         direction: SplitDirection,
         children: Vec<LayoutNode>,
-        sizes: Vec<f32>
+        sizes: Vec<f32>,
     },
 }
 

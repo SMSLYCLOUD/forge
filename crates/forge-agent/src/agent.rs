@@ -224,17 +224,23 @@ impl Agent {
 
     /// Send a chat message (non-blocking)
     pub fn send_chat(&self, message: String, context: EditorContext) {
-        let _ = self.request_tx.send(AgentRequest::Chat { message, context });
+        let _ = self
+            .request_tx
+            .send(AgentRequest::Chat { message, context });
     }
 
     /// Send a slash command (non-blocking)
     pub fn send_slash_command(&self, command: String, context: EditorContext) {
-        let _ = self.request_tx.send(AgentRequest::SlashCommand { command, context });
+        let _ = self
+            .request_tx
+            .send(AgentRequest::SlashCommand { command, context });
     }
 
     /// Request inline completion (non-blocking)
     pub fn request_completion(&self, context: EditorContext) {
-        let _ = self.request_tx.send(AgentRequest::InlineCompletion { context });
+        let _ = self
+            .request_tx
+            .send(AgentRequest::InlineCompletion { context });
     }
 
     /// Poll for responses (call every frame, non-blocking)
@@ -250,7 +256,11 @@ fn build_context_message(message: &str, context: &EditorContext) -> String {
         parts.push(format!("File: {}", path));
     }
     parts.push(format!("Language: {}", context.language));
-    parts.push(format!("Cursor: line {}, col {}", context.cursor_line + 1, context.cursor_col + 1));
+    parts.push(format!(
+        "Cursor: line {}, col {}",
+        context.cursor_line + 1,
+        context.cursor_col + 1
+    ));
 
     if let Some(score) = context.confidence_score {
         parts.push(format!("Confidence Score: {:.1}%", score));
