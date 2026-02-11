@@ -1,0 +1,13 @@
+[package]
+name = "forge-terminal"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+portable-pty = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }
