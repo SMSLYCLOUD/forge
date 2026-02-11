@@ -8,8 +8,8 @@ pub struct DeveloperStats {
     pub review_acceptance_rate: f64, // 0.0 - 1.0
     pub last_edit: DateTime<Utc>,
     pub domain_expertise: f64, // 0.0 - 1.0
-    pub flow_score: f64, // 0.0 - 1.0
-    pub fatigue_score: f64, // 0.0 (fresh) - 1.0 (exhausted)
+    pub flow_score: f64,       // 0.0 - 1.0
+    pub fatigue_score: f64,    // 0.0 (fresh) - 1.0 (exhausted)
 }
 
 pub struct DeveloperModel;
@@ -62,9 +62,9 @@ mod tests {
             commit_count: 50, // 0.5
             bug_count: 0,
             review_acceptance_rate: 1.0, // 1.0
-            last_edit: now, // Factor 1.0
-            domain_expertise: 0.8, // 0.8
-            flow_score: 0.8, // 0.8
+            last_edit: now,              // Factor 1.0
+            domain_expertise: 0.8,       // 0.8
+            flow_score: 0.8,             // 0.8
             fatigue_score: 0.0,
         };
 

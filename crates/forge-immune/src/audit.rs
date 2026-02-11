@@ -1,6 +1,6 @@
-use sha2::{Sha256, Digest};
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AuditEvent {
@@ -21,7 +21,9 @@ impl AuditLog {
     }
 
     pub fn append(&mut self, action: String) {
-        let previous_hash = self.events.last()
+        let previous_hash = self
+            .events
+            .last()
             .map(|e| e.hash.clone())
             .unwrap_or_else(|| "0".repeat(64));
 
@@ -46,14 +48,19 @@ impl AuditLog {
             let prev_hash = if i == 0 {
                 "0".repeat(64)
             } else {
-                self.events[i-1].hash.clone()
+                self.events[i - 1].hash.clone()
             };
 
             if event.previous_hash != prev_hash {
                 return false;
             }
 
-            let payload = format!("{}{}{}", event.timestamp.to_rfc3339(), event.action, prev_hash);
+            let payload = format!(
+                "{}{}{}",
+                event.timestamp.to_rfc3339(),
+                event.action,
+                prev_hash
+            );
             let mut hasher = Sha256::new();
             hasher.update(payload);
             let computed_hash = format!("{:x}", hasher.finalize());

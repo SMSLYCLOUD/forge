@@ -1,4 +1,4 @@
-use crate::{Encoding, History, LineEnding, Position, Selection, Syntax, Transaction};
+use crate::{Encoding, History, LineEnding, Selection, Syntax, Transaction};
 use anyhow::Result;
 use ropey::Rope;
 use std::path::Path;
@@ -57,6 +57,7 @@ impl Buffer {
     }
 
     /// Create a buffer from a string
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Self {
         Self {
             rope: Rope::from_str(s),

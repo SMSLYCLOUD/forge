@@ -1,5 +1,5 @@
 use anyhow::Result;
-use serde::{Deserialize, Serialize, Serializer, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 /// Wrapper around hex string color to support Serde
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -126,7 +126,7 @@ impl Theme {
 
     /// Forge Day (Light Theme)
     pub fn forge_day() -> Self {
-         Self {
+        Self {
             name: "Forge Day".to_string(),
             ui: UiColors {
                 editor_bg: Color::new("#f5f5f5").unwrap(),
@@ -153,7 +153,7 @@ impl Theme {
                 constant: Color::new("#b45309").unwrap(),
                 macro_: Color::new("#7c3aed").unwrap(),
             },
-             diagnostics: DiagnosticColors {
+            diagnostics: DiagnosticColors {
                 error: Color::new("#dc2626").unwrap(),
                 warning: Color::new("#d97706").unwrap(),
                 info: Color::new("#2563eb").unwrap(),

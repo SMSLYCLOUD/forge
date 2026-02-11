@@ -1,5 +1,4 @@
 use std::path::{Path, PathBuf};
-use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct Project {
@@ -26,16 +25,14 @@ impl Project {
 
     fn visit_dir(&mut self, dir: &Path) {
         if let Ok(entries) = std::fs::read_dir(dir) {
-            for entry in entries {
-                if let Ok(entry) = entry {
-                    let path = entry.path();
-                    if path.is_dir() {
-                        if !self.is_ignored(&path) {
-                            self.visit_dir(&path);
-                        }
-                    } else {
-                        self.files.push(path);
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    if !self.is_ignored(&path) {
+                        self.visit_dir(&path);
                     }
+                } else {
+                    self.files.push(path);
                 }
             }
         }

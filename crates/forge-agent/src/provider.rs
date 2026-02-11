@@ -1,11 +1,11 @@
+use crate::config::AgentConfig;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use crate::config::AgentConfig;
 
 /// A chat message
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChatMessage {
-    pub role: String,    // "system", "user", "assistant"
+    pub role: String, // "system", "user", "assistant"
     pub content: String,
 }
 
@@ -64,7 +64,8 @@ impl LlmProvider for OpenAiProvider {
             "max_tokens": 4096,
         });
 
-        let response = self.client
+        let response = self
+            .client
             .post(format!("{}/chat/completions", self.base_url))
             .header("Authorization", format!("Bearer {}", self.api_key))
             .header("Content-Type", "application/json")
@@ -97,8 +98,12 @@ impl LlmProvider for OpenAiProvider {
         })
     }
 
-    fn name(&self) -> &str { &self.name }
-    fn model(&self) -> &str { &self.model }
+    fn name(&self) -> &str {
+        &self.name
+    }
+    fn model(&self) -> &str {
+        &self.model
+    }
 }
 
 /// Ollama provider (local LLM)
@@ -127,7 +132,8 @@ impl LlmProvider for OllamaProvider {
             "stream": false,
         });
 
-        let response = self.client
+        let response = self
+            .client
             .post(format!("{}/api/chat", self.base_url))
             .header("Content-Type", "application/json")
             .json(&body)
@@ -155,8 +161,12 @@ impl LlmProvider for OllamaProvider {
         })
     }
 
-    fn name(&self) -> &str { "ollama" }
-    fn model(&self) -> &str { &self.model }
+    fn name(&self) -> &str {
+        "ollama"
+    }
+    fn model(&self) -> &str {
+        &self.model
+    }
 }
 
 /// Anthropic provider
@@ -180,17 +190,21 @@ impl AnthropicProvider {
 impl LlmProvider for AnthropicProvider {
     async fn chat(&self, messages: &[ChatMessage]) -> Result<LlmResponse> {
         // Separate system message from conversation
-        let system_msg = messages.iter()
+        let system_msg = messages
+            .iter()
             .find(|m| m.role == "system")
             .map(|m| m.content.clone())
             .unwrap_or_default();
 
-        let chat_messages: Vec<serde_json::Value> = messages.iter()
+        let chat_messages: Vec<serde_json::Value> = messages
+            .iter()
             .filter(|m| m.role != "system")
-            .map(|m| serde_json::json!({
-                "role": m.role,
-                "content": m.content,
-            }))
+            .map(|m| {
+                serde_json::json!({
+                    "role": m.role,
+                    "content": m.content,
+                })
+            })
             .collect();
 
         let body = serde_json::json!({
@@ -200,7 +214,8 @@ impl LlmProvider for AnthropicProvider {
             "messages": chat_messages,
         });
 
-        let response = self.client
+        let response = self
+            .client
             .post("https://api.anthropic.com/v1/messages")
             .header("x-api-key", &self.api_key)
             .header("anthropic-version", "2023-06-01")
@@ -230,16 +245,22 @@ impl LlmProvider for AnthropicProvider {
         })
     }
 
-    fn name(&self) -> &str { "anthropic" }
-    fn model(&self) -> &str { &self.model }
+    fn name(&self) -> &str {
+        "anthropic"
+    }
+    fn model(&self) -> &str {
+        &self.model
+    }
 }
 
 /// Create the appropriate provider from config
 pub fn create_provider(config: &AgentConfig) -> Result<Box<dyn LlmProvider>> {
     match config.provider.as_str() {
         "openai" => {
-            let api_key = config.openai.api_key.as_deref()
-                .ok_or_else(|| anyhow::anyhow!("OpenAI API key not set in ~/.forge/agent.toml"))?;
+            let api_key =
+                config.openai.api_key.as_deref().ok_or_else(|| {
+                    anyhow::anyhow!("OpenAI API key not set in ~/.forge/agent.toml")
+                })?;
             Ok(Box::new(OpenAiProvider::new(
                 &config.openai.base_url,
                 api_key,
@@ -248,18 +269,25 @@ pub fn create_provider(config: &AgentConfig) -> Result<Box<dyn LlmProvider>> {
             )))
         }
         "anthropic" => {
-            let api_key = config.anthropic.api_key.as_deref()
+            let api_key = config
+                .anthropic
+                .api_key
+                .as_deref()
                 .ok_or_else(|| anyhow::anyhow!("Anthropic API key not set"))?;
-            Ok(Box::new(AnthropicProvider::new(api_key, &config.anthropic.model)))
-        }
-        "ollama" => {
-            Ok(Box::new(OllamaProvider::new(
-                &config.ollama.base_url,
-                &config.ollama.model,
+            Ok(Box::new(AnthropicProvider::new(
+                api_key,
+                &config.anthropic.model,
             )))
         }
+        "ollama" => Ok(Box::new(OllamaProvider::new(
+            &config.ollama.base_url,
+            &config.ollama.model,
+        ))),
         "openrouter" => {
-            let api_key = config.openrouter.api_key.as_deref()
+            let api_key = config
+                .openrouter
+                .api_key
+                .as_deref()
                 .ok_or_else(|| anyhow::anyhow!("OpenRouter API key not set"))?;
             Ok(Box::new(OpenAiProvider::new(
                 "https://openrouter.ai/api/v1",

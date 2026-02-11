@@ -1,5 +1,4 @@
-
-use forge_propagation::{GraphStore, PropagationEngine, FileNode, DependencyKind};
+use forge_propagation::{DependencyKind, FileNode, GraphStore, PropagationEngine};
 
 #[test]
 fn test_propagation_chain() {
@@ -15,14 +14,21 @@ fn test_propagation_chain() {
     let c_idx = graph.add_file("C.rs".to_string(), 0.7);
 
     // B -> C (Call)
-    graph.add_dependency("B.rs", "C.rs", DependencyKind::Call).unwrap();
+    graph
+        .add_dependency("B.rs", "C.rs", DependencyKind::Call)
+        .unwrap();
     // A -> B (Import)
-    graph.add_dependency("A.rs", "B.rs", DependencyKind::Import).unwrap();
+    graph
+        .add_dependency("A.rs", "B.rs", DependencyKind::Import)
+        .unwrap();
 
     let engine = PropagationEngine::new();
 
     // Change C by +0.1
-    let source_node = FileNode { path: "C.rs".to_string(), confidence: 0.7 };
+    let source_node = FileNode {
+        path: "C.rs".to_string(),
+        confidence: 0.7,
+    };
     let result = engine.propagate(&source_node, 0.1, &graph);
 
     // Expect B and A to be affected

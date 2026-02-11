@@ -1,4 +1,6 @@
-use crate::protocol::{SurfaceIntelligence, SurfaceState, ConfidenceMode, WorkspaceContext, ConfidenceField};
+use crate::protocol::{
+    ConfidenceField, ConfidenceMode, SurfaceIntelligence, SurfaceState, WorkspaceContext,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -39,23 +41,27 @@ impl SurfaceIntelligence for IntelligentFileExplorer {
         // 1. Sort files by confidence (worst first)
         // 2. Color code badges
 
-        let mut entries: Vec<FileExplorerEntry> = self.files.iter().map(|f| {
-            let score = *confidence.get(f).unwrap_or(&0.5);
-            let badge = if score > 0.8 {
-                BadgeColor::Green
-            } else if score > 0.5 {
-                BadgeColor::Yellow
-            } else {
-                BadgeColor::Red
-            };
+        let mut entries: Vec<FileExplorerEntry> = self
+            .files
+            .iter()
+            .map(|f| {
+                let score = *confidence.get(f).unwrap_or(&0.5);
+                let badge = if score > 0.8 {
+                    BadgeColor::Green
+                } else if score > 0.5 {
+                    BadgeColor::Yellow
+                } else {
+                    BadgeColor::Red
+                };
 
-            FileExplorerEntry {
-                path: f.clone(),
-                confidence: score,
-                badge,
-                is_relevant: false, // In real impl, would check relevance to task
-            }
-        }).collect();
+                FileExplorerEntry {
+                    path: f.clone(),
+                    confidence: score,
+                    badge,
+                    is_relevant: false, // In real impl, would check relevance to task
+                }
+            })
+            .collect();
 
         // Sort: Red first (lowest confidence), then Yellow, then Green
         entries.sort_by(|a, b| a.confidence.partial_cmp(&b.confidence).unwrap());

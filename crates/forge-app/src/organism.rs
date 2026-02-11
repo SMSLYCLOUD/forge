@@ -52,7 +52,10 @@ pub fn new_shared_state() -> SharedOrganismState {
 
 /// Start the organism heartbeat on a background thread
 /// This thread periodically updates the organism state
-pub fn start_heartbeat(state: SharedOrganismState, heartbeat_interval: Duration) -> std::thread::JoinHandle<()> {
+pub fn start_heartbeat(
+    state: SharedOrganismState,
+    heartbeat_interval: Duration,
+) -> std::thread::JoinHandle<()> {
     std::thread::spawn(move || {
         loop {
             std::thread::sleep(heartbeat_interval);

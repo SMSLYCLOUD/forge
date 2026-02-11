@@ -1,6 +1,5 @@
-use git2::{Repository, Status, StatusOptions};
-use std::path::{Path, PathBuf};
-use anyhow::Result;
+use git2::{Repository, Status};
+use std::path::Path;
 
 pub struct GitIntegration {
     repo: Option<Repository>,
@@ -26,7 +25,7 @@ impl GitIntegration {
             if status.contains(Status::INDEX_DELETED) || status.contains(Status::WT_DELETED) {
                 return Some(FileStatus::Deleted);
             }
-             if status.contains(Status::IGNORED) {
+            if status.contains(Status::IGNORED) {
                 return Some(FileStatus::Ignored);
             }
         }

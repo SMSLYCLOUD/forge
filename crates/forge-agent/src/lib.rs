@@ -1,4 +1,4 @@
-pub mod config;
-pub mod provider;
 pub mod agent;
 pub mod chat;
+pub mod config;
+pub mod provider;

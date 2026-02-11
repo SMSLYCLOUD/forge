@@ -81,7 +81,7 @@ pub struct TerminalConfig {
 impl Default for TerminalConfig {
     fn default() -> Self {
         Self {
-            shell: None, // Auto-detect
+            shell: None,       // Auto-detect
             font_family: None, // Same as editor
         }
     }
@@ -107,9 +107,7 @@ pub struct OnboardingConfig {
 
 impl Default for OnboardingConfig {
     fn default() -> Self {
-        Self {
-            hints: true,
-        }
+        Self { hints: true }
     }
 }
 

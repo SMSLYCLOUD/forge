@@ -1,6 +1,6 @@
-use std::collections::{HashMap, HashSet, VecDeque};
-use crate::models::{FileNode, PropagationResult, RippleNode, DependencyEdge, DependencyKind};
 use crate::graph::GraphStore;
+use crate::models::{DependencyEdge, DependencyKind, FileNode, PropagationResult, RippleNode};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 pub struct PropagationEngine {
     pub damping: f64,

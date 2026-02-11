@@ -1,10 +1,10 @@
-mod tracker;
 mod ema;
 mod store;
+mod tracker;
 
-pub use tracker::{ActionKind, DeveloperAction};
 pub use ema::FeedbackEngine;
 pub use store::FeedbackStore;
+pub use tracker::{ActionKind, DeveloperAction};
 
 #[cfg(test)]
 mod tests {

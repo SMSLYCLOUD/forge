@@ -1,8 +1,8 @@
+use crate::models::{DependencyEdge, DependencyKind, FileNode};
+use anyhow::Result;
 use petgraph::graph::{DiGraph, NodeIndex};
 use petgraph::visit::EdgeRef;
 use std::collections::HashMap;
-use anyhow::Result;
-use crate::models::{FileNode, DependencyKind, DependencyEdge};
 
 pub struct GraphStore {
     pub graph: DiGraph<FileNode, DependencyEdge>,
@@ -23,18 +23,28 @@ impl GraphStore {
             self.graph[idx].confidence = confidence;
             return idx;
         }
-        let node = FileNode { path: path.clone(), confidence };
+        let node = FileNode {
+            path: path.clone(),
+            confidence,
+        };
         let idx = self.graph.add_node(node);
         self.index.insert(path, idx);
         idx
     }
 
     pub fn add_dependency(&mut self, from: &str, to: &str, kind: DependencyKind) -> Result<()> {
-        let from_idx = *self.index.get(from).ok_or_else(|| anyhow::anyhow!("Node not found: {}", from))?;
-        let to_idx = *self.index.get(to).ok_or_else(|| anyhow::anyhow!("Node not found: {}", to))?;
+        let from_idx = *self
+            .index
+            .get(from)
+            .ok_or_else(|| anyhow::anyhow!("Node not found: {}", from))?;
+        let to_idx = *self
+            .index
+            .get(to)
+            .ok_or_else(|| anyhow::anyhow!("Node not found: {}", to))?;
 
         let weight = kind.weight();
-        self.graph.add_edge(from_idx, to_idx, DependencyEdge { kind, weight });
+        self.graph
+            .add_edge(from_idx, to_idx, DependencyEdge { kind, weight });
         Ok(())
     }
 
@@ -44,7 +54,8 @@ impl GraphStore {
         // A -> B (A imports B). If B changes, A is affected.
         // So we need incoming edges to B.
         if let Some(&idx) = self.index.get(path) {
-            self.graph.edges_directed(idx, petgraph::Direction::Incoming)
+            self.graph
+                .edges_directed(idx, petgraph::Direction::Incoming)
                 .map(|edge| {
                     let source_idx = edge.source();
                     let node = self.graph[source_idx].clone();
