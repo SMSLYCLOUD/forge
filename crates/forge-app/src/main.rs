@@ -69,6 +69,19 @@ pub mod status_segments;
 pub mod title_bar;
 pub mod word_wrap;
 
+// Session 3 - Terminal + Git + Search
+pub mod diff_view;
+pub mod git_blame;
+pub mod git_branch;
+pub mod git_gutter;
+pub mod git_panel;
+pub mod go_to_def;
+pub mod outline_panel;
+pub mod references;
+pub mod search_panel;
+pub mod terminal_ui;
+pub mod workspace_symbols;
+
 use anyhow::Result;
 use tracing::info;
 use winit::event_loop::EventLoop;
