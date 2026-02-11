@@ -34,10 +34,10 @@ impl GutterDiff {
         // This compares index (staged) to workdir.
 
         let diff = if let Ok(index) = repo.index() {
-             repo.diff_index_to_workdir(Some(&index), Some(&mut opts))?
+            repo.diff_index_to_workdir(Some(&index), Some(&mut opts))?
         } else {
-             // Fallback?
-             return Ok(Vec::new());
+            // Fallback?
+            return Ok(Vec::new());
         };
 
         let mut marks = Vec::new();

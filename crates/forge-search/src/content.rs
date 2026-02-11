@@ -32,9 +32,9 @@ impl ContentSearcher {
         let mut builder = WalkBuilder::new(root);
         // Default to respecting gitignore
         builder.hidden(false); // Search hidden files? Typically yes for .gitignore.
-        // If hidden(true), it skips hidden files. We probably want to search hidden files if they are not ignored.
-        // But typically .git is hidden and ignored.
-        // Let's use defaults.
+                               // If hidden(true), it skips hidden files. We probably want to search hidden files if they are not ignored.
+                               // But typically .git is hidden and ignored.
+                               // Let's use defaults.
 
         if let Some(ref glob) = opts.include_glob {
             let mut overrides = ignore::overrides::OverrideBuilder::new(root);
@@ -42,7 +42,7 @@ impl ContentSearcher {
             builder.overrides(overrides.build()?);
         }
         if let Some(ref glob) = opts.exclude_glob {
-             let mut overrides = ignore::overrides::OverrideBuilder::new(root);
+            let mut overrides = ignore::overrides::OverrideBuilder::new(root);
             overrides.add(&format!("!{}", glob))?; // Exclude means ignore
             builder.overrides(overrides.build()?);
         }

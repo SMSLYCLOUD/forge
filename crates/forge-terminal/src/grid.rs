@@ -104,13 +104,15 @@ impl TerminalGrid {
             self.newline();
         }
 
-        if (self.cursor_row as usize) < self.cells.len() && (self.cursor_col as usize) < self.cells[self.cursor_row as usize].len() {
+        if (self.cursor_row as usize) < self.cells.len()
+            && (self.cursor_col as usize) < self.cells[self.cursor_row as usize].len()
+        {
             self.cells[self.cursor_row as usize][self.cursor_col as usize] = Cell {
                 ch: c,
                 fg: self.current_fg,
                 bg: self.current_bg,
-                bold: false, // TODO
-                italic: false, // TODO
+                bold: false,      // TODO
+                italic: false,    // TODO
                 underline: false, // TODO
             };
         }
@@ -140,12 +142,14 @@ impl TerminalGrid {
 
     pub fn clear_line(&mut self, mode: u8) {
         let row = self.cursor_row as usize;
-        if row >= self.cells.len() { return; }
+        if row >= self.cells.len() {
+            return;
+        }
 
         let start = match mode {
             0 => self.cursor_col as usize, // Cursor to end
-            1 => 0, // Start to cursor
-            2 => 0, // Entire line
+            1 => 0,                        // Start to cursor
+            2 => 0,                        // Entire line
             _ => 0,
         };
         let end = match mode {

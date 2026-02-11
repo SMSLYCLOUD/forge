@@ -53,11 +53,11 @@ pub fn fuzzy_score(query: &str, candidate: &str) -> Option<f64> {
 
             // 3. CamelCase boundary bonus
             if candidate_idx > 0 {
-                 let prev = candidate_original[candidate_idx - 1];
-                 let curr = candidate_original[candidate_idx];
-                 if prev.is_lowercase() && curr.is_uppercase() {
-                     score += 8.0;
-                 }
+                let prev = candidate_original[candidate_idx - 1];
+                let curr = candidate_original[candidate_idx];
+                if prev.is_lowercase() && curr.is_uppercase() {
+                    score += 8.0;
+                }
             }
 
             last_match_idx = candidate_idx as isize;
@@ -84,15 +84,17 @@ pub fn fuzzy_score(query: &str, candidate: &str) -> Option<f64> {
 /// Returns indices of original candidates and their scores.
 pub fn fuzzy_filter(query: &str, candidates: &[String]) -> Vec<(usize, f64)> {
     if query.is_empty() {
-        return candidates.iter().enumerate().map(|(i, _)| (i, 0.0)).collect();
+        return candidates
+            .iter()
+            .enumerate()
+            .map(|(i, _)| (i, 0.0))
+            .collect();
     }
 
     let mut results = candidates
         .iter()
         .enumerate()
-        .filter_map(|(idx, candidate)| {
-            fuzzy_score(query, candidate).map(|score| (idx, score))
-        })
+        .filter_map(|(idx, candidate)| fuzzy_score(query, candidate).map(|score| (idx, score)))
         .collect::<Vec<_>>();
 
     // Sort by score descending

@@ -1,4 +1,4 @@
-use tree_sitter::{Tree, Node, TreeCursor};
+use tree_sitter::{Node, Tree, TreeCursor};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum SymbolKind {
@@ -63,7 +63,8 @@ impl OutlinePanel {
 
             if symbol_kind != SymbolKind::Unknown {
                 // Extract name
-                let name = Self::extract_name(child, source).unwrap_or_else(|| "Anonymous".to_string());
+                let name =
+                    Self::extract_name(child, source).unwrap_or_else(|| "Anonymous".to_string());
 
                 // Recurse for children (e.g. methods inside impl)
                 let children = Self::visit_node(child, source);
@@ -80,13 +81,14 @@ impl OutlinePanel {
                 if kind_str == "mod_item" || kind_str == "module" {
                     let children = Self::visit_node(child, source);
                     if !children.is_empty() {
-                         let name = Self::extract_name(child, source).unwrap_or_else(|| "mod".to_string());
-                         symbols.push(Symbol {
-                             name,
-                             kind: SymbolKind::Class, // Treat mod as class/container
-                             line: child.start_position().row,
-                             children,
-                         });
+                        let name =
+                            Self::extract_name(child, source).unwrap_or_else(|| "mod".to_string());
+                        symbols.push(Symbol {
+                            name,
+                            kind: SymbolKind::Class, // Treat mod as class/container
+                            line: child.start_position().row,
+                            children,
+                        });
                     }
                 } else if kind_str == "declaration_list" || kind_str == "impl_item" {
                     // impl_item is handled above.
