@@ -36,7 +36,11 @@ impl DebugUi {
     }
 
     pub fn toggle_breakpoint(&mut self, file: String, line: usize) {
-        if let Some(idx) = self.breakpoints.iter().position(|bp| bp.file == file && bp.line == line) {
+        if let Some(idx) = self
+            .breakpoints
+            .iter()
+            .position(|bp| bp.file == file && bp.line == line)
+        {
             self.breakpoints.remove(idx);
         } else {
             self.breakpoints.push(Breakpoint {
@@ -53,8 +57,8 @@ impl DebugUi {
         let mut client = DebugClient::new();
         // Assume "codelldb" or similar adapter
         if let Ok(_) = client.launch("codelldb", &["--port", "0"]) {
-             // Initialize DAP session
-             self.client = Some(client);
+            // Initialize DAP session
+            self.client = Some(client);
         }
     }
 

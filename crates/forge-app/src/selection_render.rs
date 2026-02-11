@@ -16,12 +16,18 @@ impl SelectionRenderer {
         let char_w = LayoutConstants::CHAR_WIDTH;
 
         for &(sl, sc, el, ec) in selections {
-            if el < scroll_top { continue; }
+            if el < scroll_top {
+                continue;
+            }
             for line in sl..=el {
-                if line < scroll_top { continue; }
+                if line < scroll_top {
+                    continue;
+                }
                 let vis_line = line - scroll_top;
                 let y = editor_zone.y + (vis_line as f32 * line_h);
-                if y > editor_zone.y + editor_zone.height { break; }
+                if y > editor_zone.y + editor_zone.height {
+                    break;
+                }
 
                 let (x_start, x_end) = if sl == el {
                     (sc as f32 * char_w, ec as f32 * char_w)
@@ -51,7 +57,12 @@ mod tests {
     use super::*;
     #[test]
     fn single_line_selection() {
-        let zone = crate::ui::Zone { x: 0.0, y: 0.0, width: 800.0, height: 600.0 };
+        let zone = crate::ui::Zone {
+            x: 0.0,
+            y: 0.0,
+            width: 800.0,
+            height: 600.0,
+        };
         let rects = SelectionRenderer::render_selections(&[(0, 0, 0, 5)], 0, &zone);
         assert_eq!(rects.len(), 1);
     }

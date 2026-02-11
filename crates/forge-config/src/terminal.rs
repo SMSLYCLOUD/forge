@@ -11,6 +11,11 @@ pub struct TerminalConfig {
 
 impl Default for TerminalConfig {
     fn default() -> Self {
-        Self { shell: None, scrollback: 10000, cursor_style: "block".into(), font_size: 13.0 }
+        Self {
+            shell: None,
+            scrollback: 10000,
+            cursor_style: "block".into(),
+            font_size: 13.0,
+        }
     }
 }

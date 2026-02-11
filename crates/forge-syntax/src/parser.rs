@@ -16,14 +16,22 @@ impl SyntaxParser {
     }
 
     pub fn parse(&mut self, text: &str) -> Result<tree_sitter::Tree> {
-        self.parser.parse(text, None)
+        self.parser
+            .parse(text, None)
             .ok_or_else(|| anyhow::anyhow!("Parse failed for {:?}", self.language))
     }
 
-    pub fn reparse(&mut self, text: &str, old_tree: &tree_sitter::Tree) -> Result<tree_sitter::Tree> {
-        self.parser.parse(text, Some(old_tree))
+    pub fn reparse(
+        &mut self,
+        text: &str,
+        old_tree: &tree_sitter::Tree,
+    ) -> Result<tree_sitter::Tree> {
+        self.parser
+            .parse(text, Some(old_tree))
             .ok_or_else(|| anyhow::anyhow!("Reparse failed"))
     }
 
-    pub fn language(&self) -> Language { self.language }
+    pub fn language(&self) -> Language {
+        self.language
+    }
 }

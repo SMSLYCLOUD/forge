@@ -10,16 +10,16 @@ mod application;
 mod editor;
 mod extensions;
 pub mod file_tree_ui;
-pub mod tab_manager;
-pub mod selection_render;
 mod gpu;
 mod modes;
+pub mod selection_render;
+pub mod tab_manager;
 
-mod markdown_preview;
-mod image_preview;
-mod terminal_tabs;
-mod emmet;
 mod accessibility;
+mod emmet;
+mod image_preview;
+mod markdown_preview;
+mod terminal_tabs;
 
 // UI components
 mod activity_bar;
@@ -68,6 +68,19 @@ pub mod replace_bar;
 pub mod status_segments;
 pub mod title_bar;
 pub mod word_wrap;
+
+// Session 3 - Terminal + Git + Search
+pub mod diff_view;
+pub mod git_blame;
+pub mod git_branch;
+pub mod git_gutter;
+pub mod git_panel;
+pub mod go_to_def;
+pub mod outline_panel;
+pub mod references;
+pub mod search_panel;
+pub mod terminal_ui;
+pub mod workspace_symbols;
 
 use anyhow::Result;
 use tracing::info;

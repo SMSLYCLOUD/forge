@@ -34,7 +34,7 @@ impl InlineCompletionProvider {
         let end_line = std::cmp::min(line + 5, lines.len());
 
         let _context_snippet = if start_line < end_line {
-             lines[start_line..end_line].join("\n")
+            lines[start_line..end_line].join("\n")
         } else {
             String::new()
         };
@@ -42,7 +42,7 @@ impl InlineCompletionProvider {
         // TODO: Call AI service (e.g. Gemini/Ollama) here with the prompt
         // For now, return a stub suggestion based on context
         let suggestion = if !context.is_empty() {
-             Some(InlineCompletion {
+            Some(InlineCompletion {
                 text: "println!(\"Hello World\");".to_string(),
                 line,
                 col,

@@ -21,14 +21,19 @@ impl FileIO {
 
     /// Detect line ending style from content.
     pub fn detect_line_ending(content: &str) -> &'static str {
-        if content.contains("\r\n") { "\r\n" } else { "\n" }
+        if content.contains("\r\n") {
+            "\r\n"
+        } else {
+            "\n"
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[test] fn atomic_save() {
+    #[test]
+    fn atomic_save() {
         let dir = std::env::temp_dir().join("forge_io_test");
         std::fs::create_dir_all(&dir).ok();
         let path = dir.join("test.txt");
@@ -36,6 +41,12 @@ mod tests {
         assert_eq!(std::fs::read_to_string(&path).unwrap(), "hello");
         std::fs::remove_dir_all(&dir).ok();
     }
-    #[test] fn detect_lf() { assert_eq!(FileIO::detect_line_ending("a\nb\nc"), "\n"); }
-    #[test] fn detect_crlf() { assert_eq!(FileIO::detect_line_ending("a\r\nb\r\nc"), "\r\n"); }
+    #[test]
+    fn detect_lf() {
+        assert_eq!(FileIO::detect_line_ending("a\nb\nc"), "\n");
+    }
+    #[test]
+    fn detect_crlf() {
+        assert_eq!(FileIO::detect_line_ending("a\r\nb\r\nc"), "\r\n");
+    }
 }
