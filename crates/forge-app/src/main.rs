@@ -17,16 +17,29 @@ mod modes;
 
 // UI components
 mod activity_bar;
+mod autocomplete;
 mod breadcrumb;
 mod cursor;
+mod debug_ui;
+mod drag_drop;
+mod editor_groups;
+mod extensions_panel;
+mod formatter;
 mod guard;
 mod gutter;
+mod hover_info;
 mod organism;
+mod param_hints;
 mod rect_renderer;
+mod rename_symbol;
 mod scrollbar;
+mod settings_ui;
+mod snippets;
 mod status_bar;
 mod tab_bar;
+mod task_runner;
 mod ui;
+mod zen_mode;
 
 // Session 2 - New UI Components
 pub mod bottom_panel;
