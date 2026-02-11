@@ -142,6 +142,7 @@ struct AppState {
     // Text rendering (glyphon)
     font_system: FontSystem,
     swash_cache: SwashCache,
+    #[allow(dead_code)]
     cache: Cache,
     text_atlas: TextAtlas,
     viewport: Viewport,
@@ -166,6 +167,7 @@ struct AppState {
     tab_bar: TabBar,
     activity_bar: ActivityBar,
     gutter: Gutter,
+    #[allow(dead_code)]
     status_bar_state: StatusBar,
     cursor_renderer: CursorRenderer,
     breadcrumb_bar: BreadcrumbBar,
@@ -181,6 +183,7 @@ struct AppState {
     render_batch: RenderBatch,
 
     // Organism
+    #[allow(dead_code)]
     organism_state: SharedOrganismState,
 }
 

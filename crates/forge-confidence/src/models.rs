@@ -9,7 +9,11 @@ pub struct ConfidenceScore {
 
 impl ConfidenceScore {
     pub fn new(line: usize, score: f64, signals: Vec<Signal>) -> Self {
-        Self { line, score: score.clamp(0.0, 1.0), signals }
+        Self {
+            line,
+            score: score.clamp(0.0, 1.0),
+            signals,
+        }
     }
 }
 

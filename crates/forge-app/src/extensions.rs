@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 /// Extension manifest
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ExtensionManifest {
     pub id: String,
     pub name: String,
@@ -14,6 +15,7 @@ pub struct ExtensionManifest {
 
 /// Extension state
 #[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
 pub enum ExtensionState {
     Active,
     Disabled,
@@ -22,6 +24,7 @@ pub enum ExtensionState {
 
 /// Loaded extension
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct Extension {
     pub manifest: ExtensionManifest,
     pub state: ExtensionState,
@@ -29,12 +32,14 @@ pub struct Extension {
 }
 
 /// Extension registry
+#[allow(dead_code)]
 pub struct ExtensionRegistry {
     pub installed: Vec<Extension>,
     pub store_path: PathBuf,
 }
 
 impl ExtensionRegistry {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         let store_path = dirs_next::home_dir()
             .unwrap_or_else(|| PathBuf::from("."))
@@ -51,6 +56,7 @@ impl ExtensionRegistry {
     }
 
     /// Load installed extensions from disk
+    #[allow(dead_code)]
     pub fn load_installed(&mut self) {
         self.installed.clear();
 
@@ -73,11 +79,13 @@ impl ExtensionRegistry {
     }
 
     /// Get installed extension count
+    #[allow(dead_code)]
     pub fn count(&self) -> usize {
         self.installed.len()
     }
 
     /// List of built-in available extensions (hardcoded for now)
+    #[allow(dead_code)]
     pub fn available() -> Vec<ExtensionManifest> {
         vec![
             ExtensionManifest {

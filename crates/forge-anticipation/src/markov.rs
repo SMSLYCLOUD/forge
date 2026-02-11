@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct MarkovChain {
@@ -20,9 +20,10 @@ impl MarkovChain {
             return; // Ignore self-transitions (e.g. refocusing same file)
         }
 
-        let entry = self.transitions
+        let entry = self
+            .transitions
             .entry(from.to_string())
-            .or_insert_with(HashMap::new);
+            .or_default();
 
         *entry.entry(to.to_string()).or_insert(0) += 1;
 

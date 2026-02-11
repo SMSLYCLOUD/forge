@@ -5,6 +5,8 @@
 mod buffer;
 pub mod git;
 mod history;
+pub mod recovery;
+pub mod file_io;
 pub mod layout;
 mod position;
 pub mod project;
@@ -20,9 +22,9 @@ pub use layout::Layout;
 pub use position::Position;
 pub use project::Project;
 pub use selection::{Range, Selection};
-pub use transaction::{Change, ChangeSet, Transaction};
 pub use syntax::Syntax;
 pub use terminal::Terminal;
+pub use transaction::{Change, ChangeSet, Transaction};
 
 /// Line ending styles
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

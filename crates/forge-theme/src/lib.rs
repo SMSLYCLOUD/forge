@@ -1,132 +1,30 @@
 use anyhow::Result;
-use serde::{Deserialize, Serialize, Serializer, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+//! Theme engine for Forge — loads VS Code-compatible color themes.
+mod builtin;
+mod token;
 
-/// Wrapper around hex string color to support Serde
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Color(String);
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
-impl Color {
-    pub fn new(hex: &str) -> Result<Self> {
-        // Basic validation
-        if hex.starts_with('#') && (hex.len() == 4 || hex.len() == 7) {
-            Ok(Self(hex.to_string()))
-        } else {
-            Err(anyhow::anyhow!("Invalid hex color: {}", hex))
-        }
-    }
-
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-impl Serialize for Color {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(&self.0)
-    }
-}
-
-impl<'de> Deserialize<'de> for Color {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        Color::new(&s).map_err(serde::de::Error::custom)
-    }
-}
-
-/// Semantic syntax highlighting colors (the 8-color rule)
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SyntaxColors {
-    pub keyword: Color,
-    pub type_: Color,
-    pub function: Color,
-    pub string: Color,
-    pub number: Color,
-    pub comment: Color,
-    pub constant: Color,
-    pub macro_: Color,
-}
-
-/// UI component colors
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UiColors {
-    pub editor_bg: Color,
-    pub sidebar_bg: Color,
-    pub panel_bg: Color,
-    pub status_bar_bg: Color,
-    pub foreground: Color,
-    pub line_number: Color,
-    pub selection: Color,
-    pub current_line: Color,
-    pub match_highlight: Color,
-    pub border: Color,
-    pub cursor: Color,
-    pub active_tab: Color,
-    pub inactive_tab: Color,
-}
-
-/// Diagnostic colors
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DiagnosticColors {
-    pub error: Color,
-    pub warning: Color,
-    pub info: Color,
-}
+pub use token::TokenColor;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Theme {
     pub name: String,
-    pub ui: UiColors,
-    pub syntax: SyntaxColors,
-    pub diagnostics: DiagnosticColors,
+    #[serde(default)]
+    pub kind: ThemeKind,
+    pub colors: HashMap<String, String>,
+    #[serde(default)]
+    pub token_colors: Vec<TokenColor>,
 }
 
-impl Theme {
-    /// Forge Night (Dark Theme) - CIELAB calibrated
-    pub fn forge_night() -> Self {
-        Self {
-            name: "Forge Night".to_string(),
-            ui: UiColors {
-                editor_bg: Color::new("#1a1b26").unwrap(),
-                sidebar_bg: Color::new("#16161e").unwrap(),
-                panel_bg: Color::new("#1a1b26").unwrap(),
-                status_bar_bg: Color::new("#16161e").unwrap(),
-                foreground: Color::new("#c0caf5").unwrap(),
-                line_number: Color::new("#3b4261").unwrap(),
-                selection: Color::new("#283457").unwrap(),
-                current_line: Color::new("#1e2030").unwrap(),
-                match_highlight: Color::new("#3d59a1").unwrap(),
-                border: Color::new("#27293d").unwrap(),
-                cursor: Color::new("#c0caf5").unwrap(),
-                active_tab: Color::new("#1a1b26").unwrap(),
-                inactive_tab: Color::new("#16161e").unwrap(),
-            },
-            syntax: SyntaxColors {
-                keyword: Color::new("#9d7cd8").unwrap(),
-                type_: Color::new("#2ac3de").unwrap(),
-                function: Color::new("#7aa2f7").unwrap(),
-                string: Color::new("#9ece6a").unwrap(),
-                number: Color::new("#ff9e64").unwrap(),
-                comment: Color::new("#565f89").unwrap(),
-                constant: Color::new("#e0af68").unwrap(),
-                macro_: Color::new("#bb9af7").unwrap(),
-            },
-            diagnostics: DiagnosticColors {
-                error: Color::new("#f7768e").unwrap(),
-                warning: Color::new("#e0af68").unwrap(),
-                info: Color::new("#7aa2f7").unwrap(),
-            },
-        }
-    }
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub enum ThemeKind { #[default] Dark, Light, HighContrast }
 
     /// Forge Day (Light Theme)
     pub fn forge_day() -> Self {
-         Self {
+        Self {
             name: "Forge Day".to_string(),
             ui: UiColors {
                 editor_bg: Color::new("#f5f5f5").unwrap(),
@@ -153,11 +51,36 @@ impl Theme {
                 constant: Color::new("#b45309").unwrap(),
                 macro_: Color::new("#7c3aed").unwrap(),
             },
-             diagnostics: DiagnosticColors {
+            diagnostics: DiagnosticColors {
                 error: Color::new("#dc2626").unwrap(),
                 warning: Color::new("#d97706").unwrap(),
                 info: Color::new("#2563eb").unwrap(),
             },
         }
+impl Theme {
+    pub fn color(&self, key: &str) -> Option<[f32; 4]> {
+        self.colors.get(key).and_then(|hex| parse_hex_color(hex))
     }
+    pub fn default_dark() -> Self { builtin::forge_dark() }
+    pub fn default_light() -> Self { builtin::forge_light() }
+}
+
+pub fn parse_hex_color(hex: &str) -> Option<[f32; 4]> {
+    let hex = hex.strip_prefix('#')?;
+    let (r, g, b, a) = match hex.len() {
+        6 => (u8::from_str_radix(&hex[0..2], 16).ok()?, u8::from_str_radix(&hex[2..4], 16).ok()?,
+              u8::from_str_radix(&hex[4..6], 16).ok()?, 255u8),
+        8 => (u8::from_str_radix(&hex[0..2], 16).ok()?, u8::from_str_radix(&hex[2..4], 16).ok()?,
+              u8::from_str_radix(&hex[4..6], 16).ok()?, u8::from_str_radix(&hex[6..8], 16).ok()?),
+        _ => return None,
+    };
+    Some([r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0, a as f32 / 255.0])
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test] fn parse_6_digit() { assert_eq!(parse_hex_color("#ff8000"), Some([1.0, 128.0/255.0, 0.0, 1.0])); }
+    #[test] fn parse_8_digit() { assert!(parse_hex_color("#ff800080").is_some()); }
+    #[test] fn default_dark_loads() { let t = Theme::default_dark(); assert!(!t.colors.is_empty()); }
 }

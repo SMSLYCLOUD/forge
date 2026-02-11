@@ -12,11 +12,13 @@ impl Guard {
     }
 
     /// Clamp a value between min and max
+    #[allow(dead_code)]
     pub fn clamp_usize(value: usize, min: usize, max: usize) -> usize {
         value.max(min).min(max)
     }
 
     /// Safe division that returns default on zero divisor
+    #[allow(dead_code)]
     pub fn safe_div_f32(numerator: f32, denominator: f32, default: f32) -> f32 {
         if denominator.abs() < f32::EPSILON {
             default
@@ -26,6 +28,7 @@ impl Guard {
     }
 
     /// Clamp cursor to valid buffer position
+    #[allow(dead_code)]
     pub fn clamp_cursor(
         line: usize,
         col: usize,
@@ -42,6 +45,7 @@ impl Guard {
     }
 
     /// Safe slice of a string
+    #[allow(dead_code)]
     pub fn safe_substr(s: &str, start: usize, max_len: usize) -> &str {
         if start >= s.len() {
             ""

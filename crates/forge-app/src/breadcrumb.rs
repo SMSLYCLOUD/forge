@@ -5,10 +5,12 @@ use crate::ui::{colors, LayoutConstants, Zone};
 #[derive(Clone, Debug)]
 pub struct BreadcrumbSegment {
     pub text: String,
+    #[allow(dead_code)]
     pub kind: SegmentKind,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+#[allow(dead_code)]
 pub enum SegmentKind {
     Folder,
     File,
@@ -51,6 +53,7 @@ impl BreadcrumbBar {
     }
 
     /// Add a symbol segment (e.g., current function name)
+    #[allow(dead_code)]
     pub fn set_symbol(&mut self, symbol: Option<String>) {
         // Remove existing symbol segments
         self.segments.retain(|s| s.kind != SegmentKind::Symbol);
@@ -93,6 +96,7 @@ impl BreadcrumbBar {
 
     /// Get text positions for rendering
     /// Returns (text, x, y, color) tuples
+    #[allow(dead_code)]
     pub fn text_positions(&self, zone: &Zone) -> Vec<(String, f32, f32, [f32; 4])> {
         let mut result = Vec::with_capacity(self.segments.len() * 2);
         let char_width = LayoutConstants::CHAR_WIDTH;

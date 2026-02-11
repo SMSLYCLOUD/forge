@@ -1,5 +1,5 @@
-use std::time::Duration;
 use rand::Rng;
+use std::time::Duration;
 
 /// Retry policy with exponential backoff and decorrelated jitter
 #[derive(Debug, Clone)]

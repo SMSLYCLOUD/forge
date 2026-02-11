@@ -32,9 +32,9 @@ impl BugPredictor {
         let w_cc = 0.05;
         let w_depth = 0.02;
         let w_authors = -0.1; // More authors might mean more review? Or opposite. Let's say -0.1 (Linus' law)
-        let w_churn = 2.0;    // High churn is bad
+        let w_churn = 2.0; // High churn is bad
         let w_loc = 0.001;
-        let bias = -3.0;      // Baseline low probability
+        let bias = -3.0; // Baseline low probability
 
         let logit = bias
             + w_cc * features.cyclomatic_complexity
@@ -72,8 +72,8 @@ mod tests {
             cyclomatic_complexity: 50.0, // Spaghetti
             ast_depth: 20.0,
             author_count: 1.0, // Solo dev
-            churn_ratio: 0.8, // Rewritten recently
-            loc: 2000.0, // Giant file
+            churn_ratio: 0.8,  // Rewritten recently
+            loc: 2000.0,       // Giant file
         };
         let p_risky = predictor.predict(&risky).unwrap();
         assert!(p_risky > 0.7); // Expect high bug prob

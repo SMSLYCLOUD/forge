@@ -1,5 +1,5 @@
-use std::collections::VecDeque;
 use serde::{Deserialize, Serialize};
+use std::collections::VecDeque;
 
 #[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
 pub enum ActionType {
@@ -34,7 +34,11 @@ impl AnomalyDetector {
             // Need at least half window size to make a judgment
             return false;
         }
-        let dismissals = self.history.iter().filter(|&&a| a == ActionType::DismissWarning).count();
+        let dismissals = self
+            .history
+            .iter()
+            .filter(|&&a| a == ActionType::DismissWarning)
+            .count();
         (dismissals as f64 / self.history.len() as f64) > 0.8
     }
 }
