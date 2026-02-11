@@ -15,6 +15,9 @@ bytemuck = { version = "1", features = ["derive"] }
 forge-core = { path = "../forge-core" }
 forge-renderer = { path = "../forge-renderer" }
 forge-confidence = { path = "../forge-confidence" }
+forge-debug = { path = "../forge-debug" }
+forge-lsp = { path = "../forge-lsp" }
+forge-plugin = { path = "../forge-plugin" }
 
 # GPU + Window
 wgpu = { workspace = true }

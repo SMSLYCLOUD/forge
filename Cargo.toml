@@ -19,6 +19,9 @@ members = [
     "crates/forge-feedback",
     "crates/forge-agent",
     "crates/forge-net",
+    "crates/forge-lsp",
+    "crates/forge-plugin",
+    "crates/forge-debug",
 ]
 resolver = "2"
 
