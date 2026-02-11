@@ -114,6 +114,24 @@ pub struct Application {
     state: Option<AppState>,
     modifiers: ModifiersState,
     current_mode: UiMode,
+    config: forge_config::Config,
+    theme: forge_theme::Theme,
+
+    // UI Panels (Task 8 - Missing modules)
+    // find_bar: crate::find_bar::FindBar,
+    // command_palette: crate::command_palette::CommandPalette,
+    // bottom_panel: crate::bottom_panel::BottomPanel,
+    // notifications: crate::notifications::NotificationManager,
+    // file_picker: crate::file_picker::FilePicker,
+    // context_menu: crate::context_menu::ContextMenu,
+
+    // Terminal + Git (Task 9 - Missing modules)
+    // terminal: Option<forge_terminal::Terminal>,
+    // git_panel: crate::git_panel::GitPanel,
+
+    // Final Integration (Task 10 - Missing modules)
+    // split_layout: crate::split_editor::SplitLayout,
+    // zen_mode: crate::zen_mode::ZenMode,
 }
 
 /// Unified application state
@@ -168,11 +186,40 @@ struct AppState {
 
 impl Application {
     pub fn new(file_path: Option<String>) -> Self {
+        let config = forge_config::Config::default();
+        let theme = forge_theme::Theme::forge_night();
+
+        // Initialize UI Panels (Task 8 - Stubs/Missing)
+        // let find_bar = crate::find_bar::FindBar::default();
+        // let command_palette = crate::command_palette::CommandPalette::default();
+        // let bottom_panel = crate::bottom_panel::BottomPanel::default();
+        // let notifications = crate::notifications::NotificationManager::default();
+        // let file_picker = crate::file_picker::FilePicker::default();
+        // let context_menu = crate::context_menu::ContextMenu::default();
+
+        // let terminal = None;
+        // let git_panel = crate::git_panel::GitPanel::default();
+
+        // let split_layout = crate::split_editor::SplitLayout::default();
+        // let zen_mode = crate::zen_mode::ZenMode::default();
+
         Self {
             file_path,
             state: None,
             modifiers: ModifiersState::empty(),
             current_mode: UiMode::default(),
+            config,
+            theme,
+            // find_bar,
+            // command_palette,
+            // bottom_panel,
+            // notifications,
+            // file_picker,
+            // context_menu,
+            // terminal,
+            // git_panel,
+            // split_layout,
+            // zen_mode,
         }
     }
 
@@ -913,14 +960,53 @@ impl ApplicationHandler for Application {
                 }
 
                 let ctrl = self.modifiers.control_key();
+                let shift = self.modifiers.shift_key();
 
                 match key_event.logical_key {
                     Key::Character(ref c) if ctrl => match c.as_str() {
+                        "p" if shift => {
+                            // TODO: Toggle Command Palette
+                            tracing::info!("Ctrl+Shift+P: Toggle Command Palette");
+                        }
+                        "f" => {
+                            // TODO: Toggle Find Bar
+                            tracing::info!("Ctrl+F: Toggle Find Bar");
+                        }
+                        "h" => {
+                            // TODO: Toggle Replace Bar
+                            tracing::info!("Ctrl+H: Toggle Replace Bar");
+                        }
+                        "`" => {
+                            // TODO: Toggle Terminal
+                            // if state.terminal.is_none() {
+                            //    state.terminal = Some(forge_terminal::Terminal::new());
+                            // }
+                            // state.bottom_panel.toggle_terminal();
+                            tracing::info!("Ctrl+`: Toggle Terminal");
+                        }
+                        "," => {
+                            // TODO: Toggle Settings
+                            tracing::info!("Ctrl+,: Toggle Settings");
+                        }
+                        "g" => {
+                            // TODO: Toggle Go To Line
+                            tracing::info!("Ctrl+G: Toggle Go To Line");
+                        }
+                        "\\" => {
+                            // TODO: Split Editor
+                            tracing::info!("Ctrl+\\: Split Editor");
+                        }
+                        "k" => {
+                             // TODO: Handle Chords (Ctrl+K ...)
+                             tracing::info!("Ctrl+K: Chord started (Zen Mode TODO)");
+                        }
                         "s" => {
                             if let Err(e) = state.editor.save() {
                                 tracing::error!("Save failed: {}", e);
                             }
                             state.window.set_title(&state.editor.window_title());
+
+                            // TODO: Compute Git Gutter Marks
                         }
                         "z" => {
                             state.editor.buffer.undo();

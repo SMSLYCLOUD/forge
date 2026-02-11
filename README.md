@@ -1,21 +1,23 @@
-# Forge Editor
+# Forge — GPU-Accelerated Code Editor
 
-A next-generation code editor built from the ground up in Rust.
+A high-performance code editor built in Rust with direct GPU rendering via wgpu.
 
-## Phase 1: Core Engine ✅
+## Features
 
-**Implemented:**
-- ✅ `forge-core` - Rope-based text buffer with transaction system
-- ✅ `forge-renderer` - GPU rendering foundation (structure only)
-- ✅ `forge-window` - Platform abstraction (structure only)
-- ✅ `forge-app` - Application entry point
-
-**Features:**
-- Rope data structure for efficient text manipulation
-- Transaction system for atomic, invertible edits
-- History tree for non-linear undo/redo
-- Multiple selections/cursors
-- File I/O with encoding detection
+- 🖥 GPU-rendered text with wgpu + glyphon
+- 📝 Full-featured text editing (undo/redo, multi-cursor, find/replace)
+- 🎨 7 built-in themes (Forge Dark, Forge Light, Monokai, Dracula, One Dark, Solarized, Nord)
+- ⌨️ VS Code-compatible keybindings
+- 🔍 Project-wide fuzzy search
+- 📁 Multi-root workspace support
+- 🖥 Integrated terminal with ANSI support
+- 🌳 Git integration (status, blame, diff, branches)
+- 🧩 Extension system (LSP, task runner)
+- ♿ Accessibility layer with ARIA roles
+- 🤖 AI integration framework (inline completions, chat)
+- ⚡ Crash recovery and auto-save
+- 📐 Code folding, indent guides, minimap
+- 🔧 TOML-based configuration
 
 ## Building
 
@@ -26,38 +28,37 @@ cargo build --release
 ## Running
 
 ```bash
-# Open a file
-cargo run --release -- path/to/file.txt
-
-# Or start with empty buffer
-cargo run --release
+cargo run -p forge-app
 ```
 
 ## Testing
 
 ```bash
-cargo test
+cargo test --workspace
 ```
 
 ## Architecture
 
-```
-forge/
-├── crates/
-│   ├── forge-core/      # Text buffer engine
-│   ├── forge-renderer/  # GPU text rendering
-│   ├── forge-window/    # OS windowing
-│   └── forge-app/       # Main application
-└── Cargo.toml          # Workspace root
-```
+Forge is organized as a Cargo workspace with the following crates:
 
-## Next Steps (Future Phases)
-
-- Phase 2: Tree-sitter, LSP, search, file tree
-- Phase 3: Terminal + Git integration
-- Phase 4: WASM plugin system
-- Phase 5: CRDT collaboration
-- Phase 6: AI integration
+| Crate | Description |
+|-------|-------------|
+| forge-core | Rope buffer, transactions, undo/redo, file I/O |
+| forge-renderer | wgpu GPU pipeline, text atlas, rect renderer |
+| forge-window | winit event loop, windowing |
+| forge-app | Main application, UI components |
+| forge-config | TOML configuration |
+| forge-theme | Color themes engine |
+| forge-input | Keyboard/mouse input, clipboard |
+| forge-keybindings | Keyboard shortcut system |
+| forge-types | Shared types (Color, Rect, Position) |
+| forge-workspace | Multi-root workspace |
+| forge-terminal | PTY, ANSI parser, grid buffer |
+| forge-search | Fuzzy finder, content search |
+| forge-lsp | Language Server Protocol client |
+| forge-surfaces | UI surface manager |
+| forge-agent | AI agent (chat, inline completions) |
+| forge-net | Network/HTTP client |
 
 ## License
 
