@@ -37,6 +37,7 @@ mod tests {
 
     #[test]
     fn all_perfect_signals() {
+        use crate::models::SignalKind;
         let engine = ConfidenceEngine;
         let signals = vec![
             Signal {

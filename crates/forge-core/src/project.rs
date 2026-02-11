@@ -47,3 +47,14 @@ impl Project {
         false
     }
 }
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ProjectKind { Rust, Node, Python, Go, Generic }
+
+pub fn detect_project_kind(root: &Path) -> ProjectKind {
+    if root.join("Cargo.toml").exists() { ProjectKind::Rust }
+    else if root.join("package.json").exists() { ProjectKind::Node }
+    else if root.join("pyproject.toml").exists() || root.join("setup.py").exists() { ProjectKind::Python }
+    else if root.join("go.mod").exists() { ProjectKind::Go }
+    else { ProjectKind::Generic }
+}

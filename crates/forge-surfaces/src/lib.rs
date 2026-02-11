@@ -36,3 +36,4 @@ mod tests {
         assert_eq!(entries[2].badge, file_explorer::BadgeColor::Green);
     }
 }
+pub mod file_explorer;

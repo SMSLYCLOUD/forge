@@ -8,8 +8,10 @@ pub struct OrganismState {
     /// Overall confidence score (0.0 - 100.0)
     pub confidence_score: f32,
     /// Per-line confidence (line_index → score)
+    #[allow(dead_code)]
     pub line_confidence: Vec<f32>,
     /// Anticipation predictions
+    #[allow(dead_code)]
     pub predictions: Vec<Prediction>,
     /// Last heartbeat time
     pub last_heartbeat: Instant,
@@ -18,6 +20,7 @@ pub struct OrganismState {
 }
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct Prediction {
     pub action: String,
     pub probability: f32,
@@ -75,6 +78,7 @@ pub fn start_heartbeat(
 }
 
 /// Read organism state safely (never blocks UI for more than a few microseconds)
+#[allow(dead_code)]
 pub fn read_state(state: &SharedOrganismState) -> Option<OrganismState> {
     // try_lock to avoid blocking the render thread
     state.try_lock().ok().map(|guard| guard.clone())

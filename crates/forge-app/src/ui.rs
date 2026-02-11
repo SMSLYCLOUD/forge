@@ -29,6 +29,7 @@ pub mod colors {
     /// AI panel background (#1e1e1e)
     pub const AI_PANEL: [f32; 4] = [0.118, 0.118, 0.118, 1.0];
     /// Text foreground (#cccccc)
+    #[allow(dead_code)]
     pub const TEXT_FG: [f32; 4] = [0.8, 0.8, 0.8, 1.0];
     /// Dimmed text (#858585)
     pub const TEXT_DIM: [f32; 4] = [0.522, 0.522, 0.522, 1.0];
@@ -37,12 +38,14 @@ pub mod colors {
     /// Cursor color (#aeafad)
     pub const CURSOR: [f32; 4] = [0.682, 0.686, 0.678, 1.0];
     /// Selection color (#264f78)
+    #[allow(dead_code)]
     pub const SELECTION: [f32; 4] = [0.149, 0.31, 0.471, 0.5];
     /// Error red
     pub const ERROR: [f32; 4] = [0.937, 0.325, 0.314, 1.0];
     /// Warning yellow
     pub const WARNING: [f32; 4] = [0.804, 0.682, 0.263, 1.0];
     /// Success green
+    #[allow(dead_code)]
     pub const SUCCESS: [f32; 4] = [0.345, 0.663, 0.369, 1.0];
 }
 
@@ -58,6 +61,7 @@ impl LayoutConstants {
     pub const SIDEBAR_WIDTH: f32 = 240.0;
     pub const SCROLLBAR_WIDTH: f32 = 14.0;
     pub const TAB_WIDTH: f32 = 160.0;
+    #[allow(dead_code)]
     pub const TAB_CLOSE_SIZE: f32 = 16.0;
     pub const AI_PANEL_WIDTH: f32 = 400.0;
     pub const SEPARATOR_SIZE: f32 = 1.0;
@@ -70,6 +74,7 @@ impl LayoutConstants {
 /// Computed layout zones (recalculated on resize)
 #[derive(Clone, Debug)]
 pub struct LayoutZones {
+    #[allow(dead_code)]
     pub window_width: f32,
     pub window_height: f32,
     pub activity_bar: Zone,

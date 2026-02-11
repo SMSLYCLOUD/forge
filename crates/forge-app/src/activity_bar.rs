@@ -15,6 +15,7 @@ pub enum ActivityItem {
 
 impl ActivityItem {
     /// Unicode icon character for each item
+    #[allow(dead_code)]
     pub fn icon_char(&self) -> &'static str {
         match self {
             Self::Explorer => "📁",
@@ -28,6 +29,7 @@ impl ActivityItem {
     }
 
     /// Label for tooltip
+    #[allow(dead_code)]
     pub fn label(&self) -> &'static str {
         match self {
             Self::Explorer => "Explorer",
@@ -76,7 +78,7 @@ impl ActivityBar {
     pub fn render_rects(&self, zone: &Zone) -> Vec<Rect> {
         let mut rects = Vec::with_capacity(16);
         let item_size = LayoutConstants::ACTIVITY_BAR_WIDTH;
-        let icon_padding = 4.0;
+        let _icon_padding = 4.0;
 
         // Top items
         for (i, item) in ActivityItem::top_items().iter().enumerate() {
@@ -144,6 +146,7 @@ impl ActivityBar {
     }
 
     /// Get icon text positions for rendering
+    #[allow(dead_code)]
     pub fn text_positions(&self, zone: &Zone) -> Vec<(&'static str, f32, f32, bool)> {
         let mut result = Vec::with_capacity(8);
         let item_size = LayoutConstants::ACTIVITY_BAR_WIDTH;

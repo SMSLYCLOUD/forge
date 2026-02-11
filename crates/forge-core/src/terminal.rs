@@ -1,4 +1,8 @@
 use anyhow::Result;
+// use portable_pty::{CommandBuilder, NativePtySystem, PtyPair, PtySize, PtySystem};
+// use std::io::{Read, Write};
+// use std::sync::{Arc, Mutex};
+// use std::thread;
 
 pub struct Terminal {
     // pty_pair: PtyPair,

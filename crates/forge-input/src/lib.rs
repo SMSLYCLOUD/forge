@@ -1,3 +1,5 @@
+pub mod clipboard;
+
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]

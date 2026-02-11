@@ -7,6 +7,7 @@ mod pipeline;
 mod text;
 mod theme;
 mod viewport;
+pub mod decorations;
 
 pub use atlas::GlyphAtlas;
 pub use pipeline::RenderPipeline;

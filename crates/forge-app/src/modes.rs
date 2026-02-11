@@ -13,6 +13,7 @@ pub enum UiMode {
 
 /// Layout configuration determined by the mode
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct ModeLayoutConfig {
     pub activity_bar: bool,
     pub tab_bar: bool,
@@ -29,6 +30,7 @@ pub struct ModeLayoutConfig {
 }
 
 impl UiMode {
+    #[allow(dead_code)]
     pub fn all() -> &'static [UiMode] {
         &[
             UiMode::Standard,
@@ -51,6 +53,7 @@ impl UiMode {
         }
     }
 
+    #[allow(dead_code)]
     pub fn shortcut(&self) -> &'static str {
         match self {
             Self::Standard => "Ctrl+Shift+1",
@@ -164,6 +167,7 @@ impl UiMode {
     }
 
     /// Previous mode
+    #[allow(dead_code)]
     pub fn prev(&self) -> Self {
         match self {
             Self::Standard => Self::Review,
