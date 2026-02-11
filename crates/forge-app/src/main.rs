@@ -15,6 +15,12 @@ pub mod selection_render;
 mod gpu;
 mod modes;
 
+mod markdown_preview;
+mod image_preview;
+mod terminal_tabs;
+mod emmet;
+mod accessibility;
+
 // UI components
 mod activity_bar;
 mod autocomplete;
