@@ -107,8 +107,15 @@ impl StatusBar {
         if self.error_count > 0 || self.warning_count > 0 {
             items.push(StatusItem {
                 text: format!("✕ {}  ⚠ {}", self.error_count, self.warning_count),
-                tooltip: format!("{} errors, {} warnings", self.error_count, self.warning_count),
-                color: if self.error_count > 0 { Some(colors::ERROR) } else { None },
+                tooltip: format!(
+                    "{} errors, {} warnings",
+                    self.error_count, self.warning_count
+                ),
+                color: if self.error_count > 0 {
+                    Some(colors::ERROR)
+                } else {
+                    None
+                },
                 alignment: StatusAlignment::Left,
                 priority: 90,
                 click_action: Some(StatusAction::ShowNotifications),
@@ -236,7 +243,8 @@ impl StatusBar {
 
         // Left items
         let mut left_x = zone.x + padding;
-        let mut left_items: Vec<&StatusItem> = items.iter()
+        let mut left_items: Vec<&StatusItem> = items
+            .iter()
             .filter(|i| i.alignment == StatusAlignment::Left)
             .collect();
         left_items.sort_by(|a, b| b.priority.cmp(&a.priority));
@@ -249,7 +257,8 @@ impl StatusBar {
 
         // Right items (render from right edge leftward)
         let mut right_x = zone.x + zone.width - padding;
-        let mut right_items: Vec<&StatusItem> = items.iter()
+        let mut right_items: Vec<&StatusItem> = items
+            .iter()
             .filter(|i| i.alignment == StatusAlignment::Right)
             .collect();
         right_items.sort_by(|a, b| a.priority.cmp(&b.priority)); // Lowest priority = rightmost

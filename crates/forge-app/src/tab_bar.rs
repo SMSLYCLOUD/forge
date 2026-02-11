@@ -36,7 +36,11 @@ impl TabBar {
     pub fn open_tab(&mut self, title: String, file_path: Option<String>) {
         // Check if tab for this file already exists
         if let Some(path) = &file_path {
-            if let Some(idx) = self.tabs.iter().position(|t| t.file_path.as_ref() == Some(path)) {
+            if let Some(idx) = self
+                .tabs
+                .iter()
+                .position(|t| t.file_path.as_ref() == Some(path))
+            {
                 self.set_active(idx);
                 return;
             }

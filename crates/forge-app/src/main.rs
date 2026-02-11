@@ -2,6 +2,10 @@
 //!
 //! Opens a GPU-accelerated native window with a text editor.
 
+#![allow(dead_code)]
+#![allow(unused_imports)]
+#![allow(unused_variables)]
+
 mod application;
 mod editor;
 mod extensions;
@@ -23,6 +27,28 @@ mod scrollbar;
 mod status_bar;
 mod tab_bar;
 mod ui;
+
+// Session 2 - New UI Components
+pub mod bottom_panel;
+pub mod bracket_match;
+pub mod breadcrumb_dropdown;
+pub mod code_folding;
+pub mod command_palette;
+pub mod comment_toggle;
+pub mod context_menu;
+pub mod file_picker;
+pub mod find_bar;
+pub mod go_to_line;
+pub mod indent_guides;
+pub mod minimap;
+pub mod multicursor;
+pub mod notifications;
+pub mod output_panel;
+pub mod problems_panel;
+pub mod replace_bar;
+pub mod status_segments;
+pub mod title_bar;
+pub mod word_wrap;
 
 use anyhow::Result;
 use tracing::info;

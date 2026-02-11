@@ -23,7 +23,13 @@ impl Scrollbar {
     }
 
     /// Calculate scrollbar thumb dimensions
-    fn thumb_geometry(&self, zone: &Zone, total_lines: usize, visible_lines: usize, scroll_top: usize) -> (f32, f32) {
+    fn thumb_geometry(
+        &self,
+        zone: &Zone,
+        total_lines: usize,
+        visible_lines: usize,
+        scroll_top: usize,
+    ) -> (f32, f32) {
         if total_lines <= visible_lines {
             return (zone.y, zone.height);
         }
@@ -37,7 +43,13 @@ impl Scrollbar {
     }
 
     /// Generate scrollbar rectangle
-    pub fn render_rect(&self, zone: &Zone, total_lines: usize, visible_lines: usize, scroll_top: usize) -> Vec<Rect> {
+    pub fn render_rect(
+        &self,
+        zone: &Zone,
+        total_lines: usize,
+        visible_lines: usize,
+        scroll_top: usize,
+    ) -> Vec<Rect> {
         let mut rects = Vec::with_capacity(2);
 
         // Track background
@@ -50,7 +62,8 @@ impl Scrollbar {
         });
 
         // Thumb
-        let (thumb_y, thumb_height) = self.thumb_geometry(zone, total_lines, visible_lines, scroll_top);
+        let (thumb_y, thumb_height) =
+            self.thumb_geometry(zone, total_lines, visible_lines, scroll_top);
         let thumb_color = if self.dragging {
             [0.5, 0.5, 0.5, 0.8]
         } else if self.hovered {
@@ -78,12 +91,19 @@ impl Scrollbar {
     }
 
     /// Update during drag, returns new scroll_top
-    pub fn update_drag(&self, mouse_y: f32, zone: &Zone, total_lines: usize, visible_lines: usize) -> usize {
+    pub fn update_drag(
+        &self,
+        mouse_y: f32,
+        zone: &Zone,
+        total_lines: usize,
+        visible_lines: usize,
+    ) -> usize {
         if total_lines <= visible_lines {
             return 0;
         }
 
-        let (_, thumb_height) = self.thumb_geometry(zone, total_lines, visible_lines, self.drag_start_scroll);
+        let (_, thumb_height) =
+            self.thumb_geometry(zone, total_lines, visible_lines, self.drag_start_scroll);
         let delta_y = mouse_y - self.drag_start_y;
         let scroll_range = zone.height - thumb_height;
         if scroll_range <= 0.0 {

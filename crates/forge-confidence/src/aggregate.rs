@@ -22,14 +22,20 @@ pub fn aggregate_file_confidence(lines: &[LineConfidence]) -> ConfidenceScore {
     // or we could do CVaR for each component. Let's do simple average for components to save complexity.
     let count = lines.len() as f64;
     let avg_syntax = lines.iter().map(|l| l.score.criteria.syntax).sum::<f64>() / count;
-    let avg_type = lines.iter().map(|l| l.score.criteria.type_safety).sum::<f64>() / count;
+    let avg_type = lines
+        .iter()
+        .map(|l| l.score.criteria.type_safety)
+        .sum::<f64>()
+        / count;
     let avg_lint = lines.iter().map(|l| l.score.criteria.lint).sum::<f64>() / count;
 
     // Construct aggregated score
     // Note: overall is driven by risk (CVaR), components by average state.
 
-    let mut agg = ConfidenceScore::default();
-    agg.overall = avg_worst;
+    let mut agg = ConfidenceScore {
+        overall: avg_worst,
+        ..Default::default()
+    };
     agg.criteria.syntax = avg_syntax;
     agg.criteria.type_safety = avg_type;
     agg.criteria.lint = avg_lint;

@@ -1,5 +1,5 @@
-use forge_developer::{DeveloperModel, DeveloperStats, KnowledgeGraph, BusFactor};
 use chrono::Utc;
+use forge_developer::{BusFactor, DeveloperModel, DeveloperStats, KnowledgeGraph};
 
 #[test]
 fn test_developer_integration() {

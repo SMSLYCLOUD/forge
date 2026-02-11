@@ -1,16 +1,16 @@
-use serde::{Deserialize, Serialize};
 use crate::color::RgbaColor;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ConfidenceScore {
-    pub overall: f64,           // 0.0 to 1.0
+    pub overall: f64, // 0.0 to 1.0
     pub criteria: CriteriaBreakdown,
     pub sources: Vec<EvidenceSource>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CriteriaBreakdown {
-    pub syntax: f64,     // 1.0 if parseable (proven)
+    pub syntax: f64,      // 1.0 if parseable (proven)
     pub type_safety: f64, // 1.0 if type-checked (proven)
     pub lint: f64,        // 1.0 if lint-clean (proven)
     pub runtime: f64,     // 0.0-1.0 (estimated)
@@ -32,7 +32,7 @@ pub enum EvidenceSource {
 pub struct LineConfidence {
     pub line: usize,
     pub score: ConfidenceScore,
-    pub color: RgbaColor,  // Gradient from red to green
+    pub color: RgbaColor, // Gradient from red to green
 }
 
 impl Default for ConfidenceScore {

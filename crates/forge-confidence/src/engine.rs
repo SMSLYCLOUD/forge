@@ -11,7 +11,8 @@ impl ConfidenceEngine {
             return 0.5;
         }
 
-        available.iter()
+        available
+            .iter()
             .map(|s| (s.weight / total_weight) * s.value)
             .sum::<f64>()
             .clamp(0.0, 1.0)
@@ -39,8 +40,18 @@ mod tests {
         use crate::models::SignalKind;
         let engine = ConfidenceEngine;
         let signals = vec![
-            Signal { name: SignalKind::SyntaxValid, value: 1.0, weight: 0.20, available: true },
-            Signal { name: SignalKind::LintClean, value: 1.0, weight: 0.10, available: true },
+            Signal {
+                name: SignalKind::SyntaxValid,
+                value: 1.0,
+                weight: 0.20,
+                available: true,
+            },
+            Signal {
+                name: SignalKind::LintClean,
+                value: 1.0,
+                weight: 0.10,
+                available: true,
+            },
         ];
         // Weight sum = 0.3. Redistributed: 0.2/0.3 * 1 + 0.1/0.3 * 1 = 1.0
         assert!((engine.compute_line(&signals) - 1.0).abs() < 1e-10);

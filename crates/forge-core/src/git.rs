@@ -25,7 +25,7 @@ impl GitIntegration {
             if status.contains(Status::INDEX_DELETED) || status.contains(Status::WT_DELETED) {
                 return Some(FileStatus::Deleted);
             }
-             if status.contains(Status::IGNORED) {
+            if status.contains(Status::IGNORED) {
                 return Some(FileStatus::Ignored);
             }
         }

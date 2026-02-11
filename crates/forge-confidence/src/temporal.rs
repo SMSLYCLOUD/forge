@@ -8,9 +8,7 @@ impl TemporalEngine {
         days_since_commit: f64,
         initial_confidence: f64,
     ) -> f64 {
-        let lambda = 0.1 * author_count as f64
-            + 0.05 * patch_frequency
-            + 0.03 * churn_ratio;
+        let lambda = 0.1 * author_count as f64 + 0.05 * patch_frequency + 0.03 * churn_ratio;
         let decayed = initial_confidence * (-lambda * days_since_commit / 365.0).exp();
         decayed.clamp(0.0, 1.0)
     }

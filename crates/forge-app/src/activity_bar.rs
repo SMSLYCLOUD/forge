@@ -163,7 +163,9 @@ impl ActivityBar {
         let bottom_items = ActivityItem::bottom_items();
         for (i, item) in bottom_items.iter().enumerate() {
             let x = zone.x + item_size / 2.0 - 8.0;
-            let y = zone.y + zone.height - ((bottom_items.len() - i) as f32 * item_size) + item_size / 2.0 - 8.0;
+            let y = zone.y + zone.height - ((bottom_items.len() - i) as f32 * item_size)
+                + item_size / 2.0
+                - 8.0;
             let is_active = self.active_item == Some(*item);
             result.push((item.icon_char(), x, y, is_active));
         }

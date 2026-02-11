@@ -1,3 +1,7 @@
+use crate::protocol::{
+    ConfidenceField, ConfidenceMode, SurfaceIntelligence, SurfaceState, WorkspaceContext,
+};
+use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use anyhow::Result;
 
@@ -60,6 +64,27 @@ mod tests {
     use tempfile::tempdir;
     use std::fs::File;
 
+        let mut entries: Vec<FileExplorerEntry> = self
+            .files
+            .iter()
+            .map(|f| {
+                let score = *confidence.get(f).unwrap_or(&0.5);
+                let badge = if score > 0.8 {
+                    BadgeColor::Green
+                } else if score > 0.5 {
+                    BadgeColor::Yellow
+                } else {
+                    BadgeColor::Red
+                };
+
+                FileExplorerEntry {
+                    path: f.clone(),
+                    confidence: score,
+                    badge,
+                    is_relevant: false, // In real impl, would check relevance to task
+                }
+            })
+            .collect();
     #[test]
     fn test_build_tree() {
         let dir = tempdir().unwrap();

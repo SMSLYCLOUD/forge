@@ -1,7 +1,7 @@
-use std::sync::Arc;
-use tokio::sync::RwLock;
-use std::time::{Duration, Instant};
 use crate::ConnectionState;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+use tokio::sync::RwLock;
 
 /// Background health monitor
 pub struct HealthMonitor {
@@ -11,7 +11,10 @@ pub struct HealthMonitor {
 
 impl HealthMonitor {
     pub fn new(state: Arc<RwLock<ConnectionState>>, check_interval: Duration) -> Self {
-        Self { state, check_interval }
+        Self {
+            state,
+            check_interval,
+        }
     }
 
     /// Run health check loop (call from tokio spawn)
@@ -25,15 +28,14 @@ impl HealthMonitor {
             tokio::time::sleep(self.check_interval).await;
 
             let start = Instant::now();
-            let result = client
-                .head("https://httpbin.org/status/200")
-                .send()
-                .await;
+            let result = client.head("https://httpbin.org/status/200").send().await;
 
             let new_state = match result {
                 Ok(resp) if resp.status().is_success() => {
                     let latency = start.elapsed().as_millis() as u32;
-                    ConnectionState::Online { latency_ms: latency }
+                    ConnectionState::Online {
+                        latency_ms: latency,
+                    }
                 }
                 Ok(_) => ConnectionState::Degraded { error_rate: 0.5 },
                 Err(_) => ConnectionState::Offline {

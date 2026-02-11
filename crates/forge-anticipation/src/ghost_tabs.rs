@@ -1,8 +1,8 @@
-use std::path::Path;
+use crate::markov::MarkovChain;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use crate::markov::MarkovChain;
+use std::path::Path;
 
 const GHOST_TAB_THRESHOLD: f64 = 0.3;
 const MAX_GHOST_TABS: usize = 3;
@@ -88,9 +88,9 @@ mod tests {
 
         // Switch to A.
         engine.on_file_open("A"); // C->A
-        // Transitions from A: B (2 times), C (1 time). Total 3.
-        // P(B|A) = 2/3 = 0.66 > 0.3 -> Suggest B
-        // P(C|A) = 1/3 = 0.33 > 0.3 -> Suggest C
+                                  // Transitions from A: B (2 times), C (1 time). Total 3.
+                                  // P(B|A) = 2/3 = 0.66 > 0.3 -> Suggest B
+                                  // P(C|A) = 1/3 = 0.33 > 0.3 -> Suggest C
 
         let suggestions = engine.get_suggestions();
         assert!(suggestions.contains(&"B".to_string()));

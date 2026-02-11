@@ -47,7 +47,7 @@ mod tests {
 
         let new_ml = *weights.get("ml").unwrap();
         let other = 1.0; // tests + reviews
-        // new_ml should be other / 3 = 0.333...
+                         // new_ml should be other / 3 = 0.333...
 
         assert!((new_ml - 0.3333).abs() < 1e-4);
 
