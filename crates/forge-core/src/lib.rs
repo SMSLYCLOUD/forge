@@ -5,6 +5,8 @@
 mod buffer;
 pub mod git;
 mod history;
+pub mod recovery;
+pub mod file_io;
 pub mod layout;
 mod position;
 pub mod project;

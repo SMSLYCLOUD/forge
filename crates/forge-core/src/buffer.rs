@@ -1,4 +1,4 @@
-use crate::{Encoding, History, LineEnding, Position, Selection, Syntax, Transaction};
+use crate::{Encoding, History, LineEnding, Selection, Syntax, Transaction};
 use anyhow::Result;
 use ropey::Rope;
 use std::path::Path;
@@ -38,6 +38,62 @@ impl Clone for Buffer {
             path: self.path.clone(),
             syntax: None, // We don't clone syntax state for now
         }
+    }
+}
+
+#[cfg(test)]
+mod edge_case_tests {
+    use super::*;
+    use crate::{Change, ChangeSet, Position, Transaction};
+
+    #[test]
+    fn empty_buffer_line_count() {
+        let b = Buffer::new();
+        assert_eq!(b.len_lines(), 1);
+    }
+
+    #[test]
+    fn emoji_insert() {
+        let mut b = Buffer::new();
+        let change = Change::insert(Position::new(0), "👋🌍".to_string());
+        let tx = Transaction::new(ChangeSet::with_change(change), None);
+        b.apply(tx);
+        assert!(b.text().contains("👋"));
+    }
+
+    #[test]
+    fn cjk_insert() {
+        let mut b = Buffer::new();
+        let s = "你好世界";
+        let change = Change::insert(Position::new(0), s.to_string());
+        let tx = Transaction::new(ChangeSet::with_change(change), None);
+        b.apply(tx);
+        assert_eq!(b.text().len(), s.len());
+    }
+
+    #[test]
+    fn zwj_sequence() {
+        let mut b = Buffer::new();
+        let s = "👨‍👩‍👧";
+        let change = Change::insert(Position::new(0), s.to_string());
+        let tx = Transaction::new(ChangeSet::with_change(change), None);
+        b.apply(tx);
+        assert!(b.text().contains("👨‍👩‍👧"));
+    }
+
+    #[test]
+    fn large_buffer() {
+        // Use fewer lines for speed in test, but enough to trigger rope chunks
+        let text: String = (0..10_000).map(|i| format!("line {}\n", i)).collect();
+        let b = Buffer::from_str(&text);
+        assert_eq!(b.len_lines(), 10_001);
+    }
+
+    #[test]
+    fn crlf_normalization() {
+        let b = Buffer::from_str("hello\r\nworld");
+        // We assert that it DOES contain CRLF because Buffer doesn't normalize by default
+        assert!(b.text().contains("\r\n"));
     }
 }
 
@@ -280,7 +336,7 @@ impl LineEnding {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Change, ChangeSet};
+    use crate::{Change, ChangeSet, Position};
 
     #[test]
     fn test_buffer_creation() {

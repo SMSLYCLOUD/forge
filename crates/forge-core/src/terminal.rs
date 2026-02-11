@@ -1,8 +1,8 @@
 use anyhow::Result;
-use portable_pty::{CommandBuilder, NativePtySystem, PtyPair, PtySize, PtySystem};
-use std::io::{Read, Write};
-use std::sync::{Arc, Mutex};
-use std::thread;
+// use portable_pty::{CommandBuilder, NativePtySystem, PtyPair, PtySize, PtySystem};
+// use std::io::{Read, Write};
+// use std::sync::{Arc, Mutex};
+// use std::thread;
 
 pub struct Terminal {
     // pty_pair: PtyPair,
@@ -14,18 +14,18 @@ pub struct Terminal {
 }
 
 impl Terminal {
-    pub fn new(cols: u16, rows: u16) -> Result<Self> {
+    pub fn new(_cols: u16, _rows: u16) -> Result<Self> {
         // let pty_system = NativePtySystem::default();
         // let pair = pty_system.openpty(PtySize { rows, cols, pixel_width: 0, pixel_height: 0 })?;
 
         Ok(Self {})
     }
 
-    pub fn write(&mut self, data: &str) -> Result<()> {
+    pub fn write(&mut self, _data: &str) -> Result<()> {
         Ok(())
     }
 
-    pub fn resize(&mut self, cols: u16, rows: u16) -> Result<()> {
+    pub fn resize(&mut self, _cols: u16, _rows: u16) -> Result<()> {
         Ok(())
     }
 }

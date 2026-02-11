@@ -99,7 +99,6 @@ impl BayesNet {
         // Naive topological sort by just iterating until all set (slow but works for small graphs)
         // Better: store topological order
 
-        let mut sorted_nodes: Vec<&Node> = self.nodes.values().collect();
         // This sorting is non-deterministic without proper topological sort logic.
         // Assuming user adds nodes in topological order for this MVP or we implement topological sort.
         // Let's implement a simple topological sort or just loop.

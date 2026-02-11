@@ -10,6 +10,7 @@ pub struct Editor {
     /// Vertical scroll offset in lines
     pub scroll_y: f64,
     /// Whether the cursor should be visible (for blink)
+    #[allow(dead_code)]
     pub cursor_visible: bool,
     /// Window title (derived from file path)
     pub title: String,
@@ -266,6 +267,7 @@ impl Editor {
     }
 
     /// Get all text for rendering
+    #[allow(dead_code)]
     pub fn text(&self) -> String {
         self.buffer.text()
     }
