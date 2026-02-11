@@ -31,10 +31,18 @@ impl DiagnosticHandler {
     }
 
     pub fn error_count(&self) -> usize {
-        self.diagnostics.values().flatten().filter(|d| d.severity == Some(DiagnosticSeverity::ERROR)).count()
+        self.diagnostics
+            .values()
+            .flatten()
+            .filter(|d| d.severity == Some(DiagnosticSeverity::ERROR))
+            .count()
     }
 
     pub fn warning_count(&self) -> usize {
-        self.diagnostics.values().flatten().filter(|d| d.severity == Some(DiagnosticSeverity::WARNING)).count()
+        self.diagnostics
+            .values()
+            .flatten()
+            .filter(|d| d.severity == Some(DiagnosticSeverity::WARNING))
+            .count()
     }
 }

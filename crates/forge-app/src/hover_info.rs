@@ -26,7 +26,7 @@ impl HoverProvider {
         }
         let line_content = buffer.rope().line(line).to_string();
         if line_content.contains("fn") {
-             Some(HoverContent {
+            Some(HoverContent {
                 text: "Keyword: fn\nFunction definition".to_string(),
                 range: (pos.offset, pos.offset + 2),
             })

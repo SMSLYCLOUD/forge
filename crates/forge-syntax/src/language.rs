@@ -1,18 +1,39 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Language {
-    Rust, JavaScript, TypeScript, Python, Go, C, Cpp,
-    Json, Toml, Yaml, Html, Css, Markdown, Shell, Unknown,
+    Rust,
+    JavaScript,
+    TypeScript,
+    Python,
+    Go,
+    C,
+    Cpp,
+    Json,
+    Toml,
+    Yaml,
+    Html,
+    Css,
+    Markdown,
+    Shell,
+    Unknown,
 }
 
 impl Language {
     pub fn from_extension(ext: &str) -> Self {
         match ext.to_lowercase().as_str() {
-            "rs" => Self::Rust, "js" | "mjs" | "cjs" | "jsx" => Self::JavaScript,
-            "ts" | "tsx" => Self::TypeScript, "py" | "pyw" => Self::Python,
-            "go" => Self::Go, "c" | "h" => Self::C, "cpp" | "hpp" | "cc" | "cxx" => Self::Cpp,
-            "json" => Self::Json, "toml" => Self::Toml, "yaml" | "yml" => Self::Yaml,
-            "html" | "htm" => Self::Html, "css" | "scss" => Self::Css,
-            "md" | "markdown" => Self::Markdown, "sh" | "bash" | "zsh" => Self::Shell,
+            "rs" => Self::Rust,
+            "js" | "mjs" | "cjs" | "jsx" => Self::JavaScript,
+            "ts" | "tsx" => Self::TypeScript,
+            "py" | "pyw" => Self::Python,
+            "go" => Self::Go,
+            "c" | "h" => Self::C,
+            "cpp" | "hpp" | "cc" | "cxx" => Self::Cpp,
+            "json" => Self::Json,
+            "toml" => Self::Toml,
+            "yaml" | "yml" => Self::Yaml,
+            "html" | "htm" => Self::Html,
+            "css" | "scss" => Self::Css,
+            "md" | "markdown" => Self::Markdown,
+            "sh" | "bash" | "zsh" => Self::Shell,
             _ => Self::Unknown,
         }
     }

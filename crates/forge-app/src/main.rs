@@ -10,16 +10,16 @@ mod application;
 mod editor;
 mod extensions;
 pub mod file_tree_ui;
-pub mod tab_manager;
-pub mod selection_render;
 mod gpu;
 mod modes;
+pub mod selection_render;
+pub mod tab_manager;
 
-mod markdown_preview;
-mod image_preview;
-mod terminal_tabs;
-mod emmet;
 mod accessibility;
+mod emmet;
+mod image_preview;
+mod markdown_preview;
+mod terminal_tabs;
 
 // UI components
 mod activity_bar;

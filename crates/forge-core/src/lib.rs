@@ -3,13 +3,13 @@
 //! This is the heart of the Forge editor. Every text manipulation flows through this crate.
 
 mod buffer;
+pub mod file_io;
 pub mod git;
 mod history;
-pub mod recovery;
-pub mod file_io;
 pub mod layout;
 mod position;
 pub mod project;
+pub mod recovery;
 mod selection;
 pub mod syntax;
 pub mod terminal;

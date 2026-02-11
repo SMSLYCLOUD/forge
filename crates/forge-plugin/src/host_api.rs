@@ -27,7 +27,12 @@ pub fn register_host_api(linker: &mut Linker<PluginState>) -> Result<()> {
         "env",
         "forge_show_notification",
         |mut _caller: Caller<'_, PluginState>, ptr: i32, len: i32, level: i32| {
-             tracing::info!("Plugin called forge_show_notification(ptr={}, len={}, level={})", ptr, len, level);
+            tracing::info!(
+                "Plugin called forge_show_notification(ptr={}, len={}, level={})",
+                ptr,
+                len,
+                level
+            );
         },
     )?;
 

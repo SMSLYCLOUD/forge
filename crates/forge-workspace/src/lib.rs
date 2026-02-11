@@ -11,18 +11,28 @@ pub struct Workspace {
 
 impl Workspace {
     pub fn from_dir(path: &Path) -> Result<Self> {
-        let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
-        Ok(Self { name, roots: vec![path.to_path_buf()] })
+        let name = path
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
+        Ok(Self {
+            name,
+            roots: vec![path.to_path_buf()],
+        })
     }
 
     pub fn add_root(&mut self, path: PathBuf) {
-        if !self.roots.contains(&path) { self.roots.push(path); }
+        if !self.roots.contains(&path) {
+            self.roots.push(path);
+        }
     }
 
     pub fn resolve_path(&self, relative: &str) -> Option<PathBuf> {
         for root in &self.roots {
             let full = root.join(relative);
-            if full.exists() { return Some(full); }
+            if full.exists() {
+                return Some(full);
+            }
         }
         None
     }
@@ -35,12 +45,17 @@ impl Workspace {
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[test] fn single_root() {
+    #[test]
+    fn single_root() {
         let ws = Workspace::from_dir(Path::new(".")).unwrap();
         assert_eq!(ws.roots.len(), 1);
     }
-    #[test] fn add_root_dedup() {
-        let mut ws = Workspace { name: "test".into(), roots: vec![PathBuf::from("/a")] };
+    #[test]
+    fn add_root_dedup() {
+        let mut ws = Workspace {
+            name: "test".into(),
+            roots: vec![PathBuf::from("/a")],
+        };
         ws.add_root(PathBuf::from("/a"));
         assert_eq!(ws.roots.len(), 1);
         ws.add_root(PathBuf::from("/b"));

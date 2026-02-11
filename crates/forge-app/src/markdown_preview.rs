@@ -44,7 +44,10 @@ pub fn parse_markdown(text: &str) -> Vec<MarkdownNode> {
             }
             if level > 0 && level <= 6 {
                 let text = trimmed[level..].trim().to_string();
-                nodes.push(MarkdownNode::Heading { level: level as u8, text });
+                nodes.push(MarkdownNode::Heading {
+                    level: level as u8,
+                    text,
+                });
             } else {
                 nodes.push(MarkdownNode::Paragraph(trimmed.to_string()));
             }
@@ -56,20 +59,24 @@ pub fn parse_markdown(text: &str) -> Vec<MarkdownNode> {
             // Very basic parsing for bold, italic, link
             // Note: This is a simplistic parser as requested, not a full MD parser
             if trimmed.len() >= 4 && trimmed.starts_with("**") && trimmed.ends_with("**") {
-                nodes.push(MarkdownNode::Bold(trimmed[2..trimmed.len()-2].to_string()));
+                nodes.push(MarkdownNode::Bold(
+                    trimmed[2..trimmed.len() - 2].to_string(),
+                ));
             } else if trimmed.len() >= 2 && trimmed.starts_with('*') && trimmed.ends_with('*') {
-                nodes.push(MarkdownNode::Italic(trimmed[1..trimmed.len()-1].to_string()));
+                nodes.push(MarkdownNode::Italic(
+                    trimmed[1..trimmed.len() - 1].to_string(),
+                ));
             } else if trimmed.starts_with('[') && trimmed.contains("](") && trimmed.ends_with(')') {
                 // simple link parser
                 if let Some(close_bracket) = trimmed.find(']') {
                     if let Some(open_paren) = trimmed.find('(') {
-                         if close_bracket < open_paren {
+                        if close_bracket < open_paren {
                             let text = trimmed[1..close_bracket].to_string();
-                            let url = trimmed[open_paren+1..trimmed.len()-1].to_string();
+                            let url = trimmed[open_paren + 1..trimmed.len() - 1].to_string();
                             nodes.push(MarkdownNode::Link { text, url });
                             i += 1;
                             continue;
-                         }
+                        }
                     }
                 }
                 nodes.push(MarkdownNode::Paragraph(trimmed.to_string()));

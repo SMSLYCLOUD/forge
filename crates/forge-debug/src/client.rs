@@ -109,8 +109,15 @@ impl DebugClient {
         Ok(())
     }
 
-    pub async fn send_request(&mut self, command: &str, arguments: Option<JsonValue>) -> Result<JsonValue> {
-        let transport = self.transport.as_ref().ok_or_else(|| anyhow!("Not connected"))?;
+    pub async fn send_request(
+        &mut self,
+        command: &str,
+        arguments: Option<JsonValue>,
+    ) -> Result<JsonValue> {
+        let transport = self
+            .transport
+            .as_ref()
+            .ok_or_else(|| anyhow!("Not connected"))?;
 
         let req = json!({
             "seq": self.seq,

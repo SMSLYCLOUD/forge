@@ -7,19 +7,39 @@ pub struct FileTreeUi {
 }
 
 impl FileTreeUi {
-    pub fn new() -> Self { Self { scroll_offset: 0, selected_index: None, hovered_index: None } }
+    pub fn new() -> Self {
+        Self {
+            scroll_offset: 0,
+            selected_index: None,
+            hovered_index: None,
+        }
+    }
 
     pub fn render_rects(&self, nodes: &[DisplayNode], zone: &crate::ui::Zone) -> Vec<Rect> {
         let mut rects = Vec::new();
         let line_h = 22.0;
         for (i, _node) in nodes.iter().enumerate() {
             let y = zone.y + (i as f32 * line_h);
-            if y > zone.y + zone.height { break; }
+            if y > zone.y + zone.height {
+                break;
+            }
             if Some(i) == self.hovered_index {
-                rects.push(Rect { x: zone.x, y, width: zone.width, height: line_h, color: [1.0, 1.0, 1.0, 0.05] });
+                rects.push(Rect {
+                    x: zone.x,
+                    y,
+                    width: zone.width,
+                    height: line_h,
+                    color: [1.0, 1.0, 1.0, 0.05],
+                });
             }
             if Some(i) == self.selected_index {
-                rects.push(Rect { x: zone.x, y, width: zone.width, height: line_h, color: [0.0, 0.47, 0.84, 0.23] });
+                rects.push(Rect {
+                    x: zone.x,
+                    y,
+                    width: zone.width,
+                    height: line_h,
+                    color: [0.0, 0.47, 0.84, 0.23],
+                });
             }
         }
         rects

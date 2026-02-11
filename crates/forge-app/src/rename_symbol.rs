@@ -1,4 +1,4 @@
-use forge_core::{Buffer, Position, Transaction, Change, ChangeSet};
+use forge_core::{Buffer, Change, ChangeSet, Position, Transaction};
 
 pub struct RenameProvider;
 
@@ -35,11 +35,7 @@ impl RenameProvider {
         Some(line_content[start..end].to_string())
     }
 
-    pub fn apply_rename(
-        buffer: &Buffer,
-        pos: Position,
-        new_name: &str,
-    ) -> Option<Transaction> {
+    pub fn apply_rename(buffer: &Buffer, pos: Position, new_name: &str) -> Option<Transaction> {
         let old_name = Self::prepare_rename(buffer, pos)?;
 
         // Find all occurrences of old_name
@@ -49,7 +45,7 @@ impl RenameProvider {
         let mut changes = Vec::new();
 
         for (idx, _) in text.match_indices(&old_name) {
-             changes.push(Change::replace(
+            changes.push(Change::replace(
                 Position::new(idx),
                 Position::new(idx + old_name.len()),
                 new_name.to_string(),

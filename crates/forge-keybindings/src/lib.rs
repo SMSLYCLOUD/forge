@@ -32,23 +32,114 @@ impl KeybindingResolver {
     }
 
     pub fn resolve(&self, combo: &KeyCombo) -> Option<&str> {
-        self.index.get(combo)
+        self.index
+            .get(combo)
             .and_then(|indices| indices.last())
             .map(|&i| self.bindings[i].command.as_str())
     }
 
     pub fn default_keymap() -> Vec<Keybinding> {
         vec![
-            Keybinding { key: KeyCombo { ctrl: true, shift: false, alt: false, key: "s".into() }, command: "file.save".into(), when: None },
-            Keybinding { key: KeyCombo { ctrl: true, shift: false, alt: false, key: "z".into() }, command: "edit.undo".into(), when: None },
-            Keybinding { key: KeyCombo { ctrl: true, shift: false, alt: false, key: "y".into() }, command: "edit.redo".into(), when: None },
-            Keybinding { key: KeyCombo { ctrl: true, shift: false, alt: false, key: "f".into() }, command: "edit.find".into(), when: None },
-            Keybinding { key: KeyCombo { ctrl: true, shift: false, alt: false, key: "h".into() }, command: "edit.replace".into(), when: None },
-            Keybinding { key: KeyCombo { ctrl: true, shift: true, alt: false, key: "p".into() }, command: "command_palette".into(), when: None },
-            Keybinding { key: KeyCombo { ctrl: true, shift: false, alt: false, key: "p".into() }, command: "file_picker".into(), when: None },
-            Keybinding { key: KeyCombo { ctrl: true, shift: false, alt: false, key: "w".into() }, command: "tab.close".into(), when: None },
-            Keybinding { key: KeyCombo { ctrl: true, shift: false, alt: false, key: "g".into() }, command: "go.line".into(), when: None },
-            Keybinding { key: KeyCombo { ctrl: false, shift: false, alt: false, key: "F12".into() }, command: "go.definition".into(), when: None },
+            Keybinding {
+                key: KeyCombo {
+                    ctrl: true,
+                    shift: false,
+                    alt: false,
+                    key: "s".into(),
+                },
+                command: "file.save".into(),
+                when: None,
+            },
+            Keybinding {
+                key: KeyCombo {
+                    ctrl: true,
+                    shift: false,
+                    alt: false,
+                    key: "z".into(),
+                },
+                command: "edit.undo".into(),
+                when: None,
+            },
+            Keybinding {
+                key: KeyCombo {
+                    ctrl: true,
+                    shift: false,
+                    alt: false,
+                    key: "y".into(),
+                },
+                command: "edit.redo".into(),
+                when: None,
+            },
+            Keybinding {
+                key: KeyCombo {
+                    ctrl: true,
+                    shift: false,
+                    alt: false,
+                    key: "f".into(),
+                },
+                command: "edit.find".into(),
+                when: None,
+            },
+            Keybinding {
+                key: KeyCombo {
+                    ctrl: true,
+                    shift: false,
+                    alt: false,
+                    key: "h".into(),
+                },
+                command: "edit.replace".into(),
+                when: None,
+            },
+            Keybinding {
+                key: KeyCombo {
+                    ctrl: true,
+                    shift: true,
+                    alt: false,
+                    key: "p".into(),
+                },
+                command: "command_palette".into(),
+                when: None,
+            },
+            Keybinding {
+                key: KeyCombo {
+                    ctrl: true,
+                    shift: false,
+                    alt: false,
+                    key: "p".into(),
+                },
+                command: "file_picker".into(),
+                when: None,
+            },
+            Keybinding {
+                key: KeyCombo {
+                    ctrl: true,
+                    shift: false,
+                    alt: false,
+                    key: "w".into(),
+                },
+                command: "tab.close".into(),
+                when: None,
+            },
+            Keybinding {
+                key: KeyCombo {
+                    ctrl: true,
+                    shift: false,
+                    alt: false,
+                    key: "g".into(),
+                },
+                command: "go.line".into(),
+                when: None,
+            },
+            Keybinding {
+                key: KeyCombo {
+                    ctrl: false,
+                    shift: false,
+                    alt: false,
+                    key: "F12".into(),
+                },
+                command: "go.definition".into(),
+                when: None,
+            },
         ]
     }
 }
@@ -59,15 +150,34 @@ mod tests {
     #[test]
     fn resolve_ctrl_s() {
         let r = KeybindingResolver::new(KeybindingResolver::default_keymap());
-        let combo = KeyCombo { ctrl: true, shift: false, alt: false, key: "s".into() };
+        let combo = KeyCombo {
+            ctrl: true,
+            shift: false,
+            alt: false,
+            key: "s".into(),
+        };
         assert_eq!(r.resolve(&combo), Some("file.save"));
     }
     #[test]
     fn override_binding() {
         let mut bindings = KeybindingResolver::default_keymap();
-        bindings.push(Keybinding { key: KeyCombo { ctrl: true, shift: false, alt: false, key: "s".into() }, command: "custom.save".into(), when: None });
+        bindings.push(Keybinding {
+            key: KeyCombo {
+                ctrl: true,
+                shift: false,
+                alt: false,
+                key: "s".into(),
+            },
+            command: "custom.save".into(),
+            when: None,
+        });
         let r = KeybindingResolver::new(bindings);
-        let combo = KeyCombo { ctrl: true, shift: false, alt: false, key: "s".into() };
+        let combo = KeyCombo {
+            ctrl: true,
+            shift: false,
+            alt: false,
+            key: "s".into(),
+        };
         assert_eq!(r.resolve(&combo), Some("custom.save"));
     }
 }

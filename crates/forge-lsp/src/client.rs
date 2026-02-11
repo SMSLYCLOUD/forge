@@ -2,16 +2,17 @@ use crate::server::LspServer;
 use crate::transport::Transport;
 use anyhow::{Context, Result};
 use lsp_types::{
-    ClientCapabilities, CompletionItem, CompletionParams, CompletionResponse, DidChangeTextDocumentParams,
-    DidOpenTextDocumentParams, Hover, HoverParams, InitializeParams, InitializeResult, InitializedParams,
-    Position, TextDocumentContentChangeEvent, TextDocumentIdentifier, TextDocumentItem,
-    TextDocumentPositionParams, Uri, VersionedTextDocumentIdentifier,
+    ClientCapabilities, CompletionItem, CompletionParams, CompletionResponse,
+    DidChangeTextDocumentParams, DidOpenTextDocumentParams, Hover, HoverParams, InitializeParams,
+    InitializeResult, InitializedParams, Position, TextDocumentContentChangeEvent,
+    TextDocumentIdentifier, TextDocumentItem, TextDocumentPositionParams, Uri,
+    VersionedTextDocumentIdentifier,
 };
 use serde_json::json;
-use url::Url;
 use std::str::FromStr;
 use std::sync::atomic::{AtomicI64, Ordering};
 use tokio::io::BufReader;
+use url::Url;
 
 pub struct LspClient {
     server: LspServer,
@@ -29,7 +30,11 @@ impl LspClient {
     }
 
     pub fn initialize_transport(&mut self) -> Result<()> {
-        let stdin = self.server.stdin.take().context("Server stdin already taken")?;
+        let stdin = self
+            .server
+            .stdin
+            .take()
+            .context("Server stdin already taken")?;
         let stdout = self
             .server
             .stdout
@@ -40,8 +45,8 @@ impl LspClient {
     }
 
     pub async fn initialize(&self, root_uri: Url) -> Result<InitializeResult> {
-        let root_uri = Uri::from_str(root_uri.as_str())
-            .map_err(|e| anyhow::anyhow!("Invalid URI: {}", e))?;
+        let root_uri =
+            Uri::from_str(root_uri.as_str()).map_err(|e| anyhow::anyhow!("Invalid URI: {}", e))?;
 
         let params = InitializeParams {
             process_id: Some(std::process::id()),
@@ -59,9 +64,8 @@ impl LspClient {
         Ok(result)
     }
 
-    pub async fn did_open(&self, uri: Url, text:String, language_id: String) -> Result<()> {
-        let uri = Uri::from_str(uri.as_str())
-            .map_err(|e| anyhow::anyhow!("Invalid URI: {}", e))?;
+    pub async fn did_open(&self, uri: Url, text: String, language_id: String) -> Result<()> {
+        let uri = Uri::from_str(uri.as_str()).map_err(|e| anyhow::anyhow!("Invalid URI: {}", e))?;
 
         let params = DidOpenTextDocumentParams {
             text_document: TextDocumentItem {
@@ -75,14 +79,10 @@ impl LspClient {
     }
 
     pub async fn did_change(&self, uri: Url, version: i32, text: String) -> Result<()> {
-        let uri = Uri::from_str(uri.as_str())
-            .map_err(|e| anyhow::anyhow!("Invalid URI: {}", e))?;
+        let uri = Uri::from_str(uri.as_str()).map_err(|e| anyhow::anyhow!("Invalid URI: {}", e))?;
 
         let params = DidChangeTextDocumentParams {
-            text_document: VersionedTextDocumentIdentifier {
-                uri,
-                version,
-            },
+            text_document: VersionedTextDocumentIdentifier { uri, version },
             content_changes: vec![TextDocumentContentChangeEvent {
                 range: None,
                 range_length: None,
@@ -92,9 +92,13 @@ impl LspClient {
         self.notify("textDocument/didChange", params).await
     }
 
-    pub async fn completion(&self, uri: Url, line: u32, character: u32) -> Result<Vec<CompletionItem>> {
-        let uri = Uri::from_str(uri.as_str())
-            .map_err(|e| anyhow::anyhow!("Invalid URI: {}", e))?;
+    pub async fn completion(
+        &self,
+        uri: Url,
+        line: u32,
+        character: u32,
+    ) -> Result<Vec<CompletionItem>> {
+        let uri = Uri::from_str(uri.as_str()).map_err(|e| anyhow::anyhow!("Invalid URI: {}", e))?;
 
         let params = CompletionParams {
             text_document_position: TextDocumentPositionParams {
@@ -116,8 +120,7 @@ impl LspClient {
     }
 
     pub async fn hover(&self, uri: Url, line: u32, character: u32) -> Result<Option<Hover>> {
-        let uri = Uri::from_str(uri.as_str())
-            .map_err(|e| anyhow::anyhow!("Invalid URI: {}", e))?;
+        let uri = Uri::from_str(uri.as_str()).map_err(|e| anyhow::anyhow!("Invalid URI: {}", e))?;
 
         let params = HoverParams {
             text_document_position_params: TextDocumentPositionParams {
@@ -135,8 +138,15 @@ impl LspClient {
         }
     }
 
-    async fn request<T: serde::Serialize>(&self, method: &str, params: T) -> Result<serde_json::Value> {
-        let transport = self.transport.as_ref().context("Transport not initialized")?;
+    async fn request<T: serde::Serialize>(
+        &self,
+        method: &str,
+        params: T,
+    ) -> Result<serde_json::Value> {
+        let transport = self
+            .transport
+            .as_ref()
+            .context("Transport not initialized")?;
         let id = self.next_id.fetch_add(1, Ordering::SeqCst);
 
         let msg = json!({
@@ -157,7 +167,10 @@ impl LspClient {
                     if let Some(error) = response.get("error") {
                         return Err(anyhow::anyhow!("LSP Error: {:?}", error));
                     }
-                    return Ok(response.get("result").cloned().unwrap_or(serde_json::Value::Null));
+                    return Ok(response
+                        .get("result")
+                        .cloned()
+                        .unwrap_or(serde_json::Value::Null));
                 }
             }
             // Handle notifications or other responses?
@@ -165,7 +178,10 @@ impl LspClient {
     }
 
     async fn notify<T: serde::Serialize>(&self, method: &str, params: T) -> Result<()> {
-        let transport = self.transport.as_ref().context("Transport not initialized")?;
+        let transport = self
+            .transport
+            .as_ref()
+            .context("Transport not initialized")?;
 
         let msg = json!({
             "jsonrpc": "2.0",

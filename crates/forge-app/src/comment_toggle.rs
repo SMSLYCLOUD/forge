@@ -41,7 +41,9 @@ impl CommentToggler {
                 let content_with_end = &line[idx + start_token.len()..];
 
                 // Remove optional space after start token
-                let content = content_with_end.strip_prefix(' ').unwrap_or(content_with_end);
+                let content = content_with_end
+                    .strip_prefix(' ')
+                    .unwrap_or(content_with_end);
 
                 // Remove end token if present
                 let final_content = if let Some(end) = end_token {

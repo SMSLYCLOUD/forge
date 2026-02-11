@@ -1,5 +1,5 @@
-use std::path::Path;
 use anyhow::Result;
+use std::path::Path;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ImageFormat {
@@ -51,9 +51,11 @@ pub fn get_info(path: &Path) -> Result<ImageInfo> {
                 ImageFormat::Png => {
                     // PNG signature: 89 50 4E 47 0D 0A 1A 0A
                     if buffer.starts_with(&[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]) {
-                         // Width at offset 16, big endian
-                         width = u32::from_be_bytes([buffer[16], buffer[17], buffer[18], buffer[19]]);
-                         height = u32::from_be_bytes([buffer[20], buffer[21], buffer[22], buffer[23]]);
+                        // Width at offset 16, big endian
+                        width =
+                            u32::from_be_bytes([buffer[16], buffer[17], buffer[18], buffer[19]]);
+                        height =
+                            u32::from_be_bytes([buffer[20], buffer[21], buffer[22], buffer[23]]);
                     }
                 }
                 _ => {
@@ -89,7 +91,8 @@ mod tests {
         let path = Path::new("test_image_preview.png");
         let mut file = std::fs::File::create(path).unwrap();
         // Signature
-        file.write_all(&[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]).unwrap();
+        file.write_all(&[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
+            .unwrap();
         // IHDR chunk
         // Length (13 bytes): 00 00 00 0D
         file.write_all(&[0x00, 0x00, 0x00, 0x0D]).unwrap();

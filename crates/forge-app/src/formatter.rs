@@ -1,6 +1,6 @@
 use anyhow::Result;
-use std::process::Command;
 use std::io::Write;
+use std::process::Command;
 
 #[derive(Clone, Debug)]
 pub enum Language {
@@ -21,9 +21,11 @@ impl Formatter {
     pub fn format(content: &str, lang: Language) -> Result<String> {
         match &lang {
             Language::Rust => Self::format_rust(content),
-            Language::JavaScript | Language::TypeScript | Language::Html | Language::Css | Language::Json => {
-                Self::format_prettier(content, &lang)
-            }
+            Language::JavaScript
+            | Language::TypeScript
+            | Language::Html
+            | Language::Css
+            | Language::Json => Self::format_prettier(content, &lang),
             Language::Python => Self::format_black(content),
             Language::Go => Self::format_gofmt(content),
             _ => Ok(content.to_string()),
@@ -75,12 +77,12 @@ impl Formatter {
         if output.status.success() {
             Ok(String::from_utf8(output.stdout)?)
         } else {
-             Ok(content.to_string())
+            Ok(content.to_string())
         }
     }
 
     fn format_black(content: &str) -> Result<String> {
-         let mut child = Command::new("black")
+        let mut child = Command::new("black")
             .arg("-")
             .arg("--quiet")
             .stdin(std::process::Stdio::piped())
@@ -95,12 +97,12 @@ impl Formatter {
         if output.status.success() {
             Ok(String::from_utf8(output.stdout)?)
         } else {
-             Ok(content.to_string())
+            Ok(content.to_string())
         }
     }
 
     fn format_gofmt(content: &str) -> Result<String> {
-         let mut child = Command::new("gofmt")
+        let mut child = Command::new("gofmt")
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
             .spawn()?;
@@ -113,7 +115,7 @@ impl Formatter {
         if output.status.success() {
             Ok(String::from_utf8(output.stdout)?)
         } else {
-             Ok(content.to_string())
+            Ok(content.to_string())
         }
     }
 }
