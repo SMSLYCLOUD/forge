@@ -1,0 +1,107 @@
+eConfig {
+    |                  - unclosed delimiter
+...
+65  | impl Default for TerminalConfig {
+    |                                 - unclosed delimiter
+66  |     fn default() -> Self {
+    |                          - this delimiter might not be properly closed...
+...
+77  | }
+    | - ...as it matches this but it has different indentation
+...
+121 | }
+    |  ^
+
+error: this file contains an unclosed delimiter
+  --> crates\forge-theme\src\lib.rs:86:3
+   |
+26 |     pub fn forge_day() -> Self {
+   |                                - unclosed delimiter
+...
+86 | }
+   |  ^
+
+error: could not compile `forge-config` (lib) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `forge-theme` (lib) due to 1 previous error
+error[E0252]: the name `HashSet` is defined multiple times
+ --> crates\forge-propagation\src\engine.rs:5:33
+  |
+1 | use std::collections::{HashSet, VecDeque};
+  |                        ------- previous import of the type `HashSet` here
+...
+5 | use std::collections::{HashMap, HashSet, VecDeque};
+  |                                 ^^^^^^^--
+  |                                 |
+  |                                 `HashSet` reimported here
+  |                                 help: remove unnecessary import
+  |
+  = note: `HashSet` must be defined only once in the type namespace of this module
+
+error[E0252]: the name `VecDeque` is defined multiple times
+ --> crates\forge-propagation\src\engine.rs:5:42
+  |
+1 | use std::collections::{HashSet, VecDeque};
+  |                                 -------- previous import of the type `VecDeque` here
+...
+5 | use std::collections::{HashMap, HashSet, VecDeque};
+  |                                          ^^^^^^^^ `VecDeque` reimported here
+  |
+  = note: `VecDeque` must be defined only once in the type namespace of this module
+
+error[E0252]: the name `FileNode` is defined multiple times
+ --> crates\forge-propagation\src\engine.rs:4:53
+  |
+2 | use crate::models::{FileNode, PropagationResult, RippleNode};
+  |                     -------- previous import of the type `FileNode` here
+3 | use crate::graph::GraphStore;
+4 | use crate::models::{DependencyEdge, DependencyKind, FileNode, PropagationResult, RippleNode};
+  |                                                     ^^^^^^^^--
+  |                                                     |
+  |                                                     `FileNode` reimported here
+  |                                                     help: remove unnecessary import
+  |
+  = note: `FileNode` must be defined only once in the type namespace of this module
+
+error[E0252]: the name `PropagationResult` is defined multiple times
+ --> crates\forge-propagation\src\engine.rs:4:63
+  |
+2 | use crate::models::{FileNode, PropagationResult, RippleNode};
+  |                               ----------------- previous import of the type `PropagationResult` here
+3 | use crate::graph::GraphStore;
+4 | use crate::models::{DependencyEdge, DependencyKind, FileNode, PropagationResult, RippleNode};
+  |                                                               ^^^^^^^^^^^^^^^^^--
+  |                                                               |
+  |                                                               `PropagationResult` reimported here
+  |                                                               help: remove unnecessary import
+  |
+  = note: `PropagationResult` must be defined only once in the type namespace of this module
+
+error[E0252]: the name `RippleNode` is defined multiple times
+ --> crates\forge-propagation\src\engine.rs:4:82
+  |
+2 | use crate::models::{FileNode, PropagationResult, RippleNode};
+  |                                                  ---------- previous import of the type `RippleNode` here
+3 | use crate::graph::GraphStore;
+4 | use crate::models::{DependencyEdge, DependencyKind, FileNode, PropagationResult, RippleNode};
+  |                                                                                  ^^^^^^^^^^ `RippleNode` reimported here
+  |
+  = note: `RippleNode` must be defined only once in the type namespace of this module
+
+warning: unused imports: `DependencyEdge`, `DependencyKind`, `FileNode`, `PropagationResult`, and `RippleNode`
+ --> crates\forge-propagation\src\engine.rs:4:21
+  |
+4 | use crate::models::{DependencyEdge, DependencyKind, FileNode, PropagationResult, RippleNode};
+  |                     ^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^  ^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused imports: `HashMap`, `HashSet`, and `VecDeque`
+ --> crates\forge-propagation\src\engine.rs:5:24
+  |
+5 | use std::collections::{HashMap, HashSet, VecDeque};
+  |                        ^^^^^^^  ^^^^^^^  ^^^^^^^^
+
+For more information about this error, try `rustc --explain E0252`.
+warning: `forge-propagation` (lib) generated 2 warnings
+error: could not compile `forge-propagation` (lib) due to 5 previous errors; 2 warnings emitted

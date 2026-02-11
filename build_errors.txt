@@ -1,0 +1,132 @@
+﻿cargo :     Checking windows-sys v0.61.2
+At line:1 char:1
++ cargo check --color=never -p forge-app 2>&1 | 
+Out-File -Encoding utf8 ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (   
+     Checking windows-sys v0.61.2:String) [],   
+  RemoteException
+    + FullyQualifiedErrorId : NativeCommandErro 
+   r
+ 
+    Checking smallvec v1.15.1
+    Checking uuid v1.20.0
+    Checking parking_lot_core v0.9.12
+    Checking icu_normalizer v2.1.1
+    Checking regalloc2 v0.10.2
+    Checking rustybuzz v0.14.1
+    Checking ropey v1.6.1
+    Checking rusqlite v0.31.0
+    Checking debugid v0.8.0
+    Checking fxprof-processed-profile v0.6.0
+    Checking parking_lot v0.12.5
+    Checking idna_adapter v1.2.1
+    Checking idna v1.1.0
+    Checking url v2.5.8
+    Checking cranelift-codegen v0.114.0
+    Checking git2 v0.20.4
+    Checking cosmic-text v0.12.1
+    Checking winapi-util v0.1.11
+    Checking mio v1.1.1
+    Checking nu-ansi-term v0.50.3
+    Checking termcolor v1.4.1
+    Checking tracing-subscriber v0.3.22
+    Checking codespan-reporting v0.11.1
+    Checking wasmprinter v0.219.2
+    Checking tokio v1.49.0
+    Checking naga v23.1.0
+    Checking wasmtime-environ v27.0.0
+    Checking forge-core v0.1.0 (C:\Users\osareti
+n\Downloads\forge\crates\forge-core)
+    Checking forge-confidence v0.1.0 (C:\Users\o
+saretin\Downloads\forge\crates\forge-confidence)
+    Checking wgpu-hal v23.0.1
+    Checking forge-lsp v0.1.0 (C:\Users\osaretin
+\Downloads\forge\crates\forge-lsp)
+    Checking forge-debug v0.1.0 (C:\Users\osaret
+in\Downloads\forge\crates\forge-debug)
+warning: unused import: `tokio::io::BufReader`
+  --> crates\forge-lsp\src\client.rs:14:5
+   |
+14 | use tokio::io::BufReader;
+   |     ^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by 
+default
+
+warning: unused import: `AsyncBufReadExt`
+ --> crates\forge-lsp\src\server.rs:3:17
+  |
+3 | use tokio::io::{AsyncBufReadExt, BufReader};
+  |                 ^^^^^^^^^^^^^^^
+
+warning: unused import: `error`
+ --> crates\forge-lsp\src\server.rs:5:15
+  |
+5 | use tracing::{error, info};
+  |               ^^^^^
+
+warning: use of deprecated field 
+`lsp_types::InitializeParams::root_uri`: Use 
+`workspace_folders` instead when possible
+  --> crates\forge-lsp\src\client.rs:48:13
+   |
+48 |             root_uri: Some(root_uri),
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(deprecated)]` on by default
+
+warning: `forge-lsp` (lib) generated 4 warnings 
+(run `cargo fix --lib -p forge-lsp` to apply 3 
+suggestions)
+    Checking cranelift-frontend v0.114.0
+    Checking cranelift-native v0.114.0
+    Checking wasmtime-cranelift v27.0.0
+    Checking wgpu-core v23.0.1
+    Checking wasmtime v27.0.0
+    Checking wgpu v23.0.1
+    Checking forge-renderer v0.1.0 (C:\Users\osa
+retin\Downloads\forge\crates\forge-renderer)
+    Checking glyphon v0.7.0
+    Checking forge-plugin v0.1.0 (C:\Users\osare
+tin\Downloads\forge\crates\forge-plugin)
+    Checking forge-app v0.1.0 (C:\Users\osaretin
+\Downloads\forge\crates\forge-app)
+error[E0271]: type mismatch resolving 
+`<&Vec<(&str, Attrs<'_>)> as 
+IntoIterator>::Item == (&str, Attrs<'_>)`
+   --> 
+crates\forge-app\src\application.rs:532:17
+    |
+530 |             
+state.editor_buffer.set_rich_text(
+    |                                 
+------------- required by a bound introduced by 
+this call
+531 |                 &mut state.font_system,
+532 |                 &rich_refs,
+    |                 ^^^^^^^^^^ expected 
+`(&str, Attrs<'_>)`, found `&(&str, Attrs<'_>)`
+    |
+    = note:  expected tuple `(&_, Attrs<'_>)`
+            found reference `&(&_, Attrs<'_>)`
+note: required by a bound in 
+`glyphon::Buffer::set_rich_text`
+   --> C:\Users\osaretin\.cargo\registry\src\ind
+ex.crates.io-1949cf8c6b5b557f\cosmic-text-0.12.1
+\src\buffer.rs:726:25
+    |
+719 |     pub fn set_rich_text<'r, 's, I>(
+    |            ------------- required by a 
+bound in this associated function
+...
+726 |         I: IntoIterator<Item = (&'s str, 
+Attrs<'r>)>,
+    |                         
+^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this 
+bound in `Buffer::set_rich_text`
+
+For more information about this error, try 
+`rustc --explain E0271`.
+error: could not compile `forge-app` (bin 
+"forge") due to 1 previous error

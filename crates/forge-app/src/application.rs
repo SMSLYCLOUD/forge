@@ -458,35 +458,104 @@ impl Application {
 
         // ─── TEXT CONTENT ───
 
-        // 1. Editor text
+        // 1. Editor text (syntax highlighted)
         let scroll_top = state.editor.scroll_top();
         let vis_lines = (state.layout.editor.height / LayoutConstants::LINE_HEIGHT) as usize + 1;
-        let mut editor_text = String::new();
-        for i in 0..vis_lines {
-            let line_idx = scroll_top + i;
-            if line_idx >= state.editor.total_lines() {
-                break;
-            }
-            let line = Guard::get_line(state.editor.buffer.rope(), line_idx);
-            editor_text.push_str(&line);
-            if !line.ends_with('\n') {
-                editor_text.push('\n');
-            }
-        }
 
         state.editor_buffer.set_size(
             &mut state.font_system,
             Some(state.layout.editor.width),
             Some(state.layout.editor.height),
         );
-        state.editor_buffer.set_text(
-            &mut state.font_system,
-            &editor_text,
-            Attrs::new()
+
+        // Build syntax-highlighted rich text spans
+        if !state.editor.highlight_spans.is_empty() {
+            // Collect visible lines and their byte offsets
+            let rope = state.editor.buffer.rope();
+            let mut rich_spans: Vec<(String, Attrs<'_>)> = Vec::new();
+            let default_attrs = Attrs::new()
                 .family(Family::Monospace)
-                .color(GlyphonColor::rgb(212, 212, 212)),
-            Shaping::Advanced,
-        );
+                .color(GlyphonColor::rgb(248, 248, 242));
+
+            for i in 0..vis_lines {
+                let line_idx = scroll_top + i;
+                if line_idx >= state.editor.total_lines() {
+                    break;
+                }
+                let line = Guard::get_line(rope, line_idx);
+                let line_start_byte = rope.line_to_byte(line_idx);
+                let line_end_byte = line_start_byte + line.len();
+
+                // Find highlight spans that overlap this line
+                let mut cursor = 0usize; // cursor within the line string
+                for span in state.editor.highlight_spans.iter() {
+                    if span.start_byte >= line_end_byte || span.end_byte <= line_start_byte {
+                        continue;
+                    }
+                    let span_start = span
+                        .start_byte
+                        .saturating_sub(line_start_byte)
+                        .min(line.len());
+                    let span_end = span
+                        .end_byte
+                        .saturating_sub(line_start_byte)
+                        .min(line.len());
+                    if span_start < span_end {
+                        // Push any unhighlighted text before this span
+                        if cursor < span_start {
+                            rich_spans.push((line[cursor..span_start].to_string(), default_attrs));
+                        }
+                        // Push the highlighted span with its color
+                        let [r, g, b] = forge_syntax::colors::default_color(span.token_type);
+                        let colored_attrs = Attrs::new()
+                            .family(Family::Monospace)
+                            .color(GlyphonColor::rgb(r, g, b));
+                        rich_spans.push((line[span_start..span_end].to_string(), colored_attrs));
+                        cursor = span_end;
+                    }
+                }
+                // Push remaining unhighlighted text on this line
+                if cursor < line.len() {
+                    rich_spans.push((line[cursor..].to_string(), default_attrs));
+                }
+                // Ensure newline
+                if !line.ends_with('\n') {
+                    rich_spans.push(("\n".to_string(), default_attrs));
+                }
+            }
+
+            // Convert to the (&str, Attrs) slice that set_rich_text expects
+            let rich_refs: Vec<(&str, Attrs)> =
+                rich_spans.iter().map(|(s, a)| (s.as_str(), *a)).collect();
+            state.editor_buffer.set_rich_text(
+                &mut state.font_system,
+                rich_refs,
+                default_attrs,
+                Shaping::Advanced,
+            );
+        } else {
+            // Fallback: no highlighting — plain white text
+            let mut editor_text = String::new();
+            for i in 0..vis_lines {
+                let line_idx = scroll_top + i;
+                if line_idx >= state.editor.total_lines() {
+                    break;
+                }
+                let line = Guard::get_line(state.editor.buffer.rope(), line_idx);
+                editor_text.push_str(&line);
+                if !line.ends_with('\n') {
+                    editor_text.push('\n');
+                }
+            }
+            state.editor_buffer.set_text(
+                &mut state.font_system,
+                &editor_text,
+                Attrs::new()
+                    .family(Family::Monospace)
+                    .color(GlyphonColor::rgb(212, 212, 212)),
+                Shaping::Advanced,
+            );
+        }
         state
             .editor_buffer
             .shape_until_scroll(&mut state.font_system, false);
@@ -1029,19 +1098,30 @@ impl ApplicationHandler for Application {
                     Key::Named(NamedKey::Home) => state.editor.move_home(),
                     Key::Named(NamedKey::End) => state.editor.move_end(),
 
-                    Key::Named(NamedKey::Backspace) => state.editor.backspace(),
-                    Key::Named(NamedKey::Delete) => state.editor.delete(),
-                    Key::Named(NamedKey::Enter) => state.editor.insert_newline(),
+                    Key::Named(NamedKey::Backspace) => {
+                        state.editor.backspace();
+                        state.editor.rehighlight();
+                    }
+                    Key::Named(NamedKey::Delete) => {
+                        state.editor.delete();
+                        state.editor.rehighlight();
+                    }
+                    Key::Named(NamedKey::Enter) => {
+                        state.editor.insert_newline();
+                        state.editor.rehighlight();
+                    }
                     Key::Named(NamedKey::Tab) => {
                         for _ in 0..4 {
                             state.editor.insert_char(' ');
                         }
+                        state.editor.rehighlight();
                     }
 
                     Key::Character(ref c) if !ctrl => {
                         for ch in c.chars() {
                             state.editor.insert_char(ch);
                         }
+                        state.editor.rehighlight();
                     }
 
                     _ => {}

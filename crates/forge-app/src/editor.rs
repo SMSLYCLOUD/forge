@@ -1,6 +1,7 @@
 //! Editor state — manages the text buffer, cursor, and viewport
 
 use forge_core::{Buffer, Change, ChangeSet, Position, Selection, Transaction};
+use forge_syntax::{HighlightSpan, Highlighter, Language, SyntaxParser};
 use tracing::info;
 
 /// The editor state: buffer + cursor logic + viewport
@@ -14,6 +15,12 @@ pub struct Editor {
     pub cursor_visible: bool,
     /// Window title (derived from file path)
     pub title: String,
+    /// Syntax parser for tree-sitter highlighting
+    pub syntax_parser: Option<SyntaxParser>,
+    /// Detected language
+    pub language: Language,
+    /// Cached highlight spans (byte-offset based)
+    pub highlight_spans: Vec<HighlightSpan>,
 }
 
 impl Editor {
@@ -24,6 +31,9 @@ impl Editor {
             scroll_y: 0.0,
             cursor_visible: true,
             title: "Forge — [untitled]".to_string(),
+            syntax_parser: None,
+            language: Language::Unknown,
+            highlight_spans: Vec::new(),
         }
     }
 
@@ -35,12 +45,45 @@ impl Editor {
             .and_then(|n| n.to_str())
             .unwrap_or(path);
         info!("Opened: {} ({} lines)", filename, buffer.len_lines());
+
+        let language = Language::from_path(path);
+        let (syntax_parser, highlight_spans) = if language != Language::Unknown {
+            if let Ok(mut parser) = SyntaxParser::new(language) {
+                let text = buffer.text();
+                if let Ok(tree) = parser.parse(&text) {
+                    let spans = Highlighter::highlight(&tree, text.as_bytes(), language);
+                    info!("Syntax: {:?} — {} highlight spans", language, spans.len());
+                    (Some(parser), spans)
+                } else {
+                    (Some(parser), Vec::new())
+                }
+            } else {
+                (None, Vec::new())
+            }
+        } else {
+            (None, Vec::new())
+        };
+
         Ok(Self {
             buffer,
             scroll_y: 0.0,
             cursor_visible: true,
             title: format!("Forge — {}", filename),
+            syntax_parser,
+            language,
+            highlight_spans,
         })
+    }
+
+    /// Re-parse and re-highlight the buffer after edits
+    pub fn rehighlight(&mut self) {
+        if let Some(ref mut parser) = self.syntax_parser {
+            let text = self.buffer.text();
+            if let Ok(tree) = parser.parse(&text) {
+                self.highlight_spans =
+                    Highlighter::highlight(&tree, text.as_bytes(), self.language);
+            }
+        }
     }
 
     /// Get current scroll top line index

@@ -1,0 +1,20 @@
+﻿ea0c46c Merge pull request #14 from SMSLYCLOUD/session-5-final-integration-18204248227366935674
+5090d61 Merge branch 'master' into session-5-final-integration-18204248227366935674
+9f92bf3 Merge pull request #15 from SMSLYCLOUD/session4-agents-impl-7627168387125078042
+79a9d66 Merge branch 'master' into session4-agents-impl-7627168387125078042
+7b7affb Merge pull request #16 from SMSLYCLOUD/session3-terminal-git-search-2470775329389263402
+536937c Merge pull request #18 from SMSLYCLOUD/session2-ui-components-1016351449381873308
+69cf1aa Merge branch 'master' into session2-ui-components-1016351449381873308
+888cbf2 Merge pull request #17 from SMSLYCLOUD/session1-foundation-1894760526427504961
+d4c70d3 feat(app): implement session 2 ui components and logic
+0418daf Session 1: Foundation & Cleanup
+c8c590d Implement Session 3 Features: Terminal, Git, Search, and LSP-like tools
+ba719ee Implement Session 4 Agents: Editor Enhancements, LSP, Debugger, and Plugins
+ce75926 feat: Implement Session 5 tasks (AI, Preview, Emmet, Accessibility, Integration)
+f72ecd0 feat: Implement Session 5 tasks (AI, Preview, Emmet, Accessibility, Integration)
+9910c15 Add zombie-proof Jules deployment prompts for all 5 sessions (50 agents)
+b10377a chore: crash-proof Jules Session 1 prompts with exact API refs
+11e35ad chore: add detailed step-by-step Jules prompts for Session 1
+a81b1f1 chore: cleanup old task files, add 5-session agent task specs
+27bdcf2 feat: add full VS Code UI text rendering - 6 glyphon TextArea buffers
+07c3d68 fix: resolve all Jules merge conflicts across 6 files

@@ -1,0 +1,49 @@
+﻿cargo : warning: unused import: 
+`tokio::io::BufReader`
+At line:1 char:1
++ cargo check --color=never -p forge-app 2>&1 | 
+Out-File -Encoding utf8 ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (wa 
+   rning: unused...:io::BufReader`:String) [],  
+   RemoteException
+    + FullyQualifiedErrorId : NativeCommandErro 
+   r
+ 
+  --> crates\forge-lsp\src\client.rs:14:5
+   |
+14 | use tokio::io::BufReader;
+   |     ^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` on by 
+default
+
+warning: unused import: `AsyncBufReadExt`
+ --> crates\forge-lsp\src\server.rs:3:17
+  |
+3 | use tokio::io::{AsyncBufReadExt, BufReader};
+  |                 ^^^^^^^^^^^^^^^
+
+warning: unused import: `error`
+ --> crates\forge-lsp\src\server.rs:5:15
+  |
+5 | use tracing::{error, info};
+  |               ^^^^^
+
+warning: use of deprecated field 
+`lsp_types::InitializeParams::root_uri`: Use 
+`workspace_folders` instead when possible
+  --> crates\forge-lsp\src\client.rs:48:13
+   |
+48 |             root_uri: Some(root_uri),
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(deprecated)]` on by default
+
+warning: `forge-lsp` (lib) generated 4 warnings 
+(run `cargo fix --lib -p forge-lsp` to apply 3 
+suggestions)
+    Checking forge-app v0.1.0 (C:\Users\osaretin
+\Downloads\forge\crates\forge-app)
+    Finished `dev` profile [optimized + 
+debuginfo] target(s) in 4.11s
