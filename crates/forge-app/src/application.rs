@@ -28,6 +28,9 @@ use winit::event_loop::ActiveEventLoop;
 use winit::keyboard::{Key, ModifiersState, NamedKey};
 use winit::window::{Window, WindowAttributes, WindowId};
 
+use forge_syntax::colors::default_color;
+use forge_syntax::highlighter::TokenType;
+
 use glyphon::{
     Attrs, Buffer as GlyphonBuffer, Cache, Color as GlyphonColor, Family, FontSystem, Metrics,
     Resolution, Shaping, SwashCache, TextArea, TextAtlas, TextBounds, TextRenderer, Viewport,
@@ -124,6 +127,22 @@ pub struct Application {
     notifications: crate::notifications::NotificationManager,
     context_menu: crate::context_menu::ContextMenu,
     settings_ui: crate::settings_ui::SettingsUi,
+
+    // Phase 2: LSP (async — needs tokio runtime bridge)
+    // LSP client will be initialized when tokio runtime is available
+    // lsp_client: Option<forge_lsp::LspClient>,
+
+    // Phase 3: AI Agent (async — needs tokio runtime bridge)
+    // agent will be initialized when tokio runtime is available
+    // agent: Option<forge_agent::agent::AgentRuntime>,
+
+    // Phase 5: Debug + Plugins
+    debug_client: forge_debug::DebugClient,
+    plugin_runtime: Option<forge_plugin::PluginRuntime>,
+
+    // Phase 4: Intelligence Layer
+    ghost_tabs: forge_anticipation::GhostTabsEngine,
+    anomaly_detector: forge_immune::AnomalyDetector,
 }
 
 /// Unified application state
@@ -198,6 +217,28 @@ impl Application {
         let context_menu = crate::context_menu::ContextMenu::default();
         let settings_ui = crate::settings_ui::SettingsUi::new();
 
+        // Phase 5: Debug client (sync init)
+        let debug_client = forge_debug::DebugClient::new();
+
+        // Phase 5: Plugin runtime (sync init)
+        let plugin_runtime = match forge_plugin::PluginRuntime::new() {
+            Ok(rt) => {
+                info!("Plugin runtime initialized (WASM)");
+                Some(rt)
+            }
+            Err(e) => {
+                tracing::warn!(
+                    "Plugin runtime init failed: {} — continuing without plugins",
+                    e
+                );
+                None
+            }
+        };
+
+        // Phase 4: Intelligence layer (sync init)
+        let ghost_tabs = forge_anticipation::GhostTabsEngine::new();
+        let anomaly_detector = forge_immune::AnomalyDetector::new(100);
+
         Self {
             file_path,
             state: None,
@@ -211,6 +252,10 @@ impl Application {
             notifications,
             context_menu,
             settings_ui,
+            debug_client,
+            plugin_runtime,
+            ghost_tabs,
+            anomaly_detector,
         }
     }
 
@@ -230,11 +275,26 @@ impl Application {
             if let Err(e) = tab_manager.open_file(path) {
                 tracing::warn!("Failed to open {}: {}", path, e);
             }
+            // Phase 4: Record file open in ghost tabs for prediction
+            self.ghost_tabs.on_file_open(path);
         }
 
         let mut file_explorer = crate::file_explorer::FileExplorer::new();
         let cwd = std::env::current_dir().unwrap_or_default();
         let _ = file_explorer.scan_directory(&cwd);
+
+        // Phase 2: LSP init stub
+        // TODO: When tokio runtime is available, spawn rust-analyzer:
+        //   let server = forge_lsp::LspServer::spawn("rust-analyzer", &[]).unwrap();
+        //   let lsp_client = forge_lsp::LspClient::new(server);
+        //   lsp_client.initialize(cwd.to_string_lossy()).await;
+        info!("LSP: rust-analyzer will be spawned when async runtime is available");
+
+        // Phase 3: AI Agent init stub
+        // TODO: When tokio runtime is available, spawn agent:
+        //   let agent = forge_agent::agent::AgentRuntime::new(config);
+        //   agent.start().await;
+        info!("AI Agent: will be spawned when async runtime is available");
 
         let window_title = tab_manager
             .active_editor()
@@ -502,6 +562,39 @@ impl Application {
             }
         }
 
+        // Phase 1: Find Match Highlights
+        if find_bar.visible && !find_bar.matches.is_empty() {
+            if let Some(editor) = state.tab_manager.active_editor() {
+                let scroll_top = editor.scroll_top();
+                for (i, m) in find_bar.matches.iter().enumerate() {
+                    // Only highlight matches in visible viewport
+                    if m.line >= scroll_top && m.line < scroll_top + visible_lines {
+                        let rel_line = m.line - scroll_top;
+                        let char_w = 9.2f32; // approx monospace char width
+                        let match_x = state.layout.editor.x + (m.start_col as f32 * char_w);
+                        let match_y = state.layout.editor.y
+                            + (rel_line as f32 * LayoutConstants::LINE_HEIGHT);
+                        let match_w = ((m.end_col - m.start_col) as f32) * char_w;
+
+                        let is_current = find_bar.current_match == Some(i);
+                        let color = if is_current {
+                            [1.0, 0.6, 0.0, 0.4] // orange for current
+                        } else {
+                            [1.0, 1.0, 0.0, 0.2] // yellow for others
+                        };
+
+                        state.render_batch.push(crate::rect_renderer::Rect {
+                            x: match_x,
+                            y: match_y,
+                            width: match_w,
+                            height: LayoutConstants::LINE_HEIGHT,
+                            color,
+                        });
+                    }
+                }
+            }
+        }
+
         // Find Bar Overlay
         if find_bar.visible {
             let fb_width = 400.0;
@@ -664,12 +757,84 @@ impl Application {
             })
             .unwrap_or(GlyphonColor::rgb(212, 212, 212));
 
-        state.editor_buffer.set_text(
-            &mut state.font_system,
-            &editor_text,
-            Attrs::new().family(Family::Monospace).color(text_color),
-            Shaping::Advanced,
-        );
+        // ─── SYNTAX HIGHLIGHTING via set_rich_text ───
+        // Build per-span colored text chunks from the editor's highlight_spans
+        let base_attrs = Attrs::new().family(Family::Monospace).color(text_color);
+        let has_highlights = state
+            .tab_manager
+            .active_editor()
+            .map(|e| !e.highlight_spans.is_empty())
+            .unwrap_or(false);
+
+        if has_highlights {
+            // Get the byte offset of the first visible line so we can map spans
+            let scroll_top = state
+                .tab_manager
+                .active_editor()
+                .map(|e| e.scroll_top())
+                .unwrap_or(0);
+            let (vis_byte_start, spans_clone) = {
+                if let Some(editor) = state.tab_manager.active_editor() {
+                    let full_text = editor.buffer.text();
+                    let byte_start: usize = full_text
+                        .lines()
+                        .take(scroll_top)
+                        .map(|l| l.len() + 1) // +1 for newline
+                        .sum();
+                    (byte_start, editor.highlight_spans.clone())
+                } else {
+                    (0, Vec::new())
+                }
+            };
+            let vis_byte_end = vis_byte_start + editor_text.len();
+
+            // Build rich text spans
+            let mut rich_spans: Vec<(String, Attrs)> = Vec::new();
+            let mut pos = 0usize; // position within editor_text
+
+            for span in &spans_clone {
+                // Skip spans before visible area
+                if span.end_byte <= vis_byte_start || span.start_byte >= vis_byte_end {
+                    continue;
+                }
+                // Clamp to visible area
+                let s = span.start_byte.max(vis_byte_start) - vis_byte_start;
+                let e = span.end_byte.min(vis_byte_end) - vis_byte_start;
+                let s = s.min(editor_text.len());
+                let e = e.min(editor_text.len());
+                if s < e {
+                    // Push plain text before this span
+                    if pos < s {
+                        rich_spans.push((editor_text[pos..s].to_string(), base_attrs));
+                    }
+                    // Push colored span
+                    let [r, g, b] = default_color(span.token_type);
+                    let color_attrs = base_attrs.color(GlyphonColor::rgb(r, g, b));
+                    rich_spans.push((editor_text[s..e].to_string(), color_attrs));
+                    pos = e;
+                }
+            }
+            // Push remaining plain text
+            if pos < editor_text.len() {
+                rich_spans.push((editor_text[pos..].to_string(), base_attrs));
+            }
+
+            let rich_ref: Vec<(&str, Attrs)> =
+                rich_spans.iter().map(|(s, a)| (s.as_str(), *a)).collect();
+            state.editor_buffer.set_rich_text(
+                &mut state.font_system,
+                rich_ref,
+                base_attrs,
+                Shaping::Advanced,
+            );
+        } else {
+            state.editor_buffer.set_text(
+                &mut state.font_system,
+                &editor_text,
+                base_attrs,
+                Shaping::Advanced,
+            );
+        }
         state
             .editor_buffer
             .shape_until_scroll(&mut state.font_system, false);
@@ -786,10 +951,17 @@ impl Application {
         } else {
             0
         };
+        // Phase 6: Show actual language from editor
+        let lang_label = state
+            .tab_manager
+            .active_editor()
+            .map(|e| format!("{:?}", e.language))
+            .unwrap_or_else(|| "Plain Text".to_string());
         let status_text = format!(
-            "  Forge IDE   │  Ln {}, Col {}  │  UTF-8  │  Rust  │  {} fps  │  {}  ",
+            "  Forge IDE   │  Ln {}, Col {}  │  UTF-8  │  {}  │  {} fps  │  {}  ",
             cursor_line,
             cursor_col,
+            lang_label,
             fps,
             mode.label()
         );
@@ -1351,11 +1523,46 @@ impl ApplicationHandler for Application {
                 match key_event.logical_key {
                     Key::Named(NamedKey::Tab) if ctrl => {
                         state.tab_manager.next_tab();
+                        // Phase 4: Track tab switch in ghost tabs
+                        if let Some(tab) = state.tab_manager.tabs.get(state.tab_manager.active) {
+                            if let Some(ref path) = tab.path {
+                                self.ghost_tabs.on_file_open(&path.to_string_lossy());
+                            }
+                        }
+                        // Phase 6: Update breadcrumb on tab switch
+                        if let Some(tab) = state.tab_manager.tabs.get(state.tab_manager.active) {
+                            if let Some(ref path) = tab.path {
+                                state
+                                    .breadcrumb_bar
+                                    .update_from_path(&path.to_string_lossy());
+                            }
+                        }
                         state.window.request_redraw();
                     }
                     Key::Character(ref c) if ctrl => match c.as_str() {
                         "p" if shift => {
                             self.command_palette.open();
+                            state.window.request_redraw();
+                        }
+                        "i" if shift => {
+                            // Phase 3: Toggle AI Panel
+                            state.ai_panel_open = !state.ai_panel_open;
+                            let (w, h) = state.gpu.size();
+                            state.layout = LayoutZones::compute(
+                                w as f32,
+                                h as f32,
+                                state.sidebar_open,
+                                state.ai_panel_open,
+                                self.bottom_panel.visible,
+                            );
+                            tracing::info!(
+                                "AI Panel: {}",
+                                if state.ai_panel_open {
+                                    "opened"
+                                } else {
+                                    "closed"
+                                }
+                            );
                             state.window.request_redraw();
                         }
                         "f" => {
@@ -1403,18 +1610,27 @@ impl ApplicationHandler for Application {
                             tracing::info!("Ctrl+K: Chord started (Zen Mode TODO)");
                         }
                         "s" => {
+                            // Atomic save via forge-core FileIO
                             if let Some(tab) = state.tab_manager.tabs.get(state.tab_manager.active)
                             {
                                 if let Some(ref path) = tab.path {
                                     if let Some(ed) = state.tab_manager.active_editor() {
                                         let text = ed.buffer.text();
-                                        if let Err(e) = std::fs::write(path, &text) {
+                                        if let Err(e) =
+                                            forge_core::file_io::FileIO::save_atomic(path, &text)
+                                        {
                                             tracing::error!("Save failed: {}", e);
                                         } else {
                                             tracing::info!("Saved: {}", path.display());
                                         }
                                     }
                                 }
+                            }
+                            // Mark tab as not modified after save
+                            if let Some(tab) =
+                                state.tab_manager.tabs.get_mut(state.tab_manager.active)
+                            {
+                                tab.is_modified = false;
                             }
                         }
                         "w" => {
@@ -1429,6 +1645,57 @@ impl ApplicationHandler for Application {
                         "y" => {
                             if let Some(ed) = state.tab_manager.active_editor_mut() {
                                 ed.buffer.redo();
+                            }
+                        }
+                        "c" => {
+                            // Clipboard copy
+                            if let Some(ed) = state.tab_manager.active_editor() {
+                                let text = ed.buffer.text();
+                                let (line, _) = ed.cursor_line_col();
+                                if let Some(line_text) = text.lines().nth(line) {
+                                    if let Ok(mut clipboard) = arboard::Clipboard::new() {
+                                        let _ = clipboard.set_text(line_text.to_string());
+                                    }
+                                }
+                            }
+                        }
+                        "v" => {
+                            // Clipboard paste
+                            if let Ok(mut clipboard) = arboard::Clipboard::new() {
+                                if let Ok(text) = clipboard.get_text() {
+                                    if let Some(ed) = state.tab_manager.active_editor_mut() {
+                                        for ch in text.chars() {
+                                            ed.insert_char(ch);
+                                        }
+                                        ed.rehighlight();
+                                    }
+                                    if let Some(tab) =
+                                        state.tab_manager.tabs.get_mut(state.tab_manager.active)
+                                    {
+                                        tab.is_modified = true;
+                                    }
+                                }
+                            }
+                        }
+                        "x" => {
+                            // Clipboard cut (copy current line + delete it)
+                            if let Some(ed) = state.tab_manager.active_editor() {
+                                let text = ed.buffer.text();
+                                let (line, _) = ed.cursor_line_col();
+                                if let Some(line_text) = text.lines().nth(line) {
+                                    if let Ok(mut clipboard) = arboard::Clipboard::new() {
+                                        let _ = clipboard.set_text(line_text.to_string());
+                                    }
+                                }
+                            }
+                            // TODO: delete the line after copying
+                        }
+                        "o" => {
+                            // Open file dialog (simple native dialog)
+                            #[cfg(target_os = "windows")]
+                            {
+                                // Use rfd or native-dialog if available, else log
+                                tracing::info!("Ctrl+O: Open File (use command palette for now)");
                             }
                         }
                         "m" => {
@@ -1469,18 +1736,69 @@ impl ApplicationHandler for Application {
                     }
 
                     Key::Named(NamedKey::Backspace) => {
-                        if let Some(ed) = state.tab_manager.active_editor_mut() {
-                            ed.backspace();
+                        if self.find_bar.visible {
+                            self.find_bar.query.pop();
+                            if let Some(ed) = state.tab_manager.active_editor() {
+                                let text = ed.buffer.text();
+                                let query = self.find_bar.query.clone();
+                                self.find_bar.search(&text, &query);
+                            }
+                        } else {
+                            if let Some(ed) = state.tab_manager.active_editor_mut() {
+                                ed.backspace();
+                                ed.rehighlight();
+                            }
+                            if let Some(tab) =
+                                state.tab_manager.tabs.get_mut(state.tab_manager.active)
+                            {
+                                tab.is_modified = true;
+                            }
                         }
                     }
                     Key::Named(NamedKey::Delete) => {
                         if let Some(ed) = state.tab_manager.active_editor_mut() {
                             ed.delete();
+                            ed.rehighlight();
+                        }
+                        if let Some(tab) = state.tab_manager.tabs.get_mut(state.tab_manager.active)
+                        {
+                            tab.is_modified = true;
                         }
                     }
                     Key::Named(NamedKey::Enter) => {
-                        if let Some(ed) = state.tab_manager.active_editor_mut() {
-                            ed.insert_newline();
+                        if self.find_bar.visible {
+                            // Navigate to next match when Enter is pressed in find bar
+                            if let Some(m) = self.find_bar.next_match() {
+                                let target_line = m.line;
+                                if let Some(ed) = state.tab_manager.active_editor_mut() {
+                                    let offset = ed.buffer.line_col_to_offset(target_line, 0);
+                                    ed.buffer.set_selection(forge_core::Selection::point(
+                                        forge_core::Position::new(offset),
+                                    ));
+                                    ed.set_scroll_top(target_line.saturating_sub(5));
+                                }
+                            }
+                        } else {
+                            if let Some(ed) = state.tab_manager.active_editor_mut() {
+                                ed.insert_newline();
+                                ed.rehighlight();
+                            }
+                            if let Some(tab) =
+                                state.tab_manager.tabs.get_mut(state.tab_manager.active)
+                            {
+                                tab.is_modified = true;
+                            }
+                        }
+                    }
+                    Key::Named(NamedKey::Escape) => {
+                        if self.find_bar.visible {
+                            self.find_bar.close();
+                        }
+                        if self.command_palette.visible {
+                            self.command_palette.close();
+                        }
+                        if self.settings_ui.visible {
+                            self.settings_ui.toggle();
                         }
                     }
                     Key::Named(NamedKey::Tab) => {
@@ -1488,13 +1806,36 @@ impl ApplicationHandler for Application {
                             for _ in 0..4 {
                                 ed.insert_char(' ');
                             }
+                            ed.rehighlight();
+                        }
+                        if let Some(tab) = state.tab_manager.tabs.get_mut(state.tab_manager.active)
+                        {
+                            tab.is_modified = true;
                         }
                     }
 
                     Key::Character(ref c) if !ctrl => {
-                        if let Some(ed) = state.tab_manager.active_editor_mut() {
-                            for ch in c.chars() {
-                                ed.insert_char(ch);
+                        // Route input to find bar if it's visible
+                        if self.find_bar.visible {
+                            self.find_bar.query.push_str(c);
+                            // Live search as user types
+                            if let Some(ed) = state.tab_manager.active_editor() {
+                                let text = ed.buffer.text();
+                                let query = self.find_bar.query.clone();
+                                self.find_bar.search(&text, &query);
+                            }
+                        } else {
+                            if let Some(ed) = state.tab_manager.active_editor_mut() {
+                                for ch in c.chars() {
+                                    ed.insert_char(ch);
+                                }
+                                ed.rehighlight();
+                            }
+                            // Mark tab as modified
+                            if let Some(tab) =
+                                state.tab_manager.tabs.get_mut(state.tab_manager.active)
+                            {
+                                tab.is_modified = true;
                             }
                         }
                     }

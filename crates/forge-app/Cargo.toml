@@ -23,6 +23,10 @@ forge-lsp = { path = "../forge-lsp" }
 forge-plugin = { path = "../forge-plugin" }
 forge-terminal = { path = "../forge-terminal" }
 forge-search = { path = "../forge-search" }
+forge-agent = { path = "../forge-agent" }
+forge-anticipation = { path = "../forge-anticipation" }
+forge-propagation = { path = "../forge-propagation" }
+forge-immune = { path = "../forge-immune" }
 
 # Versioned dependencies
 git2 = { version = "0.20.4" }
