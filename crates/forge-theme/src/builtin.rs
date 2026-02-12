@@ -4,96 +4,153 @@ use std::collections::HashMap;
 
 pub fn forge_dark() -> Theme {
     let mut colors = HashMap::new();
-    // Editor
+
+    // ─── Base Colors ───
+    colors.insert("focusBorder".into(), "#007fd4".into());
+    colors.insert("foreground".into(), "#cccccc".into());
+    colors.insert("widget.shadow".into(), "#000000".into());
+    colors.insert("selection.background".into(), "#3399ff".into());
+    colors.insert("descriptionForeground".into(), "#ccccccb3".into());
+    colors.insert("errorForeground".into(), "#f48771".into());
+
+    // ─── Text / Editor ───
     colors.insert("editor.background".into(), "#1e1e1e".into());
     colors.insert("editor.foreground".into(), "#d4d4d4".into());
     colors.insert("editor.lineHighlightBackground".into(), "#2f3337".into());
     colors.insert("editor.selectionBackground".into(), "#264f78".into());
+    colors.insert("editor.inactiveSelectionBackground".into(), "#3a3d41".into());
     colors.insert("editorCursor.foreground".into(), "#aeafad".into());
     colors.insert("editorWhitespace.foreground".into(), "#3e3e42".into());
     colors.insert("editorIndentGuide.background".into(), "#404040".into());
+    colors.insert("editorIndentGuide.activeBackground".into(), "#707070".into());
     colors.insert("editorLineNumber.foreground".into(), "#858585".into());
     colors.insert("editorLineNumber.activeForeground".into(), "#c6c6c6".into());
+    colors.insert("editorRuler.foreground".into(), "#5a5a5a".into());
+    colors.insert("editorCodeLens.foreground".into(), "#999999".into());
+    colors.insert("editorBracketMatch.background".into(), "#0064001a".into());
+    colors.insert("editorBracketMatch.border".into(), "#888888".into());
 
-    // UI
+    // ─── Activity Bar ───
     colors.insert("activityBar.background".into(), "#333333".into());
     colors.insert("activityBar.foreground".into(), "#ffffff".into());
+    colors.insert("activityBar.inactiveForeground".into(), "#ffffff66".into());
+    colors.insert("activityBar.border".into(), "#252526".into());
+    colors.insert("activityBarBadge.background".into(), "#007acc".into());
+    colors.insert("activityBarBadge.foreground".into(), "#ffffff".into());
+    colors.insert("activityBar.activeBorder".into(), "#ffffff".into());
+    colors.insert("activityBar.activeBackground".into(), "#ffffff14".into());
+
+    // ─── Side Bar ───
     colors.insert("sideBar.background".into(), "#252526".into());
     colors.insert("sideBar.foreground".into(), "#cccccc".into());
+    colors.insert("sideBar.border".into(), "#252526".into());
     colors.insert("sideBarTitle.foreground".into(), "#bbbbbb".into());
-    colors.insert("sideBarSectionHeader.background".into(), "#00000000".into());
+    colors.insert("sideBarSectionHeader.background".into(), "#00000000".into()); // often transparent in dark+
+    colors.insert("sideBarSectionHeader.foreground".into(), "#cccccc".into());
+    colors.insert("sideBarSectionHeader.border".into(), "#cccccc33".into());
+
+    // ─── Status Bar ───
     colors.insert("statusBar.background".into(), "#007acc".into());
     colors.insert("statusBar.foreground".into(), "#ffffff".into());
+    colors.insert("statusBar.noFolderBackground".into(), "#68217a".into());
+    colors.insert("statusBar.debuggingBackground".into(), "#cc6633".into());
+    colors.insert("statusBarItem.hoverBackground".into(), "#ffffff2e".into());
+    colors.insert("statusBar.border".into(), "#007acc".into());
+
+    // ─── Tabs / Editor Groups ───
+    colors.insert("editorGroup.border".into(), "#444444".into());
+    colors.insert("editorGroupHeader.tabsBackground".into(), "#252526".into());
     colors.insert("tab.activeBackground".into(), "#1e1e1e".into());
     colors.insert("tab.inactiveBackground".into(), "#2d2d2d".into());
     colors.insert("tab.activeForeground".into(), "#ffffff".into());
     colors.insert("tab.inactiveForeground".into(), "#969696".into());
-    colors.insert("titleBar.activeBackground".into(), "#3c3c3c".into());
-    colors.insert("titleBar.activeForeground".into(), "#cccccc".into());
+    colors.insert("tab.border".into(), "#252526".into());
+    colors.insert("tab.activeBorder".into(), "#1e1e1e".into()); // Usually no border or top border
+    colors.insert("tab.activeBorderTop".into(), "#007acc".into()); // VS Code top border
 
-    // Lists & Trees
+    // ─── Breadcrumbs ───
+    colors.insert("breadcrumb.background".into(), "#1e1e1e".into());
+    colors.insert("breadcrumb.foreground".into(), "#a9a9a9".into());
+    colors.insert("breadcrumb.focusForeground".into(), "#e0e0e0".into());
+
+    // ─── Lists & Trees ───
     colors.insert("list.activeSelectionBackground".into(), "#094771".into());
     colors.insert("list.activeSelectionForeground".into(), "#ffffff".into());
+    colors.insert("list.inactiveSelectionBackground".into(), "#37373d".into());
     colors.insert("list.hoverBackground".into(), "#2a2d2e".into());
+    colors.insert("list.dropBackground".into(), "#062f4a".into());
+    colors.insert("list.highlightForeground".into(), "#18a3ff".into());
+    colors.insert("list.focusBackground".into(), "#062f4a".into());
 
-    // Input
+    // ─── Inputs ───
     colors.insert("input.background".into(), "#3c3c3c".into());
     colors.insert("input.foreground".into(), "#cccccc".into());
     colors.insert("input.placeholderForeground".into(), "#a6a6a6".into());
+    colors.insert("inputOption.activeBorder".into(), "#007acc".into());
+    colors.insert("inputValidation.errorBackground".into(), "#5a1d1d".into());
+    colors.insert("inputValidation.errorBorder".into(), "#be1100".into());
 
-    // Scrollbar
+    // ─── Scrollbar ───
+    colors.insert("scrollbar.shadow".into(), "#000000".into());
     colors.insert("scrollbarSlider.background".into(), "#79797966".into());
     colors.insert("scrollbarSlider.hoverBackground".into(), "#646464b3".into());
-    colors.insert(
-        "scrollbarSlider.activeBackground".into(),
-        "#bfbfbf66".into(),
-    );
+    colors.insert("scrollbarSlider.activeBackground".into(), "#bfbfbf66".into());
 
-    // Git
-    colors.insert(
-        "gitDecoration.addedResourceForeground".into(),
-        "#81b88b".into(),
-    );
-    colors.insert(
-        "gitDecoration.modifiedResourceForeground".into(),
-        "#e2c08d".into(),
-    );
-    colors.insert(
-        "gitDecoration.deletedResourceForeground".into(),
-        "#c74e39".into(),
-    );
-    colors.insert(
-        "gitDecoration.untrackedResourceForeground".into(),
-        "#73c991".into(),
-    );
+    // ─── Git ───
+    colors.insert("gitDecoration.addedResourceForeground".into(), "#81b88b".into());
+    colors.insert("gitDecoration.modifiedResourceForeground".into(), "#e2c08d".into());
+    colors.insert("gitDecoration.deletedResourceForeground".into(), "#c74e39".into());
+    colors.insert("gitDecoration.untrackedResourceForeground".into(), "#73c991".into());
+    colors.insert("gitDecoration.ignoredResourceForeground".into(), "#8c8c8c".into());
 
-    // Diagnostics
+    // ─── Diagnostics ───
     colors.insert("editorError.foreground".into(), "#f48771".into());
     colors.insert("editorWarning.foreground".into(), "#cca700".into());
     colors.insert("editorInfo.foreground".into(), "#75beff".into());
     colors.insert("editorHint.foreground".into(), "#eeeeeeb3".into());
 
-    // More keys
-    colors.insert("button.background".into(), "#0e639c".into());
-    colors.insert("button.foreground".into(), "#ffffff".into());
-    colors.insert("button.hoverBackground".into(), "#1177bb".into());
-    colors.insert("dropdown.background".into(), "#3c3c3c".into());
-    colors.insert("dropdown.foreground".into(), "#f0f0f0".into());
+    // ─── Widgets & Overlays ───
     colors.insert("editorWidget.background".into(), "#252526".into());
     colors.insert("editorWidget.border".into(), "#454545".into());
+    colors.insert("editorSuggestWidget.background".into(), "#252526".into());
+    colors.insert("editorSuggestWidget.border".into(), "#454545".into());
+    colors.insert("editorSuggestWidget.foreground".into(), "#d4d4d4".into());
+    colors.insert("editorSuggestWidget.selectedBackground".into(), "#062f4a".into());
+    colors.insert("editorHoverWidget.background".into(), "#252526".into());
+    colors.insert("editorHoverWidget.border".into(), "#454545".into());
+    colors.insert("debugToolBar.background".into(), "#333333".into());
+
+    // ─── Menus ───
     colors.insert("menu.background".into(), "#3c3c3c".into());
     colors.insert("menu.foreground".into(), "#f0f0f0".into());
     colors.insert("menu.selectionBackground".into(), "#094771".into());
     colors.insert("menu.selectionForeground".into(), "#ffffff".into());
     colors.insert("menu.separatorBackground".into(), "#bbbbbb".into());
+    colors.insert("menubar.selectionBackground".into(), "#ffffff1a".into());
+    colors.insert("menubar.selectionForeground".into(), "#cccccc".into());
+
+    // ─── Panels ───
     colors.insert("panel.background".into(), "#1e1e1e".into());
     colors.insert("panel.border".into(), "#80808059".into());
     colors.insert("panelTitle.activeBorder".into(), "#e7e7e7".into());
     colors.insert("panelTitle.activeForeground".into(), "#e7e7e7".into());
     colors.insert("panelTitle.inactiveForeground".into(), "#e7e7e799".into());
+
+    // ─── Peek View ───
     colors.insert("peekView.border".into(), "#007acc".into());
     colors.insert("peekViewEditor.background".into(), "#001f33".into());
+    colors.insert("peekViewEditor.matchHighlightBackground".into(), "#ff8f0099".into());
     colors.insert("peekViewResult.background".into(), "#252526".into());
+    colors.insert("peekViewResult.fileForeground".into(), "#ffffff".into());
+    colors.insert("peekViewResult.lineForeground".into(), "#bbbbbb".into());
+    colors.insert("peekViewResult.matchHighlightBackground".into(), "#ea5c004d".into());
+    colors.insert("peekViewResult.selectionBackground".into(), "#3399ff33".into());
+    colors.insert("peekViewResult.selectionForeground".into(), "#ffffff".into());
+    colors.insert("peekViewTitle.background".into(), "#1e1e1e".into());
+    colors.insert("peekViewTitleDescription.foreground".into(), "#ccccccb3".into());
+    colors.insert("peekViewTitleLabel.foreground".into(), "#ffffff".into());
+
+    // ─── Other ───
     colors.insert("pickerGroup.border".into(), "#3f3f46".into());
     colors.insert("pickerGroup.foreground".into(), "#3794ff".into());
     colors.insert("progressBar.background".into(), "#0e70c0".into());
@@ -101,6 +158,7 @@ pub fn forge_dark() -> Theme {
     colors.insert("settings.modifiedItemIndicator".into(), "#0c7d9d".into());
     colors.insert("textLink.activeForeground".into(), "#3794ff".into());
     colors.insert("textLink.foreground".into(), "#3794ff".into());
+    colors.insert("tree.indentGuidesStroke".into(), "#585858".into());
 
     let token_colors = vec![
         token("keyword", "#569cd6"),

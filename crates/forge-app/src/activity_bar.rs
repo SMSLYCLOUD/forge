@@ -15,16 +15,16 @@ pub enum ActivityItem {
 
 impl ActivityItem {
     /// Unicode icon character for each item
-    #[allow(dead_code)]
+    /// We use standard unicode chars that look closest to VS Code icons
     pub fn icon_char(&self) -> &'static str {
         match self {
-            Self::Explorer => "📁",
-            Self::Search => "🔍",
-            Self::SourceControl => "⎇",
-            Self::Debug => "🐛",
-            Self::Extensions => "🧩",
-            Self::AiAgent => "🤖",
-            Self::Settings => "⚙",
+            Self::Explorer => "🗂",      // Card Index Dividers (looks like files)
+            Self::Search => "🔍",        // Magnifying Glass
+            Self::SourceControl => "⎇", // Broken Circle (Git branch)
+            Self::Debug => "🐞",         // Lady Beetle
+            Self::Extensions => "🧩",    // Puzzle Piece
+            Self::AiAgent => "🤖",       // Robot Face
+            Self::Settings => "⚙",       // Gear
         }
     }
 
@@ -35,9 +35,9 @@ impl ActivityItem {
             Self::Explorer => "Explorer",
             Self::Search => "Search",
             Self::SourceControl => "Source Control",
-            Self::Debug => "Debug",
+            Self::Debug => "Run and Debug",
             Self::Extensions => "Extensions",
-            Self::AiAgent => "AI Agent",
+            Self::AiAgent => "AI Chat",
             Self::Settings => "Settings",
         }
     }
@@ -75,43 +75,53 @@ impl ActivityBar {
     }
 
     /// Generate rectangles for the activity bar icons
-    pub fn render_rects(&self, zone: &Zone) -> Vec<Rect> {
+    pub fn render_rects(&self, zone: &Zone, theme: &forge_theme::Theme) -> Vec<Rect> {
         let mut rects = Vec::with_capacity(16);
-        let item_size = LayoutConstants::ACTIVITY_BAR_WIDTH;
-        let _icon_padding = 4.0;
+        let item_size = LayoutConstants::ACTIVITY_BAR_WIDTH; // Should be square usually 48x48
+
+        // Theme colors
+        let active_border = theme
+            .color("activityBar.activeBorder")
+            .unwrap_or(colors::TEXT_WHITE);
+        let active_bg = theme.color("activityBar.activeBackground");
+        let _inactive_fg = theme
+            .color("activityBar.inactiveForeground")
+            .unwrap_or([1.0, 1.0, 1.0, 0.4]);
 
         // Top items
         for (i, item) in ActivityItem::top_items().iter().enumerate() {
             let y = zone.y + (i as f32 * item_size);
+            let is_active = self.active_item == Some(*item);
+            let is_hovered = self.hovered_item == Some(*item);
 
-            // Highlight active item
-            if self.active_item == Some(*item) {
+            if is_active {
                 // Active indicator (white bar on left)
                 rects.push(Rect {
                     x: zone.x,
                     y,
                     width: 2.0,
                     height: item_size,
-                    color: colors::TEXT_WHITE,
+                    color: active_border,
                 });
-                // Active background
-                rects.push(Rect {
-                    x: zone.x + 2.0,
-                    y,
-                    width: item_size - 2.0,
-                    height: item_size,
-                    color: [0.25, 0.25, 0.25, 1.0],
-                });
-            }
-
-            // Hover highlight
-            if self.hovered_item == Some(*item) && self.active_item != Some(*item) {
-                rects.push(Rect {
+                // Optional active background
+                if let Some(bg) = active_bg {
+                    rects.push(Rect {
+                        x: zone.x + 2.0,
+                        y,
+                        width: item_size - 2.0,
+                        height: item_size,
+                        color: bg,
+                    });
+                }
+            } else if is_hovered {
+                 // Hover background (VS Code usually handles this via opacity or slight lighten)
+                 // We'll use a hardcoded safe hover if not in theme (theme usually doesn't have activityBar.hoverBackground)
+                 rects.push(Rect {
                     x: zone.x,
                     y,
                     width: item_size,
                     height: item_size,
-                    color: [0.22, 0.22, 0.22, 1.0],
+                    color: [1.0, 1.0, 1.0, 0.1],
                 });
             }
         }
@@ -120,24 +130,33 @@ impl ActivityBar {
         let bottom_items = ActivityItem::bottom_items();
         for (i, item) in bottom_items.iter().enumerate() {
             let y = zone.y + zone.height - ((bottom_items.len() - i) as f32 * item_size);
+            let is_active = self.active_item == Some(*item);
+            let is_hovered = self.hovered_item == Some(*item);
 
-            if self.active_item == Some(*item) {
+            if is_active {
                 rects.push(Rect {
                     x: zone.x,
                     y,
                     width: 2.0,
                     height: item_size,
-                    color: colors::TEXT_WHITE,
+                    color: active_border,
                 });
-            }
-
-            if self.hovered_item == Some(*item) {
+                if let Some(bg) = active_bg {
+                    rects.push(Rect {
+                        x: zone.x + 2.0,
+                        y,
+                        width: item_size - 2.0,
+                        height: item_size,
+                        color: bg,
+                    });
+                }
+            } else if is_hovered {
                 rects.push(Rect {
                     x: zone.x,
                     y,
                     width: item_size,
                     height: item_size,
-                    color: [0.22, 0.22, 0.22, 1.0],
+                    color: [1.0, 1.0, 1.0, 0.1],
                 });
             }
         }
@@ -146,28 +165,41 @@ impl ActivityBar {
     }
 
     /// Get icon text positions for rendering
+    /// Returns (text, x, y, color)
     #[allow(dead_code)]
-    pub fn text_positions(&self, zone: &Zone) -> Vec<(&'static str, f32, f32, bool)> {
+    pub fn text_positions(
+        &self,
+        zone: &Zone,
+        theme: &forge_theme::Theme
+    ) -> Vec<(&'static str, f32, f32, [f32; 4])> {
         let mut result = Vec::with_capacity(8);
         let item_size = LayoutConstants::ACTIVITY_BAR_WIDTH;
 
+        let fg = theme.color("activityBar.foreground").unwrap_or(colors::TEXT_WHITE);
+        let inactive_fg = theme.color("activityBar.inactiveForeground").unwrap_or([1.0, 1.0, 1.0, 0.4]);
+
         // Top items
         for (i, item) in ActivityItem::top_items().iter().enumerate() {
-            let x = zone.x + item_size / 2.0 - 8.0;
-            let y = zone.y + (i as f32 * item_size) + item_size / 2.0 - 8.0;
+            let x = zone.x + (item_size - 24.0) / 2.0; // Centered roughly (assuming 24px font)
+            let y = zone.y + (i as f32 * item_size) + (item_size - 24.0) / 2.0;
+
             let is_active = self.active_item == Some(*item);
-            result.push((item.icon_char(), x, y, is_active));
+            let color = if is_active { fg } else { inactive_fg };
+
+            result.push((item.icon_char(), x, y, color));
         }
 
         // Bottom items
         let bottom_items = ActivityItem::bottom_items();
         for (i, item) in bottom_items.iter().enumerate() {
-            let x = zone.x + item_size / 2.0 - 8.0;
+            let x = zone.x + (item_size - 24.0) / 2.0;
             let y = zone.y + zone.height - ((bottom_items.len() - i) as f32 * item_size)
-                + item_size / 2.0
-                - 8.0;
+                + (item_size - 24.0) / 2.0;
+
             let is_active = self.active_item == Some(*item);
-            result.push((item.icon_char(), x, y, is_active));
+            let color = if is_active { fg } else { inactive_fg };
+
+            result.push((item.icon_char(), x, y, color));
         }
 
         result

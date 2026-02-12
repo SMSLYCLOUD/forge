@@ -27,6 +27,7 @@ forge-agent = { path = "../forge-agent" }
 forge-anticipation = { path = "../forge-anticipation" }
 forge-propagation = { path = "../forge-propagation" }
 forge-immune = { path = "../forge-immune" }
+forge-icons = { path = "../forge-icons" }
 
 # Versioned dependencies
 git2 = { version = "0.20.4" }

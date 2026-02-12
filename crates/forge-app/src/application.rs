@@ -167,6 +167,7 @@ struct AppState {
     breadcrumb_buffer: GlyphonBuffer,
     sidebar_buffer: GlyphonBuffer,
     bottom_panel_buffer: GlyphonBuffer,
+    activity_bar_buffer: GlyphonBuffer,
     overlay_buffer: GlyphonBuffer,
 
     // Editor & File Management
@@ -362,6 +363,10 @@ impl Application {
                 LayoutConstants::LINE_HEIGHT,
             ),
         );
+        let activity_bar_buffer = GlyphonBuffer::new(
+            &mut font_system,
+            Metrics::new(24.0, LayoutConstants::ACTIVITY_BAR_WIDTH),
+        );
         let overlay_buffer = GlyphonBuffer::new(
             &mut font_system,
             Metrics::new(LayoutConstants::FONT_SIZE, LayoutConstants::LINE_HEIGHT),
@@ -414,6 +419,7 @@ impl Application {
             breadcrumb_buffer,
             sidebar_buffer,
             bottom_panel_buffer,
+            activity_bar_buffer,
             overlay_buffer,
             tab_manager,
             file_explorer,
@@ -467,13 +473,13 @@ impl Application {
 
         // Tab bar
         if mode_config.tab_bar {
-            let tab_rects = state.tab_bar.render_rects(&state.layout.tab_bar);
+            let tab_rects = state.tab_bar.render_rects(&state.layout.tab_bar, theme);
             state.render_batch.extend(&tab_rects);
         }
 
         // Activity bar
         if mode_config.activity_bar {
-            let ab_rects = state.activity_bar.render_rects(&state.layout.activity_bar);
+            let ab_rects = state.activity_bar.render_rects(&state.layout.activity_bar, theme);
             state.render_batch.extend(&ab_rects);
         }
 
@@ -888,109 +894,23 @@ impl Application {
             .gutter_buffer
             .shape_until_scroll(&mut state.font_system, false);
 
-        // 3. Tab bar text
-        let tab_text = if state.tab_manager.tabs.is_empty() {
-            "  Welcome".to_string()
-        } else {
-            state
-                .tab_manager
-                .tabs
-                .iter()
-                .enumerate()
-                .map(|(i, tab)| {
-                    let modified = if tab.is_modified { "● " } else { "" };
-                    if i == state.tab_manager.active {
-                        format!(" {}{} ", modified, tab.title)
-                    } else {
-                        format!("   {}{}  ", modified, tab.title)
-                    }
-                })
-                .collect::<Vec<_>>()
-                .join("│")
-        };
+        // 3. Tab bar text (Deferred to dynamic buffers)
+        // We will create buffers for each tab in the text area preparation phase.
 
-        state.tab_buffer.set_size(
-            &mut state.font_system,
-            Some(state.layout.tab_bar.width),
-            Some(state.layout.tab_bar.height),
-        );
-        let tab_fg = theme
-            .color("tab.activeForeground")
-            .map(|c| {
-                GlyphonColor::rgb(
-                    (c[0] * 255.0) as u8,
-                    (c[1] * 255.0) as u8,
-                    (c[2] * 255.0) as u8,
-                )
-            })
-            .unwrap_or(GlyphonColor::rgb(200, 200, 200));
-
-        state.tab_buffer.set_text(
-            &mut state.font_system,
-            &tab_text,
-            Attrs::new().family(Family::SansSerif).color(tab_fg),
-            Shaping::Advanced,
-        );
-        state
-            .tab_buffer
-            .shape_until_scroll(&mut state.font_system, false);
-
-        // 4. Status bar text
-        let cursor_line = state
-            .tab_manager
-            .active_editor()
-            .map(|e| e.cursor_line() + 1)
-            .unwrap_or(1);
-        let cursor_col = state
-            .tab_manager
-            .active_editor()
-            .map(|e| e.cursor_col() + 1)
-            .unwrap_or(1);
-        let fps = if state.frame_timer.avg_frame_time_ms > 0.0 {
-            (1000.0 / state.frame_timer.avg_frame_time_ms) as u32
-        } else {
-            0
-        };
-        // Phase 6: Show actual language from editor
-        let lang_label = state
-            .tab_manager
-            .active_editor()
-            .map(|e| format!("{:?}", e.language))
-            .unwrap_or_else(|| "Plain Text".to_string());
-        let status_text = format!(
-            "  Forge IDE   │  Ln {}, Col {}  │  UTF-8  │  {}  │  {} fps  │  {}  ",
-            cursor_line,
-            cursor_col,
-            lang_label,
-            fps,
-            mode.label()
-        );
-
-        state.status_buffer.set_size(
-            &mut state.font_system,
-            Some(state.layout.status_bar.width),
-            Some(state.layout.status_bar.height),
-        );
-        let status_fg = theme
-            .color("statusBar.foreground")
-            .map(|c| {
-                GlyphonColor::rgb(
-                    (c[0] * 255.0) as u8,
-                    (c[1] * 255.0) as u8,
-                    (c[2] * 255.0) as u8,
-                )
-            })
-            .unwrap_or(GlyphonColor::rgb(255, 255, 255));
-
-        state.status_buffer.set_text(
-            &mut state.font_system,
-            &status_text,
-            Attrs::new().family(Family::SansSerif).color(status_fg),
-            Shaping::Advanced,
-        );
-        state
-            .status_buffer
-            .shape_until_scroll(&mut state.font_system, false);
+        // 4. Status bar text (Deferred to dynamic buffers)
+        // We will create buffers for each status item in the text area preparation phase.
+        // Update status state first
+        if let Some(ed) = state.tab_manager.active_editor() {
+            state.status_bar_state.cursor_line = ed.cursor_line() + 1;
+            state.status_bar_state.cursor_col = ed.cursor_col() + 1;
+            state.status_bar_state.language = format!("{:?}", ed.language);
+        }
+        if state.frame_timer.avg_frame_time_ms > 0.0 {
+            state.status_bar_state.frame_time_ms = state.frame_timer.avg_frame_time_ms;
+        }
+        state.status_bar_state.mode_indicator = format!("Mod: {}", mode.label());
+        state.status_bar_state.error_count = notifications.notifications.iter().filter(|n| n.level == crate::notifications::Level::Error).count();
+        state.status_bar_state.warning_count = notifications.notifications.iter().filter(|n| n.level == crate::notifications::Level::Warning).count();
 
         // 5. Breadcrumb text
         let breadcrumb_text = if state.breadcrumb_bar.segments.is_empty() {
@@ -1023,41 +943,58 @@ impl Application {
             .shape_until_scroll(&mut state.font_system, false);
 
         // 6. Sidebar text
-        let sidebar_text = if state.sidebar_open {
-            let mut text = "  EXPLORER\n\n".to_string();
+        if state.sidebar_open {
+            let mut rich_spans = Vec::new();
+            let header_attrs = Attrs::new()
+                .family(Family::SansSerif)
+                .weight(glyphon::Weight::BOLD)
+                .color(GlyphonColor::rgb(187, 187, 187)); // sideBarTitle.foreground
+
+            rich_spans.push(("  EXPLORER\n\n", header_attrs));
+
+            let item_attrs = Attrs::new()
+                .family(Family::SansSerif)
+                .color(GlyphonColor::rgb(204, 204, 204)); // sideBar.foreground
+
+            // We construct a single string for items but it's fine for now
+            // To properly do icons we might want separate spans but let's stick to text for efficiency
+            let mut content = String::new();
             for node in &state.file_explorer.nodes {
                 let indent = "  ".repeat(node.depth + 1);
                 let icon = if node.is_dir {
                     if node.expanded {
-                        "📂 "
+                        forge_icons::UiIcon::FolderOpen.glyph()
                     } else {
-                        "📁 "
+                        forge_icons::UiIcon::Folder.glyph()
                     }
                 } else {
-                    "📄 "
+                    forge_icons::FileIcon::from_filename(&node.label).glyph()
                 };
-                text.push_str(&format!("{}{}{}\n", indent, icon, node.label));
+                content.push_str(&format!("{}{}{}\n", indent, icon, node.label));
             }
-            text
-        } else {
-            String::new()
-        };
+            rich_spans.push((&content, item_attrs));
 
-        if let Some(ref sb) = state.layout.sidebar {
-            state.sidebar_buffer.set_size(
+            if let Some(ref sb) = state.layout.sidebar {
+                state.sidebar_buffer.set_size(
+                    &mut state.font_system,
+                    Some(sb.width - 8.0),
+                    Some(sb.height),
+                );
+            }
+            state.sidebar_buffer.set_rich_text(
                 &mut state.font_system,
-                Some(sb.width - 8.0),
-                Some(sb.height),
+                rich_spans,
+                item_attrs,
+                Shaping::Advanced,
+            );
+        } else {
+             state.sidebar_buffer.set_text(
+                &mut state.font_system,
+                "",
+                Attrs::new(),
+                Shaping::Advanced,
             );
         }
-        state.sidebar_buffer.set_text(
-            &mut state.font_system,
-            &sidebar_text,
-            Attrs::new()
-                .family(Family::SansSerif)
-                .color(GlyphonColor::rgb(200, 200, 200)),
-            Shaping::Advanced,
-        );
         state
             .sidebar_buffer
             .shape_until_scroll(&mut state.font_system, false);
@@ -1139,6 +1076,92 @@ impl Application {
         // But the prompt expects "Settings UI", "Notifications" text.
         // I will implement proper positioning in `text_areas` construction.
 
+        // ─── DYNAMIC TEXT BUFFERS ───
+        let mut dynamic_buffers: Vec<GlyphonBuffer> = Vec::new();
+        // Store (x, y, width, height) for each dynamic buffer
+        let mut dynamic_meta: Vec<(f32, f32, f32, f32)> = Vec::new();
+
+        // 1. Tabs
+        if !state.tab_manager.tabs.is_empty() {
+            let tab_positions = state.tab_bar.text_positions(&state.layout.tab_bar, theme);
+            for (text, x, y, color, _is_active, _is_mod) in tab_positions {
+                let mut buf = GlyphonBuffer::new(
+                    &mut state.font_system,
+                    Metrics::new(LayoutConstants::SMALL_FONT_SIZE, LayoutConstants::LINE_HEIGHT)
+                );
+                let c = GlyphonColor::rgb(
+                    (color[0]*255.0) as u8,
+                    (color[1]*255.0) as u8,
+                    (color[2]*255.0) as u8
+                );
+                buf.set_text(
+                    &mut state.font_system,
+                    &text,
+                    Attrs::new().family(Family::SansSerif).color(c),
+                    Shaping::Advanced
+                );
+                buf.shape_until_scroll(&mut state.font_system, false);
+                dynamic_buffers.push(buf);
+                dynamic_meta.push((x, y, LayoutConstants::TAB_WIDTH, LayoutConstants::TAB_BAR_HEIGHT));
+            }
+        } else {
+             // Handle "Welcome" text in static tab_buffer
+             state.tab_buffer.set_text(
+                 &mut state.font_system,
+                 "  Welcome",
+                 Attrs::new().family(Family::SansSerif).color(GlyphonColor::rgb(200, 200, 200)),
+                 Shaping::Advanced
+             );
+             state.tab_buffer.shape_until_scroll(&mut state.font_system, false);
+        }
+
+        // 2. Status Bar
+        let status_positions = state.status_bar_state.text_positions(&state.layout.status_bar, theme);
+        for (text, x, y, color) in status_positions {
+            let mut buf = GlyphonBuffer::new(
+                &mut state.font_system,
+                Metrics::new(LayoutConstants::SMALL_FONT_SIZE, LayoutConstants::LINE_HEIGHT)
+            );
+             let c = GlyphonColor::rgb(
+                (color[0]*255.0) as u8,
+                (color[1]*255.0) as u8,
+                (color[2]*255.0) as u8
+            );
+            buf.set_text(
+                &mut state.font_system,
+                &text,
+                Attrs::new().family(Family::SansSerif).color(c),
+                Shaping::Advanced
+            );
+            buf.shape_until_scroll(&mut state.font_system, false);
+            dynamic_buffers.push(buf);
+            // Bounds for status item are roughly infinite right
+            dynamic_meta.push((x, y, 200.0, LayoutConstants::STATUS_BAR_HEIGHT));
+        }
+
+        // 3. Activity Bar
+        let ab_positions = state.activity_bar.text_positions(&state.layout.activity_bar, theme);
+        for (text, x, y, color) in ab_positions {
+             let mut buf = GlyphonBuffer::new(
+                &mut state.font_system,
+                Metrics::new(24.0, LayoutConstants::ACTIVITY_BAR_WIDTH)
+            );
+             let c = GlyphonColor::rgb(
+                (color[0]*255.0) as u8,
+                (color[1]*255.0) as u8,
+                (color[2]*255.0) as u8
+            );
+            buf.set_text(
+                &mut state.font_system,
+                text,
+                Attrs::new().family(Family::SansSerif).color(c),
+                Shaping::Advanced
+            );
+            buf.shape_until_scroll(&mut state.font_system, false);
+            dynamic_buffers.push(buf);
+            dynamic_meta.push((x, y, LayoutConstants::ACTIVITY_BAR_WIDTH, LayoutConstants::ACTIVITY_BAR_WIDTH));
+        }
+
         // ─── UPDATE VIEWPORT ───
         state
             .viewport
@@ -1182,36 +1205,6 @@ impl Application {
                 default_color: GlyphonColor::rgb(133, 133, 133),
                 custom_glyphs: &[],
             },
-            // Tab bar
-            TextArea {
-                buffer: &state.tab_buffer,
-                left: tab.x,
-                top: tab.y + 9.0, // vertically center in tab bar
-                scale: 1.0,
-                bounds: TextBounds {
-                    left: tab.x as i32,
-                    top: tab.y as i32,
-                    right: (tab.x + tab.width) as i32,
-                    bottom: (tab.y + tab.height) as i32,
-                },
-                default_color: GlyphonColor::rgb(200, 200, 200),
-                custom_glyphs: &[],
-            },
-            // Status bar
-            TextArea {
-                buffer: &state.status_buffer,
-                left: sb.x,
-                top: sb.y + 3.0,
-                scale: 1.0,
-                bounds: TextBounds {
-                    left: sb.x as i32,
-                    top: sb.y as i32,
-                    right: (sb.x + sb.width) as i32,
-                    bottom: (sb.y + sb.height) as i32,
-                },
-                default_color: GlyphonColor::rgb(255, 255, 255),
-                custom_glyphs: &[],
-            },
             // Breadcrumb bar
             TextArea {
                 buffer: &state.breadcrumb_buffer,
@@ -1228,6 +1221,43 @@ impl Application {
                 custom_glyphs: &[],
             },
         ];
+
+        // Add static tab buffer if tabs are empty (for Welcome message)
+        if state.tab_manager.tabs.is_empty() {
+            text_areas.push(TextArea {
+                buffer: &state.tab_buffer,
+                left: tab.x,
+                top: tab.y + 9.0,
+                scale: 1.0,
+                bounds: TextBounds {
+                    left: tab.x as i32,
+                    top: tab.y as i32,
+                    right: (tab.x + tab.width) as i32,
+                    bottom: (tab.y + tab.height) as i32,
+                },
+                default_color: GlyphonColor::rgb(200, 200, 200),
+                custom_glyphs: &[],
+            });
+        }
+
+        // Add dynamic buffers
+        for (i, buf) in dynamic_buffers.iter().enumerate() {
+            let (x, y, w, h) = dynamic_meta[i];
+            text_areas.push(TextArea {
+                buffer: buf,
+                left: x,
+                top: y,
+                scale: 1.0,
+                bounds: TextBounds {
+                    left: x as i32,
+                    top: y as i32,
+                    right: (x + w) as i32,
+                    bottom: (y + h) as i32,
+                },
+                default_color: GlyphonColor::rgb(255, 255, 255),
+                custom_glyphs: &[],
+            });
+        }
 
         // Sidebar text area (only if sidebar is open)
         if let Some(ref sidebar) = state.layout.sidebar {
