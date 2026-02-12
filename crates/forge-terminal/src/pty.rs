@@ -1,11 +1,11 @@
 //! PTY (Pseudo-Terminal) abstraction using `portable-pty`.
 
 use anyhow::{Context, Result};
-use portable_pty::{CommandBuilder, PtySize, native_pty_system, PtyPair, Child};
+use portable_pty::{native_pty_system, Child, CommandBuilder, PtyPair, PtySize};
 use std::io::{Read, Write};
 use std::sync::{
     atomic::{AtomicBool, Ordering},
-    Arc, mpsc,
+    mpsc, Arc,
 };
 use std::thread;
 
@@ -23,18 +23,26 @@ impl Pty {
     pub fn spawn(command: &str, cols: u16, rows: u16) -> Result<Self> {
         let system = native_pty_system();
 
-        let pair = system.openpty(PtySize {
-            rows,
-            cols,
-            pixel_width: 0,
-            pixel_height: 0,
-        }).context("Failed to open PTY")?;
+        let pair = system
+            .openpty(PtySize {
+                rows,
+                cols,
+                pixel_width: 0,
+                pixel_height: 0,
+            })
+            .context("Failed to open PTY")?;
 
         let cmd = CommandBuilder::new(command);
-        let child = pair.slave.spawn_command(cmd).context("Failed to spawn command")?;
+        let child = pair
+            .slave
+            .spawn_command(cmd)
+            .context("Failed to spawn command")?;
 
         let writer = pair.master.take_writer().context("Failed to take writer")?;
-        let mut reader = pair.master.try_clone_reader().context("Failed to clone reader")?;
+        let mut reader = pair
+            .master
+            .try_clone_reader()
+            .context("Failed to clone reader")?;
 
         let (tx, rx) = mpsc::channel();
         let alive = Arc::new(AtomicBool::new(true));
@@ -74,7 +82,9 @@ impl Pty {
 
     /// Writes data to the PTY.
     pub fn write(&mut self, data: &[u8]) -> Result<()> {
-        self.writer.write_all(data).context("Failed to write to PTY")
+        self.writer
+            .write_all(data)
+            .context("Failed to write to PTY")
     }
 
     /// Reads pending data from the PTY (non-blocking).

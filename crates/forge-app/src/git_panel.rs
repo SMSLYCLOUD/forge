@@ -44,7 +44,9 @@ impl GitPanel {
         let mut opts = StatusOptions::new();
         opts.include_untracked(true);
 
-        let statuses = repo.statuses(Some(&mut opts)).context("Failed to get statuses")?;
+        let statuses = repo
+            .statuses(Some(&mut opts))
+            .context("Failed to get statuses")?;
 
         self.files.clear();
 
@@ -54,15 +56,20 @@ impl GitPanel {
 
             // Check staged status
             if status.contains(Status::INDEX_NEW)
-               || status.contains(Status::INDEX_MODIFIED)
-               || status.contains(Status::INDEX_DELETED)
-               || status.contains(Status::INDEX_RENAMED)
-               || status.contains(Status::INDEX_TYPECHANGE) {
-
-                let kind = if status.contains(Status::INDEX_NEW) { FileStatus::Added }
-                else if status.contains(Status::INDEX_DELETED) { FileStatus::Deleted }
-                else if status.contains(Status::INDEX_RENAMED) { FileStatus::Renamed }
-                else { FileStatus::Modified };
+                || status.contains(Status::INDEX_MODIFIED)
+                || status.contains(Status::INDEX_DELETED)
+                || status.contains(Status::INDEX_RENAMED)
+                || status.contains(Status::INDEX_TYPECHANGE)
+            {
+                let kind = if status.contains(Status::INDEX_NEW) {
+                    FileStatus::Added
+                } else if status.contains(Status::INDEX_DELETED) {
+                    FileStatus::Deleted
+                } else if status.contains(Status::INDEX_RENAMED) {
+                    FileStatus::Renamed
+                } else {
+                    FileStatus::Modified
+                };
 
                 self.files.push(GitFile {
                     path: path.clone(),
@@ -73,15 +80,35 @@ impl GitPanel {
 
             // Check unstaged status
             if status.contains(Status::WT_NEW) {
-                 self.files.push(GitFile { path: path.clone(), status: FileStatus::Untracked, staged: false });
+                self.files.push(GitFile {
+                    path: path.clone(),
+                    status: FileStatus::Untracked,
+                    staged: false,
+                });
             } else if status.contains(Status::WT_MODIFIED) {
-                 self.files.push(GitFile { path: path.clone(), status: FileStatus::Modified, staged: false });
+                self.files.push(GitFile {
+                    path: path.clone(),
+                    status: FileStatus::Modified,
+                    staged: false,
+                });
             } else if status.contains(Status::WT_DELETED) {
-                 self.files.push(GitFile { path: path.clone(), status: FileStatus::Deleted, staged: false });
+                self.files.push(GitFile {
+                    path: path.clone(),
+                    status: FileStatus::Deleted,
+                    staged: false,
+                });
             } else if status.contains(Status::WT_RENAMED) {
-                 self.files.push(GitFile { path: path.clone(), status: FileStatus::Renamed, staged: false });
+                self.files.push(GitFile {
+                    path: path.clone(),
+                    status: FileStatus::Renamed,
+                    staged: false,
+                });
             } else if status.contains(Status::CONFLICTED) {
-                 self.files.push(GitFile { path: path.clone(), status: FileStatus::Conflicted, staged: false });
+                self.files.push(GitFile {
+                    path: path.clone(),
+                    status: FileStatus::Conflicted,
+                    staged: false,
+                });
             }
         }
 

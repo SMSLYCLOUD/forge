@@ -5,8 +5,8 @@ pub mod grid;
 pub mod pty;
 pub mod shell;
 
-use anyhow::Result;
 use ansi::{AnsiParser, TermEvent};
+use anyhow::Result;
 use grid::TerminalGrid;
 use pty::Pty;
 use shell::detect_shell;
@@ -26,11 +26,7 @@ impl Terminal {
         let parser = AnsiParser::new();
         let grid = TerminalGrid::new(cols, rows);
 
-        Ok(Self {
-            pty,
-            parser,
-            grid,
-        })
+        Ok(Self { pty, parser, grid })
     }
 
     pub fn resize(&mut self, cols: u16, rows: u16) -> Result<()> {

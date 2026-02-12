@@ -21,6 +21,13 @@ forge-syntax = { path = "../forge-syntax" }
 forge-debug = { path = "../forge-debug" }
 forge-lsp = { path = "../forge-lsp" }
 forge-plugin = { path = "../forge-plugin" }
+forge-terminal = { path = "../forge-terminal" }
+forge-search = { path = "../forge-search" }
+forge-syntax = { path = "../forge-syntax" }
+
+# Versioned dependencies
+git2 = { version = "0.20.4" }
+tree-sitter = { version = "0.24" }
 
 # GPU + Window
 wgpu = { workspace = true }
