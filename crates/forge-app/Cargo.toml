@@ -39,6 +39,7 @@ winit = { workspace = true }
 glyphon = { workspace = true }
 pollster = { workspace = true }
 arboard = { workspace = true }
+image = { version = "0.25", default-features = false, features = ["png"] }
 
 # Core
 anyhow = { workspace = true }

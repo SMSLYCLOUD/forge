@@ -115,6 +115,7 @@ impl Default for RenderBatch {
 
 pub struct Application {
     file_path: Option<String>,
+    screenshot_path: Option<String>,
     state: Option<AppState>,
     modifiers: ModifiersState,
     current_mode: UiMode,
@@ -207,7 +208,7 @@ struct AppState {
 }
 
 impl Application {
-    pub fn new(file_path: Option<String>) -> Self {
+    pub fn new(file_path: Option<String>, screenshot_path: Option<String>) -> Self {
         let config = forge_config::ForgeConfig::default();
         let theme = forge_theme::Theme::default_dark();
 
@@ -242,6 +243,7 @@ impl Application {
 
         Self {
             file_path,
+            screenshot_path,
             state: None,
             modifiers: ModifiersState::empty(),
             current_mode: UiMode::default(),
@@ -454,6 +456,7 @@ impl Application {
         settings_ui: &crate::settings_ui::SettingsUi,
         notifications: &crate::notifications::NotificationManager,
         context_menu: &crate::context_menu::ContextMenu,
+        screenshot_path: Option<&String>,
     ) {
         state.frame_timer.begin_frame();
 
@@ -1310,25 +1313,40 @@ impl Application {
         }
 
         // ─── GPU RENDER PASS ───
-        let surface_texture = match state.gpu.surface.get_current_texture() {
-            Ok(t) => t,
-            Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
-                state.gpu.resize(width, height);
-                return;
-            }
-            Err(wgpu::SurfaceError::OutOfMemory) => {
-                tracing::error!("GPU out of memory!");
-                return;
-            }
-            Err(e) => {
-                tracing::warn!("Surface error: {:?}, skipping frame", e);
-                return;
-            }
+        // Prepare target texture (either offscreen for screenshot or surface for display)
+        let (view, offscreen_texture, surface_texture) = if screenshot_path.is_some() {
+             let desc = wgpu::TextureDescriptor {
+                label: Some("Screenshot Texture"),
+                size: wgpu::Extent3d { width, height, depth_or_array_layers: 1 },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                format: state.gpu.config.format,
+                usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
+                view_formats: &[],
+            };
+            let texture = state.gpu.device.create_texture(&desc);
+            let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+            (view, Some(texture), None)
+        } else {
+            let surface_texture = match state.gpu.surface.get_current_texture() {
+                Ok(t) => t,
+                Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
+                    state.gpu.resize(width, height);
+                    return;
+                }
+                Err(wgpu::SurfaceError::OutOfMemory) => {
+                    tracing::error!("GPU out of memory!");
+                    return;
+                }
+                Err(e) => {
+                    tracing::warn!("Surface error: {:?}, skipping frame", e);
+                    return;
+                }
+            };
+            let view = surface_texture.texture.create_view(&wgpu::TextureViewDescriptor::default());
+            (view, None, Some(surface_texture))
         };
-
-        let view = surface_texture
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
 
         let mut encoder =
             state
@@ -1377,8 +1395,86 @@ impl Application {
             }
         }
 
-        state.gpu.queue.submit(std::iter::once(encoder.finish()));
-        surface_texture.present();
+        // Screenshot capture logic if requested
+        if let Some(path) = screenshot_path {
+            let texture = offscreen_texture.as_ref().unwrap();
+
+            // We need to copy the texture to a buffer to read it back.
+            // Create buffer
+            let u32_size = std::mem::size_of::<u32>() as u32;
+            let output_buffer_size = (u32_size * width * height) as wgpu::BufferAddress;
+            let output_buffer_desc = wgpu::BufferDescriptor {
+                size: output_buffer_size,
+                usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+                label: Some("Screenshot Buffer"),
+                mapped_at_creation: false,
+            };
+            let output_buffer = state.gpu.device.create_buffer(&output_buffer_desc);
+
+            // Copy texture to buffer
+            encoder.copy_texture_to_buffer(
+                wgpu::ImageCopyTexture {
+                    aspect: wgpu::TextureAspect::All,
+                    texture,
+                    mip_level: 0,
+                    origin: wgpu::Origin3d::ZERO,
+                },
+                wgpu::ImageCopyBuffer {
+                    buffer: &output_buffer,
+                    layout: wgpu::ImageDataLayout {
+                        offset: 0,
+                        bytes_per_row: Some(u32_size * width),
+                        rows_per_image: Some(height),
+                    },
+                },
+                wgpu::Extent3d {
+                    width,
+                    height,
+                    depth_or_array_layers: 1,
+                },
+            );
+
+            state.gpu.queue.submit(std::iter::once(encoder.finish()));
+
+            // Map buffer
+            let buffer_slice = output_buffer.slice(..);
+            let (tx, rx) = std::sync::mpsc::channel();
+            buffer_slice.map_async(wgpu::MapMode::Read, move |v| {
+                tx.send(v).unwrap();
+            });
+
+            state.gpu.device.poll(wgpu::Maintain::Wait);
+
+            if let Ok(Ok(())) = rx.recv() {
+                let data = buffer_slice.get_mapped_range();
+
+                use image::{ImageBuffer, Rgba};
+                let mut img_buf = ImageBuffer::<Rgba<u8>, _>::from_raw(width, height, data.to_vec()).unwrap();
+
+                // Swap BGR to RGB if needed (assuming BGRA surface format which is common)
+                // If the offscreen texture format is specifically requested as RGBA, we might not need this.
+                // But surface format depends on adapter.
+                // Let's assume we need swap for now.
+                for pixel in img_buf.pixels_mut() {
+                    let tmp = pixel[0];
+                    pixel[0] = pixel[2];
+                    pixel[2] = tmp;
+                    pixel[3] = 255;
+                }
+
+                img_buf.save(path).unwrap();
+                info!("Screenshot saved to {}", path);
+            }
+            output_buffer.unmap();
+
+            // Exit after taking screenshot
+            std::process::exit(0);
+        } else {
+             state.gpu.queue.submit(std::iter::once(encoder.finish()));
+             if let Some(st) = surface_texture {
+                 st.present();
+             }
+        }
 
         state.frame_timer.end_frame();
     }
@@ -1914,6 +2010,7 @@ impl ApplicationHandler for Application {
                     &self.settings_ui,
                     &self.notifications,
                     &self.context_menu,
+                    self.screenshot_path.as_ref(),
                 );
             }
 
