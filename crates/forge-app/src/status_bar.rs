@@ -6,7 +6,7 @@ use crate::ui::{colors, LayoutConstants, Zone};
 pub struct StatusItem {
     pub text: String,
     pub tooltip: String,
-    pub color: Option<[f32; 4]>,
+    pub color: Option<[f32; 4]>, // Override color (e.g. for errors)
     pub alignment: StatusAlignment,
     pub priority: i32, // Higher = more important, gets rendered first
     pub click_action: Option<StatusAction>,
@@ -86,8 +86,11 @@ impl StatusBar {
 
     /// Build the ordered list of status items
     #[allow(dead_code)]
-    pub fn build_items(&self) -> Vec<StatusItem> {
+    pub fn build_items(&self, theme: &forge_theme::Theme) -> Vec<StatusItem> {
         let mut items = Vec::with_capacity(16);
+
+        let error_fg = theme.color("editorError.foreground").unwrap_or(colors::ERROR);
+        // let warning_fg = theme.color("editorWarning.foreground").unwrap_or(colors::WARNING);
 
         // LEFT SIDE items
 
@@ -96,7 +99,7 @@ impl StatusBar {
             items.push(StatusItem {
                 text: format!("⎇ {}", branch),
                 tooltip: format!("Git Branch: {}", branch),
-                color: None,
+                color: None, // Uses default statusbar fg
                 alignment: StatusAlignment::Left,
                 priority: 100,
                 click_action: None,
@@ -112,7 +115,7 @@ impl StatusBar {
                     self.error_count, self.warning_count
                 ),
                 color: if self.error_count > 0 {
-                    Some(colors::ERROR)
+                    Some(error_fg)
                 } else {
                     None
                 },
@@ -186,7 +189,7 @@ impl StatusBar {
 
         // Confidence score
         if let Some(score) = self.confidence_score {
-            items.push(StatusItem {
+             items.push(StatusItem {
                 text: format!("⚡ {:.1}%", score),
                 tooltip: format!("Confidence Score: {:.1}%", score),
                 color: Some(if score > 80.0 {
@@ -213,20 +216,14 @@ impl StatusBar {
         });
 
         // Frame time
-        items.push(StatusItem {
-            text: format!("{:.1}ms", self.frame_time_ms),
-            tooltip: String::from("Frame render time"),
-            color: Some(if self.frame_time_ms < 7.0 {
-                colors::SUCCESS
-            } else if self.frame_time_ms < 16.0 {
-                colors::WARNING
-            } else {
-                colors::ERROR
-            }),
-            alignment: StatusAlignment::Right,
-            priority: 10,
-            click_action: None,
-        });
+        // items.push(StatusItem {
+        //     text: format!("{:.1}ms", self.frame_time_ms),
+        //     tooltip: String::from("Frame render time"),
+        //     color: None,
+        //     alignment: StatusAlignment::Right,
+        //     priority: 10,
+        //     click_action: None,
+        // });
 
         items
     }
@@ -234,12 +231,14 @@ impl StatusBar {
     /// Get text positions for rendering
     /// Returns (text, x, y, color) tuples
     #[allow(dead_code)]
-    pub fn text_positions(&self, zone: &Zone) -> Vec<(String, f32, f32, [f32; 4])> {
-        let items = self.build_items();
+    pub fn text_positions(&self, zone: &Zone, theme: &forge_theme::Theme) -> Vec<(String, f32, f32, [f32; 4])> {
+        let items = self.build_items(theme);
         let mut result = Vec::with_capacity(items.len());
         let text_y = zone.y + (zone.height - LayoutConstants::SMALL_FONT_SIZE) / 2.0;
         let char_width = LayoutConstants::CHAR_WIDTH;
         let padding = 12.0;
+
+        let default_fg = theme.color("statusBar.foreground").unwrap_or(colors::TEXT_WHITE);
 
         // Left items
         let mut left_x = zone.x + padding;
@@ -250,7 +249,7 @@ impl StatusBar {
         left_items.sort_by(|a, b| b.priority.cmp(&a.priority));
 
         for item in &left_items {
-            let color = item.color.unwrap_or(colors::TEXT_WHITE);
+            let color = item.color.unwrap_or(default_fg);
             result.push((item.text.clone(), left_x, text_y, color));
             left_x += item.text.len() as f32 * char_width + padding;
         }
@@ -266,7 +265,7 @@ impl StatusBar {
         for item in &right_items {
             let text_width = item.text.len() as f32 * char_width;
             right_x -= text_width;
-            let color = item.color.unwrap_or(colors::TEXT_WHITE);
+            let color = item.color.unwrap_or(default_fg);
             result.push((item.text.clone(), right_x, text_y, color));
             right_x -= padding;
         }

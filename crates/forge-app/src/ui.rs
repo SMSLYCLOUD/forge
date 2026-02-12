@@ -1,6 +1,6 @@
 use crate::rect_renderer::Rect;
 
-/// VS Code color scheme — dark theme
+/// VS Code color scheme — dark theme (Fallback)
 pub mod colors {
     /// Activity bar background (#333333)
     pub const ACTIVITY_BAR: [f32; 4] = [0.2, 0.2, 0.2, 1.0];
@@ -49,26 +49,26 @@ pub mod colors {
     pub const SUCCESS: [f32; 4] = [0.345, 0.663, 0.369, 1.0];
 }
 
-/// Pixel dimensions for each UI zone
+/// Pixel dimensions for each UI zone (VS Code Standard)
 pub struct LayoutConstants;
 
 impl LayoutConstants {
-    pub const ACTIVITY_BAR_WIDTH: f32 = 48.0;
-    pub const TAB_BAR_HEIGHT: f32 = 35.0;
-    pub const BREADCRUMB_HEIGHT: f32 = 22.0;
-    pub const STATUS_BAR_HEIGHT: f32 = 22.0;
-    pub const GUTTER_WIDTH: f32 = 60.0;
-    pub const SIDEBAR_WIDTH: f32 = 240.0;
-    pub const SCROLLBAR_WIDTH: f32 = 14.0;
-    pub const TAB_WIDTH: f32 = 160.0;
+    pub const ACTIVITY_BAR_WIDTH: f32 = 48.0; // VS Code: 48px
+    pub const TAB_BAR_HEIGHT: f32 = 35.0; // VS Code: 35px
+    pub const BREADCRUMB_HEIGHT: f32 = 22.0; // VS Code: 22px
+    pub const STATUS_BAR_HEIGHT: f32 = 22.0; // VS Code: 22px
+    pub const GUTTER_WIDTH: f32 = 60.0; // Adjustable but 50-60 is standard
+    pub const SIDEBAR_WIDTH: f32 = 250.0; // VS Code default is wider
+    pub const SCROLLBAR_WIDTH: f32 = 14.0; // VS Code: 14px
+    pub const TAB_WIDTH: f32 = 160.0; // Standard tab width
     #[allow(dead_code)]
     pub const TAB_CLOSE_SIZE: f32 = 16.0;
-    pub const AI_PANEL_WIDTH: f32 = 400.0;
+    pub const AI_PANEL_WIDTH: f32 = 350.0; // Copilot chat style
     pub const SEPARATOR_SIZE: f32 = 1.0;
-    pub const LINE_HEIGHT: f32 = 20.0;
+    pub const LINE_HEIGHT: f32 = 20.0; // 1.4-1.5em for 14px font
     pub const CHAR_WIDTH: f32 = 8.4;
-    pub const FONT_SIZE: f32 = 14.0;
-    pub const SMALL_FONT_SIZE: f32 = 12.0;
+    pub const FONT_SIZE: f32 = 14.0; // Editor font size
+    pub const SMALL_FONT_SIZE: f32 = 11.0; // UI font size
 }
 
 /// Computed layout zones (recalculated on resize)
@@ -232,95 +232,130 @@ impl LayoutZones {
 
     /// Generate all background rectangles for the UI chrome
     pub fn background_rects(&self, theme: &forge_theme::Theme) -> Vec<Rect> {
-        let mut rects = Vec::with_capacity(16);
+        let mut rects = Vec::with_capacity(32);
 
         let activity_bar_bg = theme
             .color("activityBar.background")
             .unwrap_or(colors::ACTIVITY_BAR);
+        let activity_bar_border = theme
+            .color("activityBar.border")
+            .unwrap_or(colors::SEPARATOR);
+
         let sidebar_bg = theme.color("sideBar.background").unwrap_or(colors::SIDEBAR);
+        let sidebar_border = theme.color("sideBar.border").unwrap_or(colors::SEPARATOR);
+
         let tab_bar_bg = theme
             .color("editorGroupHeader.tabsBackground")
             .unwrap_or(colors::TAB_BAR);
+        let tab_border = theme.color("editorGroup.border").unwrap_or(colors::SEPARATOR);
+
         let breadcrumb_bg = theme
             .color("breadcrumb.background")
             .unwrap_or(colors::BREADCRUMB);
+
         let gutter_bg = theme
-            .color("editorGutter.background")
+            .color("editor.background") // Gutter matches editor bg in VS Code
             .unwrap_or(colors::GUTTER);
+
         let editor_bg = theme
             .color("editor.background")
             .unwrap_or(colors::EDITOR_BG);
+
         let status_bar_bg = theme
             .color("statusBar.background")
             .unwrap_or(colors::STATUS_BAR);
-        let border_col = theme.color("contrastBorder").unwrap_or(colors::SEPARATOR);
+        let status_bar_border = theme.color("statusBar.border").unwrap_or(colors::SEPARATOR);
 
-        // Activity bar
+        let _border_col = theme.color("contrastBorder").unwrap_or(colors::SEPARATOR);
+
+        // ─── Activity Bar ───
         rects.push(self.activity_bar.to_rect(activity_bar_bg));
-
-        // Sidebar (if open)
-        if let Some(ref sb) = self.sidebar {
-            rects.push(sb.to_rect(sidebar_bg));
+        // Right border of activity bar
+        if activity_bar_border[3] > 0.0 {
             rects.push(Rect {
-                x: sb.x + sb.width,
-                y: 0.0,
+                x: self.activity_bar.x + self.activity_bar.width - LayoutConstants::SEPARATOR_SIZE,
+                y: self.activity_bar.y,
                 width: LayoutConstants::SEPARATOR_SIZE,
-                height: self.window_height - LayoutConstants::STATUS_BAR_HEIGHT,
-                color: border_col,
+                height: self.activity_bar.height,
+                color: activity_bar_border,
             });
         }
 
-        // Tab bar
-        rects.push(self.tab_bar.to_rect(tab_bar_bg));
+        // ─── Sidebar (if open) ───
+        if let Some(ref sb) = self.sidebar {
+            rects.push(sb.to_rect(sidebar_bg));
+            // Right border of sidebar
+            if sidebar_border[3] > 0.0 {
+                rects.push(Rect {
+                    x: sb.x + sb.width,
+                    y: 0.0,
+                    width: LayoutConstants::SEPARATOR_SIZE,
+                    height: self.window_height - LayoutConstants::STATUS_BAR_HEIGHT,
+                    color: sidebar_border,
+                });
+            }
+        }
 
-        // Breadcrumb bar
+        // ─── Tab Bar ───
+        rects.push(self.tab_bar.to_rect(tab_bar_bg));
+        // Bottom border of tab bar (editorGroup.border or contrastBorder)
+         // In VS Code, tab bar often doesn't have a bottom border, but the active tab might cover it.
+         // We'll skip a global bottom border for now to avoid clipping active tab, or make it subtle.
+
+        // ─── Breadcrumb Bar ───
         rects.push(self.breadcrumb_bar.to_rect(breadcrumb_bg));
 
-        // Gutter
+        // ─── Gutter ───
         rects.push(self.gutter.to_rect(gutter_bg));
 
-        // Editor background
+        // ─── Editor Background ───
         rects.push(self.editor.to_rect(editor_bg));
 
-        // Scrollbar track
+        // ─── Scrollbar Track ───
+        // VS Code scrollbar track is usually transparent or editor background
         rects.push(self.scrollbar_v.to_rect(editor_bg));
+        // Optionally render scrollbar shadow/border if needed
 
-        // Status bar
+        // ─── Status Bar ───
         rects.push(self.status_bar.to_rect(status_bar_bg));
+        // Top border of status bar
+        if status_bar_border[3] > 0.0 {
+            rects.push(Rect {
+                x: self.status_bar.x,
+                y: self.status_bar.y,
+                width: self.status_bar.width,
+                height: LayoutConstants::SEPARATOR_SIZE,
+                color: status_bar_border,
+            });
+        }
 
-        // AI Panel (if open)
+        // ─── AI Panel (if open) ───
         if let Some(ref ai) = self.ai_panel {
             rects.push(ai.to_rect(sidebar_bg));
+            // Left border of AI panel
             rects.push(Rect {
                 x: ai.x - LayoutConstants::SEPARATOR_SIZE,
                 y: 0.0,
                 width: LayoutConstants::SEPARATOR_SIZE,
                 height: self.window_height - LayoutConstants::STATUS_BAR_HEIGHT,
-                color: border_col,
+                color: sidebar_border,
             });
         }
 
-        // Bottom panel (if open)
+        // ─── Bottom Panel (if open) ───
         if let Some(ref bp) = self.bottom_panel {
             let panel_bg = theme.color("panel.background").unwrap_or(colors::EDITOR_BG);
+            let panel_border = theme.color("panel.border").unwrap_or(colors::SEPARATOR);
             rects.push(bp.to_rect(panel_bg));
+            // Top border of bottom panel
             rects.push(Rect {
                 x: bp.x,
                 y: bp.y,
                 width: bp.width,
                 height: LayoutConstants::SEPARATOR_SIZE,
-                color: border_col,
+                color: panel_border,
             });
         }
-
-        // Separator between tab bar and breadcrumbs
-        rects.push(Rect {
-            x: self.tab_bar.x,
-            y: self.tab_bar.y + self.tab_bar.height,
-            width: self.tab_bar.width,
-            height: LayoutConstants::SEPARATOR_SIZE,
-            color: border_col,
-        });
 
         rects
     }

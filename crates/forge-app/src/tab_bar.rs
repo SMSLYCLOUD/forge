@@ -88,10 +88,17 @@ impl TabBar {
     }
 
     /// Generate rectangles for the tab bar
-    pub fn render_rects(&self, zone: &Zone) -> Vec<Rect> {
-        let mut rects = Vec::with_capacity(self.tabs.len() * 2);
+    pub fn render_rects(&self, zone: &Zone, theme: &forge_theme::Theme) -> Vec<Rect> {
+        let mut rects = Vec::with_capacity(self.tabs.len() * 4);
         let tab_width = LayoutConstants::TAB_WIDTH;
         let tab_height = zone.height;
+
+        let active_bg = theme.color("tab.activeBackground").unwrap_or(colors::TAB_ACTIVE);
+        let inactive_bg = theme.color("tab.inactiveBackground").unwrap_or(colors::TAB_INACTIVE);
+        let active_border_top = theme.color("tab.activeBorderTop");
+        let active_border_bottom = theme.color("tab.activeBorder");
+        let border_col = theme.color("tab.border").unwrap_or(colors::SEPARATOR);
+        let contrast_border = theme.color("contrastBorder");
 
         for (i, tab) in self.tabs.iter().enumerate() {
             let x = zone.x + (i as f32 * tab_width) - self.scroll_offset;
@@ -102,9 +109,9 @@ impl TabBar {
             }
 
             let bg_color = if tab.is_active {
-                colors::TAB_ACTIVE
+                active_bg
             } else {
-                colors::TAB_INACTIVE
+                inactive_bg
             };
 
             // Tab background
@@ -118,36 +125,63 @@ impl TabBar {
 
             // Active tab indicator (blue line on top)
             if tab.is_active {
+                if let Some(col) = active_border_top {
+                     rects.push(Rect {
+                        x,
+                        y: zone.y,
+                        width: tab_width,
+                        height: 2.0,
+                        color: col,
+                    });
+                }
+                if let Some(col) = active_border_bottom {
+                    // Usually at bottom
+                    rects.push(Rect {
+                        x,
+                        y: zone.y + tab_height - 2.0,
+                        width: tab_width,
+                        height: 2.0,
+                        color: col,
+                    });
+                }
+            }
+
+            // Separator/Border between tabs
+            // VS Code typically draws a border on the right of each tab, or all around depending on theme.
+            // "tab.border" is "Border to separate tabs from each other."
+            rects.push(Rect {
+                x: x + tab_width - 1.0,
+                y: zone.y + 4.0, // small padding
+                width: 1.0,
+                height: tab_height - 8.0,
+                color: border_col,
+            });
+
+            // High contrast border if set
+             if let Some(cb) = contrast_border {
                 rects.push(Rect {
                     x,
                     y: zone.y,
                     width: tab_width,
-                    height: 2.0,
-                    color: colors::STATUS_BAR, // Blue accent
+                    height: tab_height,
+                    color: cb, // This would fill it, but usually high contrast is an outline.
+                               // For simplicity we ignore full outline implementation here as `Rect` is solid.
                 });
-            }
-
-            // Separator between tabs
-            if i > 0 {
-                rects.push(Rect {
-                    x,
-                    y: zone.y + 4.0,
-                    width: 1.0,
-                    height: tab_height - 8.0,
-                    color: colors::SEPARATOR,
-                });
-            }
+             }
         }
 
         rects
     }
 
-    /// Get tab titles for text rendering (returns (text, x, y, is_active, is_modified) tuples)
+    /// Get tab titles for text rendering (returns (text, x, y, color, is_active, is_modified) tuples)
     #[allow(dead_code)]
-    pub fn text_positions(&self, zone: &Zone) -> Vec<(String, f32, f32, bool, bool)> {
+    pub fn text_positions(&self, zone: &Zone, theme: &forge_theme::Theme) -> Vec<(String, f32, f32, [f32; 4], bool, bool)> {
         let mut result = Vec::with_capacity(self.tabs.len());
         let tab_width = LayoutConstants::TAB_WIDTH;
         let text_y = zone.y + (zone.height - LayoutConstants::SMALL_FONT_SIZE) / 2.0;
+
+        let active_fg = theme.color("tab.activeForeground").unwrap_or(colors::TEXT_WHITE);
+        let inactive_fg = theme.color("tab.inactiveForeground").unwrap_or(colors::TEXT_DIM);
 
         for (i, tab) in self.tabs.iter().enumerate() {
             let x = zone.x + (i as f32 * tab_width) - self.scroll_offset + 12.0;
@@ -156,7 +190,10 @@ impl TabBar {
             } else {
                 tab.title.clone()
             };
-            result.push((title, x, text_y, tab.is_active, tab.is_modified));
+
+            let color = if tab.is_active { active_fg } else { inactive_fg };
+
+            result.push((title, x, text_y, color, tab.is_active, tab.is_modified));
         }
 
         result

@@ -93,12 +93,27 @@ fn main() -> Result<()> {
     info!("🔥 Forge Editor starting...");
 
     // Determine file to open from command line args
-    let file_path = std::env::args().nth(1);
+    let mut args = std::env::args().skip(1);
+    let mut file_path = None;
+    let mut screenshot_path = None;
+
+    while let Some(arg) = args.next() {
+        if arg == "--screenshot" {
+            // Use default name or next arg? Let's strictly require a path or default to screenshot.png if flag present?
+            // User requirement says "Update main.rs to accept a --screenshot argument".
+            // Let's assume usage: forge <file> --screenshot <path> or forge --screenshot
+            // For simplicity: if arg == "--screenshot", we set a flag.
+            // But I will set a hardcoded path for now or look for next arg.
+            screenshot_path = Some("screenshot.png".to_string());
+        } else if !arg.starts_with("--") {
+            file_path = Some(arg);
+        }
+    }
 
     let event_loop = EventLoop::new()?;
     event_loop.set_control_flow(winit::event_loop::ControlFlow::Wait);
 
-    let mut app = application::Application::new(file_path);
+    let mut app = application::Application::new(file_path, screenshot_path);
 
     event_loop.run_app(&mut app)?;
 
