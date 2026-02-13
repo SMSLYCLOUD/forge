@@ -25,6 +25,9 @@ Thumbs.db
 test_output.txt
 test_undo.exe
 
+# Dropped Jules workspaces
+jules_session_*/
+
 # Tree-sitter grammars (large binaries)
 crates/forge-syntax/grammars/*.so
 crates/forge-syntax/grammars/*.dll

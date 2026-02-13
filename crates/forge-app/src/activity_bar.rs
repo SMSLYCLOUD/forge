@@ -19,12 +19,12 @@ impl ActivityItem {
     pub fn icon_char(&self) -> &'static str {
         match self {
             Self::Explorer => "🗂",      // Card Index Dividers (looks like files)
-            Self::Search => "🔍",        // Magnifying Glass
+            Self::Search => "🔍",       // Magnifying Glass
             Self::SourceControl => "⎇", // Broken Circle (Git branch)
-            Self::Debug => "🐞",         // Lady Beetle
-            Self::Extensions => "🧩",    // Puzzle Piece
-            Self::AiAgent => "🤖",       // Robot Face
-            Self::Settings => "⚙",       // Gear
+            Self::Debug => "🐞",        // Lady Beetle
+            Self::Extensions => "🧩",   // Puzzle Piece
+            Self::AiAgent => "🤖",      // Robot Face
+            Self::Settings => "⚙",      // Gear
         }
     }
 
@@ -114,9 +114,9 @@ impl ActivityBar {
                     });
                 }
             } else if is_hovered {
-                 // Hover background (VS Code usually handles this via opacity or slight lighten)
-                 // We'll use a hardcoded safe hover if not in theme (theme usually doesn't have activityBar.hoverBackground)
-                 rects.push(Rect {
+                // Hover background (VS Code usually handles this via opacity or slight lighten)
+                // We'll use a hardcoded safe hover if not in theme (theme usually doesn't have activityBar.hoverBackground)
+                rects.push(Rect {
                     x: zone.x,
                     y,
                     width: item_size,
@@ -170,13 +170,17 @@ impl ActivityBar {
     pub fn text_positions(
         &self,
         zone: &Zone,
-        theme: &forge_theme::Theme
+        theme: &forge_theme::Theme,
     ) -> Vec<(&'static str, f32, f32, [f32; 4])> {
         let mut result = Vec::with_capacity(8);
         let item_size = LayoutConstants::ACTIVITY_BAR_WIDTH;
 
-        let fg = theme.color("activityBar.foreground").unwrap_or(colors::TEXT_WHITE);
-        let inactive_fg = theme.color("activityBar.inactiveForeground").unwrap_or([1.0, 1.0, 1.0, 0.4]);
+        let fg = theme
+            .color("activityBar.foreground")
+            .unwrap_or(colors::TEXT_WHITE);
+        let inactive_fg = theme
+            .color("activityBar.inactiveForeground")
+            .unwrap_or([1.0, 1.0, 1.0, 0.4]);
 
         // Top items
         for (i, item) in ActivityItem::top_items().iter().enumerate() {

@@ -93,8 +93,12 @@ impl TabBar {
         let tab_width = LayoutConstants::TAB_WIDTH;
         let tab_height = zone.height;
 
-        let active_bg = theme.color("tab.activeBackground").unwrap_or(colors::TAB_ACTIVE);
-        let inactive_bg = theme.color("tab.inactiveBackground").unwrap_or(colors::TAB_INACTIVE);
+        let active_bg = theme
+            .color("tab.activeBackground")
+            .unwrap_or(colors::TAB_ACTIVE);
+        let inactive_bg = theme
+            .color("tab.inactiveBackground")
+            .unwrap_or(colors::TAB_INACTIVE);
         let active_border_top = theme.color("tab.activeBorderTop");
         let active_border_bottom = theme.color("tab.activeBorder");
         let border_col = theme.color("tab.border").unwrap_or(colors::SEPARATOR);
@@ -126,7 +130,7 @@ impl TabBar {
             // Active tab indicator (blue line on top)
             if tab.is_active {
                 if let Some(col) = active_border_top {
-                     rects.push(Rect {
+                    rects.push(Rect {
                         x,
                         y: zone.y,
                         width: tab_width,
@@ -158,7 +162,7 @@ impl TabBar {
             });
 
             // High contrast border if set
-             if let Some(cb) = contrast_border {
+            if let Some(cb) = contrast_border {
                 rects.push(Rect {
                     x,
                     y: zone.y,
@@ -167,7 +171,7 @@ impl TabBar {
                     color: cb, // This would fill it, but usually high contrast is an outline.
                                // For simplicity we ignore full outline implementation here as `Rect` is solid.
                 });
-             }
+            }
         }
 
         rects
@@ -175,13 +179,21 @@ impl TabBar {
 
     /// Get tab titles for text rendering (returns (text, x, y, color, is_active, is_modified) tuples)
     #[allow(dead_code)]
-    pub fn text_positions(&self, zone: &Zone, theme: &forge_theme::Theme) -> Vec<(String, f32, f32, [f32; 4], bool, bool)> {
+    pub fn text_positions(
+        &self,
+        zone: &Zone,
+        theme: &forge_theme::Theme,
+    ) -> Vec<(String, f32, f32, [f32; 4], bool, bool)> {
         let mut result = Vec::with_capacity(self.tabs.len());
         let tab_width = LayoutConstants::TAB_WIDTH;
         let text_y = zone.y + (zone.height - LayoutConstants::SMALL_FONT_SIZE) / 2.0;
 
-        let active_fg = theme.color("tab.activeForeground").unwrap_or(colors::TEXT_WHITE);
-        let inactive_fg = theme.color("tab.inactiveForeground").unwrap_or(colors::TEXT_DIM);
+        let active_fg = theme
+            .color("tab.activeForeground")
+            .unwrap_or(colors::TEXT_WHITE);
+        let inactive_fg = theme
+            .color("tab.inactiveForeground")
+            .unwrap_or(colors::TEXT_DIM);
 
         for (i, tab) in self.tabs.iter().enumerate() {
             let x = zone.x + (i as f32 * tab_width) - self.scroll_offset + 12.0;
@@ -191,7 +203,11 @@ impl TabBar {
                 tab.title.clone()
             };
 
-            let color = if tab.is_active { active_fg } else { inactive_fg };
+            let color = if tab.is_active {
+                active_fg
+            } else {
+                inactive_fg
+            };
 
             result.push((title, x, text_y, color, tab.is_active, tab.is_modified));
         }

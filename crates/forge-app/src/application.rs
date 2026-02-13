@@ -123,11 +123,14 @@ pub struct Application {
     theme: forge_theme::Theme,
 
     find_bar: crate::find_bar::FindBar,
+    replace_bar: crate::replace_bar::ReplaceBar,
+    go_to_line: crate::go_to_line::GoToLine,
     command_palette: crate::command_palette::CommandPalette,
     bottom_panel: crate::bottom_panel::BottomPanel,
     notifications: crate::notifications::NotificationManager,
     context_menu: crate::context_menu::ContextMenu,
     settings_ui: crate::settings_ui::SettingsUi,
+    zen_mode: crate::zen_mode::ZenMode,
 
     // Phase 2: LSP (async — needs tokio runtime bridge)
     // LSP client will be initialized when tokio runtime is available
@@ -213,11 +216,14 @@ impl Application {
         let theme = forge_theme::Theme::default_dark();
 
         let find_bar = crate::find_bar::FindBar::default();
+        let replace_bar = crate::replace_bar::ReplaceBar::default();
+        let go_to_line = crate::go_to_line::GoToLine::default();
         let command_palette = crate::command_palette::CommandPalette::default();
         let bottom_panel = crate::bottom_panel::BottomPanel::default();
         let notifications = crate::notifications::NotificationManager::default();
         let context_menu = crate::context_menu::ContextMenu::default();
         let settings_ui = crate::settings_ui::SettingsUi::new();
+        let zen_mode = crate::zen_mode::ZenMode::new();
 
         // Phase 5: Debug client (sync init)
         let debug_client = forge_debug::DebugClient::new();
@@ -250,11 +256,14 @@ impl Application {
             config,
             theme,
             find_bar,
+            replace_bar,
+            go_to_line,
             command_palette,
             bottom_panel,
             notifications,
             context_menu,
             settings_ui,
+            zen_mode,
             debug_client,
             plugin_runtime,
             ghost_tabs,
@@ -452,13 +461,16 @@ impl Application {
         theme: &forge_theme::Theme,
         bottom_panel: &mut crate::bottom_panel::BottomPanel,
         find_bar: &crate::find_bar::FindBar,
+        replace_bar: &crate::replace_bar::ReplaceBar,
+        go_to_line: &crate::go_to_line::GoToLine,
         command_palette: &crate::command_palette::CommandPalette,
         settings_ui: &crate::settings_ui::SettingsUi,
-        notifications: &crate::notifications::NotificationManager,
+        notifications: &mut crate::notifications::NotificationManager,
         context_menu: &crate::context_menu::ContextMenu,
         screenshot_path: Option<&String>,
     ) {
         state.frame_timer.begin_frame();
+        notifications.tick();
 
         let (width, height) = state.gpu.size();
         if width == 0 || height == 0 {
@@ -482,7 +494,9 @@ impl Application {
 
         // Activity bar
         if mode_config.activity_bar {
-            let ab_rects = state.activity_bar.render_rects(&state.layout.activity_bar, theme);
+            let ab_rects = state
+                .activity_bar
+                .render_rects(&state.layout.activity_bar, theme);
             state.render_batch.extend(&ab_rects);
         }
 
@@ -618,6 +632,42 @@ impl Application {
                 y: fb_y,
                 width: fb_width,
                 height: fb_height,
+                color: bg,
+            });
+        }
+
+        // Replace Bar Overlay
+        if replace_bar.visible {
+            let fb_width = 400.0;
+            let fb_height = 36.0;
+            let fb_x = state.layout.editor.x + state.layout.editor.width - fb_width - 20.0;
+            let fb_y = state.layout.editor.y + 44.0;
+            let bg = theme
+                .color("editorWidget.background")
+                .unwrap_or([0.18, 0.20, 0.26, 0.98]);
+            state.render_batch.push(crate::rect_renderer::Rect {
+                x: fb_x,
+                y: fb_y,
+                width: fb_width,
+                height: fb_height,
+                color: bg,
+            });
+        }
+
+        // Go To Line Overlay
+        if go_to_line.visible {
+            let g_width = 240.0;
+            let g_height = 36.0;
+            let g_x = state.layout.editor.x + state.layout.editor.width - g_width - 20.0;
+            let g_y = state.layout.editor.y + 4.0;
+            let bg = theme
+                .color("editorWidget.background")
+                .unwrap_or([0.18, 0.20, 0.26, 0.98]);
+            state.render_batch.push(crate::rect_renderer::Rect {
+                x: g_x,
+                y: g_y,
+                width: g_width,
+                height: g_height,
                 color: bg,
             });
         }
@@ -912,8 +962,16 @@ impl Application {
             state.status_bar_state.frame_time_ms = state.frame_timer.avg_frame_time_ms;
         }
         state.status_bar_state.mode_indicator = format!("Mod: {}", mode.label());
-        state.status_bar_state.error_count = notifications.notifications.iter().filter(|n| n.level == crate::notifications::Level::Error).count();
-        state.status_bar_state.warning_count = notifications.notifications.iter().filter(|n| n.level == crate::notifications::Level::Warning).count();
+        state.status_bar_state.error_count = notifications
+            .notifications
+            .iter()
+            .filter(|n| n.level == crate::notifications::Level::Error)
+            .count();
+        state.status_bar_state.warning_count = notifications
+            .notifications
+            .iter()
+            .filter(|n| n.level == crate::notifications::Level::Warning)
+            .count();
 
         // 5. Breadcrumb text
         let breadcrumb_text = if state.breadcrumb_bar.segments.is_empty() {
@@ -991,7 +1049,7 @@ impl Application {
                 Shaping::Advanced,
             );
         } else {
-             state.sidebar_buffer.set_text(
+            state.sidebar_buffer.set_text(
                 &mut state.font_system,
                 "",
                 Attrs::new(),
@@ -1037,52 +1095,128 @@ impl Application {
                     .shape_until_scroll(&mut state.font_system, false);
             }
         }
-
-        // 8. Overlay Text
-        let mut overlay_text = String::new();
-        // Just a placeholder implementation for overlay text rendering
-        // In a real implementation we would calculate exact positions and multiple buffers or rich text
-        if find_bar.visible {
-            overlay_text.push_str(&format!("Find: {}\n", find_bar.query));
-        }
-        if command_palette.visible {
-            overlay_text.push_str(&format!("> {}\n", command_palette.query));
-            for idx in &command_palette.filtered {
-                if let Some(cmd) = command_palette.commands.get(*idx) {
-                    overlay_text.push_str(&format!("  {}\n", cmd.label));
-                }
-            }
-        }
-        if settings_ui.visible {
-            overlay_text.push_str("Settings\n\n");
-            for cat in &settings_ui.categories {
-                overlay_text.push_str(&format!("# {}\n", cat.name));
-                for setting in &cat.settings {
-                    overlay_text.push_str(&format!("  {}: {:?}\n", setting.label, setting.value));
-                }
-            }
-        }
-        if !notifications.notifications.is_empty() {
-            for note in &notifications.notifications {
-                overlay_text.push_str(&format!("! {}\n", note.message));
-            }
-        }
-
-        // We are cheating here by using one buffer for all overlays.
-        // Ideally each overlay has its own buffer or we use position-aware text.
-        // For now, this just proves we can render text.
-        // But since overlays are at different positions, a single buffer at (0,0) won't work well unless we pad it.
-        // We will skip rendering overlay text for now to avoid mess, as rects show they are working.
-        // Or we render it blindly at top left (which is wrong).
-        // Let's at least render it to prove data flow, but maybe commented out or just log it.
-        // Actually, let's skip adding it to text_areas if we don't position it correctly.
-        // But the prompt expects "Settings UI", "Notifications" text.
-        // I will implement proper positioning in `text_areas` construction.
-
-        // ─── DYNAMIC TEXT BUFFERS ───
+        // Dynamic text buffers
         let mut dynamic_buffers: Vec<GlyphonBuffer> = Vec::new();
         // Store (x, y, width, height) for each dynamic buffer
         let mut dynamic_meta: Vec<(f32, f32, f32, f32)> = Vec::new();
+
+        // Overlay text
+        if find_bar.visible {
+            let current = find_bar.current_match.map(|i| i + 1).unwrap_or(0);
+            let text = format!(
+                "Find: {}  [{}/{}]",
+                find_bar.query,
+                current,
+                find_bar.matches.len()
+            );
+            let mut buf = GlyphonBuffer::new(
+                &mut state.font_system,
+                Metrics::new(
+                    LayoutConstants::SMALL_FONT_SIZE,
+                    LayoutConstants::LINE_HEIGHT,
+                ),
+            );
+            buf.set_text(
+                &mut state.font_system,
+                &text,
+                Attrs::new()
+                    .family(Family::SansSerif)
+                    .color(GlyphonColor::rgb(220, 220, 220)),
+                Shaping::Advanced,
+            );
+            buf.shape_until_scroll(&mut state.font_system, false);
+            let fb_width = 400.0;
+            let fb_height = 36.0;
+            let fb_x = state.layout.editor.x + state.layout.editor.width - fb_width - 20.0;
+            let fb_y = state.layout.editor.y + 4.0;
+            dynamic_buffers.push(buf);
+            dynamic_meta.push((fb_x + 10.0, fb_y + 10.0, fb_width - 20.0, fb_height - 8.0));
+        }
+
+        if replace_bar.visible {
+            let text = format!("Replace: {}", replace_bar.replace_text);
+            let mut buf = GlyphonBuffer::new(
+                &mut state.font_system,
+                Metrics::new(
+                    LayoutConstants::SMALL_FONT_SIZE,
+                    LayoutConstants::LINE_HEIGHT,
+                ),
+            );
+            buf.set_text(
+                &mut state.font_system,
+                &text,
+                Attrs::new()
+                    .family(Family::SansSerif)
+                    .color(GlyphonColor::rgb(220, 220, 220)),
+                Shaping::Advanced,
+            );
+            buf.shape_until_scroll(&mut state.font_system, false);
+            let fb_width = 400.0;
+            let fb_height = 36.0;
+            let fb_x = state.layout.editor.x + state.layout.editor.width - fb_width - 20.0;
+            let fb_y = state.layout.editor.y + 44.0;
+            dynamic_buffers.push(buf);
+            dynamic_meta.push((fb_x + 10.0, fb_y + 10.0, fb_width - 20.0, fb_height - 8.0));
+        }
+
+        if go_to_line.visible {
+            let text = format!("Go to line: {}", go_to_line.input);
+            let mut buf = GlyphonBuffer::new(
+                &mut state.font_system,
+                Metrics::new(
+                    LayoutConstants::SMALL_FONT_SIZE,
+                    LayoutConstants::LINE_HEIGHT,
+                ),
+            );
+            buf.set_text(
+                &mut state.font_system,
+                &text,
+                Attrs::new()
+                    .family(Family::SansSerif)
+                    .color(GlyphonColor::rgb(220, 220, 220)),
+                Shaping::Advanced,
+            );
+            buf.shape_until_scroll(&mut state.font_system, false);
+            let g_width = 240.0;
+            let g_height = 36.0;
+            let g_x = state.layout.editor.x + state.layout.editor.width - g_width - 20.0;
+            let g_y = state.layout.editor.y + 4.0;
+            dynamic_buffers.push(buf);
+            dynamic_meta.push((g_x + 10.0, g_y + 10.0, g_width - 20.0, g_height - 8.0));
+        }
+
+        if command_palette.visible {
+            let mut cp_text = format!("> {}\n\n", command_palette.query);
+            for (i, idx) in command_palette.filtered.iter().take(10).enumerate() {
+                if let Some(cmd) = command_palette.commands.get(*idx) {
+                    let prefix = if i == 0 { ">" } else { " " };
+                    cp_text.push_str(&format!("{} {}\n", prefix, cmd.label));
+                }
+            }
+            let mut buf = GlyphonBuffer::new(
+                &mut state.font_system,
+                Metrics::new(
+                    LayoutConstants::SMALL_FONT_SIZE,
+                    LayoutConstants::LINE_HEIGHT,
+                ),
+            );
+            buf.set_text(
+                &mut state.font_system,
+                &cp_text,
+                Attrs::new()
+                    .family(Family::SansSerif)
+                    .color(GlyphonColor::rgb(220, 220, 220)),
+                Shaping::Advanced,
+            );
+            buf.shape_until_scroll(&mut state.font_system, false);
+            let cp_width = 500.0;
+            let cp_height = 300.0;
+            let (w, _) = state.gpu.size();
+            let cp_x = (w as f32 - cp_width) / 2.0;
+            let cp_y = 80.0;
+            dynamic_buffers.push(buf);
+            dynamic_meta.push((cp_x + 10.0, cp_y + 10.0, cp_width - 20.0, cp_height - 20.0));
+        }
 
         // 1. Tabs
         if !state.tab_manager.tabs.is_empty() {
@@ -1090,51 +1224,68 @@ impl Application {
             for (text, x, y, color, _is_active, _is_mod) in tab_positions {
                 let mut buf = GlyphonBuffer::new(
                     &mut state.font_system,
-                    Metrics::new(LayoutConstants::SMALL_FONT_SIZE, LayoutConstants::LINE_HEIGHT)
+                    Metrics::new(
+                        LayoutConstants::SMALL_FONT_SIZE,
+                        LayoutConstants::LINE_HEIGHT,
+                    ),
                 );
                 let c = GlyphonColor::rgb(
-                    (color[0]*255.0) as u8,
-                    (color[1]*255.0) as u8,
-                    (color[2]*255.0) as u8
+                    (color[0] * 255.0) as u8,
+                    (color[1] * 255.0) as u8,
+                    (color[2] * 255.0) as u8,
                 );
                 buf.set_text(
                     &mut state.font_system,
                     &text,
                     Attrs::new().family(Family::SansSerif).color(c),
-                    Shaping::Advanced
+                    Shaping::Advanced,
                 );
                 buf.shape_until_scroll(&mut state.font_system, false);
                 dynamic_buffers.push(buf);
-                dynamic_meta.push((x, y, LayoutConstants::TAB_WIDTH, LayoutConstants::TAB_BAR_HEIGHT));
+                dynamic_meta.push((
+                    x,
+                    y,
+                    LayoutConstants::TAB_WIDTH,
+                    LayoutConstants::TAB_BAR_HEIGHT,
+                ));
             }
         } else {
-             // Handle "Welcome" text in static tab_buffer
-             state.tab_buffer.set_text(
-                 &mut state.font_system,
-                 "  Welcome",
-                 Attrs::new().family(Family::SansSerif).color(GlyphonColor::rgb(200, 200, 200)),
-                 Shaping::Advanced
-             );
-             state.tab_buffer.shape_until_scroll(&mut state.font_system, false);
+            // Handle "Welcome" text in static tab_buffer
+            state.tab_buffer.set_text(
+                &mut state.font_system,
+                "  Welcome",
+                Attrs::new()
+                    .family(Family::SansSerif)
+                    .color(GlyphonColor::rgb(200, 200, 200)),
+                Shaping::Advanced,
+            );
+            state
+                .tab_buffer
+                .shape_until_scroll(&mut state.font_system, false);
         }
 
         // 2. Status Bar
-        let status_positions = state.status_bar_state.text_positions(&state.layout.status_bar, theme);
+        let status_positions = state
+            .status_bar_state
+            .text_positions(&state.layout.status_bar, theme);
         for (text, x, y, color) in status_positions {
             let mut buf = GlyphonBuffer::new(
                 &mut state.font_system,
-                Metrics::new(LayoutConstants::SMALL_FONT_SIZE, LayoutConstants::LINE_HEIGHT)
+                Metrics::new(
+                    LayoutConstants::SMALL_FONT_SIZE,
+                    LayoutConstants::LINE_HEIGHT,
+                ),
             );
-             let c = GlyphonColor::rgb(
-                (color[0]*255.0) as u8,
-                (color[1]*255.0) as u8,
-                (color[2]*255.0) as u8
+            let c = GlyphonColor::rgb(
+                (color[0] * 255.0) as u8,
+                (color[1] * 255.0) as u8,
+                (color[2] * 255.0) as u8,
             );
             buf.set_text(
                 &mut state.font_system,
                 &text,
                 Attrs::new().family(Family::SansSerif).color(c),
-                Shaping::Advanced
+                Shaping::Advanced,
             );
             buf.shape_until_scroll(&mut state.font_system, false);
             dynamic_buffers.push(buf);
@@ -1143,26 +1294,33 @@ impl Application {
         }
 
         // 3. Activity Bar
-        let ab_positions = state.activity_bar.text_positions(&state.layout.activity_bar, theme);
+        let ab_positions = state
+            .activity_bar
+            .text_positions(&state.layout.activity_bar, theme);
         for (text, x, y, color) in ab_positions {
-             let mut buf = GlyphonBuffer::new(
+            let mut buf = GlyphonBuffer::new(
                 &mut state.font_system,
-                Metrics::new(24.0, LayoutConstants::ACTIVITY_BAR_WIDTH)
+                Metrics::new(24.0, LayoutConstants::ACTIVITY_BAR_WIDTH),
             );
-             let c = GlyphonColor::rgb(
-                (color[0]*255.0) as u8,
-                (color[1]*255.0) as u8,
-                (color[2]*255.0) as u8
+            let c = GlyphonColor::rgb(
+                (color[0] * 255.0) as u8,
+                (color[1] * 255.0) as u8,
+                (color[2] * 255.0) as u8,
             );
             buf.set_text(
                 &mut state.font_system,
                 text,
                 Attrs::new().family(Family::SansSerif).color(c),
-                Shaping::Advanced
+                Shaping::Advanced,
             );
             buf.shape_until_scroll(&mut state.font_system, false);
             dynamic_buffers.push(buf);
-            dynamic_meta.push((x, y, LayoutConstants::ACTIVITY_BAR_WIDTH, LayoutConstants::ACTIVITY_BAR_WIDTH));
+            dynamic_meta.push((
+                x,
+                y,
+                LayoutConstants::ACTIVITY_BAR_WIDTH,
+                LayoutConstants::ACTIVITY_BAR_WIDTH,
+            ));
         }
 
         // ─── UPDATE VIEWPORT ───
@@ -1315,9 +1473,13 @@ impl Application {
         // ─── GPU RENDER PASS ───
         // Prepare target texture (either offscreen for screenshot or surface for display)
         let (view, offscreen_texture, surface_texture) = if screenshot_path.is_some() {
-             let desc = wgpu::TextureDescriptor {
+            let desc = wgpu::TextureDescriptor {
                 label: Some("Screenshot Texture"),
-                size: wgpu::Extent3d { width, height, depth_or_array_layers: 1 },
+                size: wgpu::Extent3d {
+                    width,
+                    height,
+                    depth_or_array_layers: 1,
+                },
                 mip_level_count: 1,
                 sample_count: 1,
                 dimension: wgpu::TextureDimension::D2,
@@ -1344,7 +1506,9 @@ impl Application {
                     return;
                 }
             };
-            let view = surface_texture.texture.create_view(&wgpu::TextureViewDescriptor::default());
+            let view = surface_texture
+                .texture
+                .create_view(&wgpu::TextureViewDescriptor::default());
             (view, None, Some(surface_texture))
         };
 
@@ -1449,7 +1613,8 @@ impl Application {
                 let data = buffer_slice.get_mapped_range();
 
                 use image::{ImageBuffer, Rgba};
-                let mut img_buf = ImageBuffer::<Rgba<u8>, _>::from_raw(width, height, data.to_vec()).unwrap();
+                let mut img_buf =
+                    ImageBuffer::<Rgba<u8>, _>::from_raw(width, height, data.to_vec()).unwrap();
 
                 // Swap BGR to RGB if needed (assuming BGRA surface format which is common)
                 // If the offscreen texture format is specifically requested as RGBA, we might not need this.
@@ -1470,10 +1635,10 @@ impl Application {
             // Exit after taking screenshot
             std::process::exit(0);
         } else {
-             state.gpu.queue.submit(std::iter::once(encoder.finish()));
-             if let Some(st) = surface_texture {
-                 st.present();
-             }
+            state.gpu.queue.submit(std::iter::once(encoder.finish()));
+            if let Some(st) = surface_texture {
+                st.present();
+            }
         }
 
         state.frame_timer.end_frame();
@@ -1667,6 +1832,9 @@ impl ApplicationHandler for Application {
                     }
                     Key::Character(ref c) if ctrl => match c.as_str() {
                         "p" if shift => {
+                            self.find_bar.close();
+                            self.replace_bar.close();
+                            self.go_to_line.cancel();
                             self.command_palette.open();
                             state.window.request_redraw();
                         }
@@ -1692,12 +1860,22 @@ impl ApplicationHandler for Application {
                             state.window.request_redraw();
                         }
                         "f" => {
+                            self.command_palette.close();
+                            self.go_to_line.cancel();
+                            self.replace_bar.close();
                             self.find_bar.open();
                             state.window.request_redraw();
                         }
                         "h" => {
-                            // TODO: Toggle Replace Bar
-                            tracing::info!("Ctrl+H: Toggle Replace Bar");
+                            self.command_palette.close();
+                            self.go_to_line.cancel();
+                            self.find_bar.open();
+                            if self.replace_bar.visible {
+                                self.replace_bar.close();
+                            } else {
+                                self.replace_bar.open();
+                            }
+                            state.window.request_redraw();
                         }
                         "`" => {
                             self.bottom_panel.toggle();
@@ -1724,16 +1902,53 @@ impl ApplicationHandler for Application {
                             state.window.request_redraw();
                         }
                         "g" => {
-                            // TODO: Toggle Go To Line
-                            tracing::info!("Ctrl+G: Toggle Go To Line");
+                            self.command_palette.close();
+                            self.find_bar.close();
+                            self.replace_bar.close();
+                            if self.go_to_line.visible {
+                                self.go_to_line.cancel();
+                            } else {
+                                self.go_to_line.open();
+                            }
+                            state.window.request_redraw();
                         }
                         "\\" => {
-                            // TODO: Split Editor
-                            tracing::info!("Ctrl+\\: Split Editor");
+                            self.notifications.show(
+                                "Split editor is not available yet.",
+                                crate::notifications::Level::Warning,
+                            );
+                            state.window.request_redraw();
                         }
                         "k" => {
-                            // TODO: Handle Chords (Ctrl+K ...)
-                            tracing::info!("Ctrl+K: Chord started (Zen Mode TODO)");
+                            if self.zen_mode.active {
+                                if let Some(prev_layout) = self.zen_mode.exit() {
+                                    state.sidebar_open = prev_layout.sidebar.is_some();
+                                    state.ai_panel_open = prev_layout.ai_panel.is_some();
+                                    self.bottom_panel.visible = prev_layout.bottom_panel.is_some();
+                                    let (w, h) = state.gpu.size();
+                                    state.layout = LayoutZones::compute(
+                                        w as f32,
+                                        h as f32,
+                                        state.sidebar_open,
+                                        state.ai_panel_open,
+                                        self.bottom_panel.visible,
+                                    );
+                                }
+                            } else {
+                                self.zen_mode.enter(state.layout.clone());
+                                state.sidebar_open = false;
+                                state.ai_panel_open = false;
+                                self.bottom_panel.visible = false;
+                                let (w, h) = state.gpu.size();
+                                state.layout = LayoutZones::compute(
+                                    w as f32,
+                                    h as f32,
+                                    state.sidebar_open,
+                                    state.ai_panel_open,
+                                    self.bottom_panel.visible,
+                                );
+                            }
+                            state.window.request_redraw();
                         }
                         "s" => {
                             // Atomic save via forge-core FileIO
@@ -1862,7 +2077,13 @@ impl ApplicationHandler for Application {
                     }
 
                     Key::Named(NamedKey::Backspace) => {
-                        if self.find_bar.visible {
+                        if self.command_palette.visible {
+                            self.command_palette.backspace();
+                        } else if self.go_to_line.visible {
+                            self.go_to_line.input.pop();
+                        } else if self.replace_bar.visible {
+                            self.replace_bar.replace_text.pop();
+                        } else if self.find_bar.visible {
                             self.find_bar.query.pop();
                             if let Some(ed) = state.tab_manager.active_editor() {
                                 let text = ed.buffer.text();
@@ -1892,7 +2113,149 @@ impl ApplicationHandler for Application {
                         }
                     }
                     Key::Named(NamedKey::Enter) => {
-                        if self.find_bar.visible {
+                        if self.command_palette.visible {
+                            if let Some((cmd_id, cmd_label)) = self
+                                .command_palette
+                                .select(0)
+                                .map(|cmd| (cmd.id.clone(), cmd.label.clone()))
+                            {
+                                self.command_palette.close();
+                                match cmd_id.as_str() {
+                                    "edit.find" => {
+                                        self.find_bar.open();
+                                        self.go_to_line.cancel();
+                                        self.replace_bar.close();
+                                    }
+                                    "edit.replace" => {
+                                        self.find_bar.open();
+                                        self.go_to_line.cancel();
+                                        self.replace_bar.open();
+                                    }
+                                    "view.terminal" => {
+                                        self.bottom_panel.toggle();
+                                        state.bottom_panel_focused = self.bottom_panel.visible;
+                                        if self.bottom_panel.visible && state.terminal.is_none() {
+                                            match forge_terminal::Terminal::new() {
+                                                Ok(term) => state.terminal = Some(term),
+                                                Err(e) => tracing::warn!("Terminal failed: {}", e),
+                                            }
+                                        }
+                                        let (w, h) = state.gpu.size();
+                                        state.layout = LayoutZones::compute(
+                                            w as f32,
+                                            h as f32,
+                                            state.sidebar_open,
+                                            state.ai_panel_open,
+                                            self.bottom_panel.visible,
+                                        );
+                                    }
+                                    "view.sidebar" => {
+                                        state.sidebar_open = !state.sidebar_open;
+                                        let (w, h) = state.gpu.size();
+                                        state.layout = LayoutZones::compute(
+                                            w as f32,
+                                            h as f32,
+                                            state.sidebar_open,
+                                            state.ai_panel_open,
+                                            self.bottom_panel.visible,
+                                        );
+                                    }
+                                    "file.save" => {
+                                        if let Some(tab) =
+                                            state.tab_manager.tabs.get(state.tab_manager.active)
+                                        {
+                                            if let Some(ref path) = tab.path {
+                                                if let Some(ed) = state.tab_manager.active_editor()
+                                                {
+                                                    let text = ed.buffer.text();
+                                                    if let Err(e) =
+                                                        forge_core::file_io::FileIO::save_atomic(
+                                                            path, &text,
+                                                        )
+                                                    {
+                                                        tracing::error!("Save failed: {}", e);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        if let Some(tab) =
+                                            state.tab_manager.tabs.get_mut(state.tab_manager.active)
+                                        {
+                                            tab.is_modified = false;
+                                        }
+                                    }
+                                    "file.close" => {
+                                        state.tab_manager.close_current();
+                                    }
+                                    _ => {
+                                        self.notifications.show(
+                                            &format!("Command '{}' is not wired yet.", cmd_label),
+                                            crate::notifications::Level::Info,
+                                        );
+                                    }
+                                }
+                            } else {
+                                self.command_palette.close();
+                            }
+                        } else if self.go_to_line.visible {
+                            if let Some((line, col_opt)) = self.go_to_line.confirm() {
+                                if let Some(ed) = state.tab_manager.active_editor_mut() {
+                                    let max_line = ed.total_lines().saturating_sub(1);
+                                    let target_line = line.min(max_line);
+                                    let target_col = col_opt.unwrap_or(0);
+                                    let line_start = ed.buffer.line_col_to_offset(target_line, 0);
+                                    let text = ed.buffer.text();
+                                    let line_len =
+                                        text[line_start..].lines().next().unwrap_or("").len();
+                                    let target_col = target_col.min(line_len);
+                                    let offset =
+                                        ed.buffer.line_col_to_offset(target_line, target_col);
+                                    ed.buffer.set_selection(forge_core::Selection::point(
+                                        forge_core::Position::new(offset),
+                                    ));
+                                    ed.set_scroll_top(target_line.saturating_sub(5));
+                                }
+                            }
+                            self.go_to_line.cancel();
+                        } else if self.replace_bar.visible {
+                            let current_match = self
+                                .find_bar
+                                .current_match
+                                .and_then(|idx| self.find_bar.matches.get(idx).cloned());
+                            if let Some(m) = current_match {
+                                if let Some(ed) = state.tab_manager.active_editor_mut() {
+                                    let start = ed.buffer.line_col_to_offset(m.line, m.start_col);
+                                    let end = ed.buffer.line_col_to_offset(m.line, m.end_col);
+                                    let replacement = self.replace_bar.replace_text.clone();
+                                    let change = forge_core::Change::replace(
+                                        forge_core::Position::new(start),
+                                        forge_core::Position::new(end),
+                                        replacement.clone(),
+                                    );
+                                    let tx = forge_core::Transaction::new(
+                                        forge_core::ChangeSet::with_change(change),
+                                        Some(forge_core::Selection::point(
+                                            forge_core::Position::new(start + replacement.len()),
+                                        )),
+                                    );
+                                    ed.buffer.apply(tx);
+                                    ed.rehighlight();
+                                    let text = ed.buffer.text();
+                                    let query = self.find_bar.query.clone();
+                                    self.find_bar.search(&text, &query);
+                                }
+                                if let Some(tab) =
+                                    state.tab_manager.tabs.get_mut(state.tab_manager.active)
+                                {
+                                    tab.is_modified = true;
+                                }
+                            } else {
+                                self.notifications.show(
+                                    "No active match to replace.",
+                                    crate::notifications::Level::Info,
+                                );
+                            }
+                        } else if self.find_bar.visible {
                             // Navigate to next match when Enter is pressed in find bar
                             if let Some(m) = self.find_bar.next_match() {
                                 let target_line = m.line;
@@ -1920,6 +2283,12 @@ impl ApplicationHandler for Application {
                         if self.find_bar.visible {
                             self.find_bar.close();
                         }
+                        if self.replace_bar.visible {
+                            self.replace_bar.close();
+                        }
+                        if self.go_to_line.visible {
+                            self.go_to_line.cancel();
+                        }
                         if self.command_palette.visible {
                             self.command_palette.close();
                         }
@@ -1941,8 +2310,19 @@ impl ApplicationHandler for Application {
                     }
 
                     Key::Character(ref c) if !ctrl => {
-                        // Route input to find bar if it's visible
-                        if self.find_bar.visible {
+                        if self.command_palette.visible {
+                            for ch in c.chars() {
+                                self.command_palette.type_char(ch);
+                            }
+                        } else if self.go_to_line.visible {
+                            for ch in c.chars() {
+                                if ch.is_ascii_digit() || ch == ':' {
+                                    self.go_to_line.type_char(ch);
+                                }
+                            }
+                        } else if self.replace_bar.visible {
+                            self.replace_bar.replace_text.push_str(c);
+                        } else if self.find_bar.visible {
                             self.find_bar.query.push_str(c);
                             // Live search as user types
                             if let Some(ed) = state.tab_manager.active_editor() {
@@ -2006,9 +2386,11 @@ impl ApplicationHandler for Application {
                     &self.theme,
                     &mut self.bottom_panel,
                     &self.find_bar,
+                    &self.replace_bar,
+                    &self.go_to_line,
                     &self.command_palette,
                     &self.settings_ui,
-                    &self.notifications,
+                    &mut self.notifications,
                     &self.context_menu,
                     self.screenshot_path.as_ref(),
                 );

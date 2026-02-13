@@ -1,8 +1,8 @@
 use anyhow::{Context, Result};
 use std::process::Stdio;
-use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::io::BufReader;
 use tokio::process::{Child, ChildStdin, ChildStdout, Command};
-use tracing::{error, info};
+use tracing::info;
 
 pub struct LspServer {
     process: Child,

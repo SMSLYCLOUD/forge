@@ -6,12 +6,11 @@ use lsp_types::{
     DidChangeTextDocumentParams, DidOpenTextDocumentParams, Hover, HoverParams, InitializeParams,
     InitializeResult, InitializedParams, Position, TextDocumentContentChangeEvent,
     TextDocumentIdentifier, TextDocumentItem, TextDocumentPositionParams, Uri,
-    VersionedTextDocumentIdentifier,
+    VersionedTextDocumentIdentifier, WorkspaceFolder,
 };
 use serde_json::json;
 use std::str::FromStr;
 use std::sync::atomic::{AtomicI64, Ordering};
-use tokio::io::BufReader;
 use url::Url;
 
 pub struct LspClient {
@@ -44,14 +43,22 @@ impl LspClient {
         Ok(())
     }
 
-    pub async fn initialize(&self, root_uri: Url) -> Result<InitializeResult> {
+    pub async fn initialize(&self, root_url: Url) -> Result<InitializeResult> {
         let root_uri =
-            Uri::from_str(root_uri.as_str()).map_err(|e| anyhow::anyhow!("Invalid URI: {}", e))?;
+            Uri::from_str(root_url.as_str()).map_err(|e| anyhow::anyhow!("Invalid URI: {}", e))?;
+        let workspace_name = root_url
+            .path_segments()
+            .and_then(|segments| segments.filter(|s| !s.is_empty()).next_back())
+            .unwrap_or("workspace")
+            .to_string();
 
         let params = InitializeParams {
             process_id: Some(std::process::id()),
-            root_uri: Some(root_uri),
             capabilities: ClientCapabilities::default(),
+            workspace_folders: Some(vec![WorkspaceFolder {
+                uri: root_uri,
+                name: workspace_name,
+            }]),
             ..Default::default()
         };
 

@@ -247,7 +247,9 @@ impl LayoutZones {
         let tab_bar_bg = theme
             .color("editorGroupHeader.tabsBackground")
             .unwrap_or(colors::TAB_BAR);
-        let tab_border = theme.color("editorGroup.border").unwrap_or(colors::SEPARATOR);
+        let tab_border = theme
+            .color("editorGroup.border")
+            .unwrap_or(colors::SEPARATOR);
 
         let breadcrumb_bg = theme
             .color("breadcrumb.background")
@@ -299,8 +301,8 @@ impl LayoutZones {
         // ─── Tab Bar ───
         rects.push(self.tab_bar.to_rect(tab_bar_bg));
         // Bottom border of tab bar (editorGroup.border or contrastBorder)
-         // In VS Code, tab bar often doesn't have a bottom border, but the active tab might cover it.
-         // We'll skip a global bottom border for now to avoid clipping active tab, or make it subtle.
+        // In VS Code, tab bar often doesn't have a bottom border, but the active tab might cover it.
+        // We'll skip a global bottom border for now to avoid clipping active tab, or make it subtle.
 
         // ─── Breadcrumb Bar ───
         rects.push(self.breadcrumb_bar.to_rect(breadcrumb_bg));

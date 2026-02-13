@@ -89,7 +89,9 @@ impl StatusBar {
     pub fn build_items(&self, theme: &forge_theme::Theme) -> Vec<StatusItem> {
         let mut items = Vec::with_capacity(16);
 
-        let error_fg = theme.color("editorError.foreground").unwrap_or(colors::ERROR);
+        let error_fg = theme
+            .color("editorError.foreground")
+            .unwrap_or(colors::ERROR);
         // let warning_fg = theme.color("editorWarning.foreground").unwrap_or(colors::WARNING);
 
         // LEFT SIDE items
@@ -189,7 +191,7 @@ impl StatusBar {
 
         // Confidence score
         if let Some(score) = self.confidence_score {
-             items.push(StatusItem {
+            items.push(StatusItem {
                 text: format!("⚡ {:.1}%", score),
                 tooltip: format!("Confidence Score: {:.1}%", score),
                 color: Some(if score > 80.0 {
@@ -231,14 +233,20 @@ impl StatusBar {
     /// Get text positions for rendering
     /// Returns (text, x, y, color) tuples
     #[allow(dead_code)]
-    pub fn text_positions(&self, zone: &Zone, theme: &forge_theme::Theme) -> Vec<(String, f32, f32, [f32; 4])> {
+    pub fn text_positions(
+        &self,
+        zone: &Zone,
+        theme: &forge_theme::Theme,
+    ) -> Vec<(String, f32, f32, [f32; 4])> {
         let items = self.build_items(theme);
         let mut result = Vec::with_capacity(items.len());
         let text_y = zone.y + (zone.height - LayoutConstants::SMALL_FONT_SIZE) / 2.0;
         let char_width = LayoutConstants::CHAR_WIDTH;
         let padding = 12.0;
 
-        let default_fg = theme.color("statusBar.foreground").unwrap_or(colors::TEXT_WHITE);
+        let default_fg = theme
+            .color("statusBar.foreground")
+            .unwrap_or(colors::TEXT_WHITE);
 
         // Left items
         let mut left_x = zone.x + padding;

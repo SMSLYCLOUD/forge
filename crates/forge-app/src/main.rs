@@ -83,7 +83,7 @@ pub mod search_panel;
 pub mod terminal_ui;
 // pub mod workspace_symbols;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use tracing::info;
 use winit::event_loop::EventLoop;
 
@@ -93,20 +93,39 @@ fn main() -> Result<()> {
     info!("🔥 Forge Editor starting...");
 
     // Determine file to open from command line args
-    let mut args = std::env::args().skip(1);
+    let mut args = std::env::args().skip(1).peekable();
     let mut file_path = None;
     let mut screenshot_path = None;
 
     while let Some(arg) = args.next() {
-        if arg == "--screenshot" {
-            // Use default name or next arg? Let's strictly require a path or default to screenshot.png if flag present?
-            // User requirement says "Update main.rs to accept a --screenshot argument".
-            // Let's assume usage: forge <file> --screenshot <path> or forge --screenshot
-            // For simplicity: if arg == "--screenshot", we set a flag.
-            // But I will set a hardcoded path for now or look for next arg.
-            screenshot_path = Some("screenshot.png".to_string());
-        } else if !arg.starts_with("--") {
-            file_path = Some(arg);
+        match arg.as_str() {
+            "--help" | "-h" => {
+                println!("Usage: forge [FILE] [--screenshot [PATH]]");
+                println!("  FILE                    Optional file path to open");
+                println!("  --screenshot [PATH]     Render one frame and save as PNG");
+                return Ok(());
+            }
+            "--screenshot" => {
+                if let Some(next) = args.peek() {
+                    if next.starts_with("--") {
+                        screenshot_path = Some("screenshot.png".to_string());
+                    } else {
+                        screenshot_path = args.next();
+                    }
+                } else {
+                    screenshot_path = Some("screenshot.png".to_string());
+                }
+            }
+            _ if arg.starts_with("--") => {
+                return Err(anyhow!("Unknown argument: {}", arg));
+            }
+            _ => {
+                if file_path.is_none() {
+                    file_path = Some(arg);
+                } else {
+                    return Err(anyhow!("Only one input file is supported"));
+                }
+            }
         }
     }
 
