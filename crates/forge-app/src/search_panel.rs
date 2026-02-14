@@ -21,7 +21,10 @@ pub struct SearchPanel {
     // Async search handling
     tx: Sender<Vec<SearchResult>>,
     rx: Receiver<Vec<SearchResult>>,
-    searching: bool,
+    pub searching: bool,
+
+    // UI renderer state
+    pub ui: crate::search_results_ui::SearchResultsUi,
 }
 
 impl Default for SearchPanel {
@@ -41,6 +44,7 @@ impl Default for SearchPanel {
             tx,
             rx,
             searching: false,
+            ui: crate::search_results_ui::SearchResultsUi::new(),
         }
     }
 }

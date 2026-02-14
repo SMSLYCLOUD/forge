@@ -80,6 +80,7 @@ pub mod go_to_def;
 pub mod outline_panel;
 pub mod references;
 pub mod search_panel;
+pub mod search_results_ui;
 pub mod terminal_ui;
 pub mod workspace_symbols;
 

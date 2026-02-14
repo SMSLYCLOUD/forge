@@ -222,6 +222,18 @@ struct AppState {
     // Organism
     #[allow(dead_code)]
     organism_state: SharedOrganismState,
+
+    // Sidebar Mode
+    sidebar_mode: crate::ui::SidebarMode,
+
+    // Event Loop Proxy (for async callbacks)
+    event_tx: std::sync::mpsc::Sender<AppEvent>,
+    event_rx: std::sync::mpsc::Receiver<AppEvent>,
+}
+
+#[derive(Debug)]
+pub enum AppEvent {
+    GoToLocation(lsp_types::Location),
 }
 
 impl Application {
@@ -482,6 +494,8 @@ impl Application {
             std::time::Duration::from_millis(250),
         );
 
+        let (event_tx, event_rx) = std::sync::mpsc::channel();
+
         self.state = Some(AppState {
             window,
             gpu,
@@ -526,7 +540,42 @@ impl Application {
             frame_timer: FrameTimer::new(),
             render_batch: RenderBatch::new(),
             organism_state,
+            sidebar_mode: crate::ui::SidebarMode::Explorer,
+            event_tx,
+            event_rx,
         });
+    }
+
+    /// Handle application events (async callbacks)
+    fn handle_app_events(state: &mut AppState) {
+        while let Ok(event) = state.event_rx.try_recv() {
+            match event {
+                AppEvent::GoToLocation(loc) => {
+                    // Convert lsp_types::Uri to url::Url manually to access to_file_path
+                    let uri_str = loc.uri.as_str();
+                    if let Ok(url) = url::Url::parse(uri_str) {
+                        if let Ok(path) = url.to_file_path() {
+                            let path_str = path.to_string_lossy().to_string();
+                            if let Err(e) = state.tab_manager.open_file(&path_str) {
+                                tracing::error!("Failed to open definition file: {}", e);
+                            } else if let Some(ed) = state.tab_manager.active_editor_mut() {
+                                // Move cursor
+                                let line = loc.range.start.line as usize;
+                                let col = loc.range.start.character as usize;
+                                let offset = ed.buffer.line_col_to_offset(line, col);
+                                ed.buffer.set_selection(forge_core::Selection::point(forge_core::Position::new(offset)));
+                                ed.set_scroll_top(line.saturating_sub(5));
+                                tracing::info!("Jumped to definition: {}:{}", path_str, line);
+                            }
+                        } else {
+                            tracing::warn!("GoToDef: Could not convert URL to file path: {}", url);
+                        }
+                    } else {
+                        tracing::warn!("GoToDef: Invalid URI: {}", uri_str);
+                    }
+                }
+            }
+        }
     }
 
     /// Main render function
@@ -539,6 +588,7 @@ impl Application {
         replace_bar: &crate::replace_bar::ReplaceBar,
         go_to_line: &crate::go_to_line::GoToLine,
         command_palette: &crate::command_palette::CommandPalette,
+        search_panel: &mut crate::search_panel::SearchPanel,
         settings_ui: &crate::settings_ui::SettingsUi,
         notifications: &mut crate::notifications::NotificationManager,
         context_menu: &crate::context_menu::ContextMenu,
@@ -546,6 +596,7 @@ impl Application {
     ) {
         state.frame_timer.begin_frame();
         notifications.tick();
+        Self::handle_app_events(state);
 
         // Poll AI Agent
         if let Some(agent) = &mut state.agent {
@@ -1104,35 +1155,88 @@ impl Application {
 
         // 6. Sidebar text
         if state.sidebar_open {
-            let mut rich_spans = Vec::new();
+            let mut rich_spans: Vec<(String, Attrs)> = Vec::new();
             let header_attrs = Attrs::new()
                 .family(Family::SansSerif)
                 .weight(glyphon::Weight::BOLD)
                 .color(GlyphonColor::rgb(187, 187, 187)); // sideBarTitle.foreground
 
-            rich_spans.push(("  EXPLORER\n\n", header_attrs));
+            match state.sidebar_mode {
+                crate::ui::SidebarMode::Search => {
+                    rich_spans.push(("  SEARCH RESULTS\n\n".to_string(), header_attrs));
+                    if search_panel.results.is_empty() {
+                        let msg = if search_panel.searching { "  Searching..." } else { "  No results." };
+                        rich_spans.push((msg.to_string(), Attrs::new().family(Family::SansSerif).color(GlyphonColor::rgb(204, 204, 204))));
+                    } else if let Some(sidebar_zone) = &state.layout.sidebar {
+                        let zone = crate::ui::Zone {
+                            x: sidebar_zone.x,
+                            y: sidebar_zone.y + 30.0, // Offset for header
+                            width: sidebar_zone.width,
+                            height: sidebar_zone.height - 30.0,
+                        };
 
-            let item_attrs = Attrs::new()
-                .family(Family::SansSerif)
-                .color(GlyphonColor::rgb(204, 204, 204)); // sideBar.foreground
+                        let rects = search_panel.ui.render_rects(&search_panel.results, &zone, theme);
+                        state.render_batch.extend(&rects);
 
-            // We construct a single string for items but it's fine for now
-            // To properly do icons we might want separate spans but let's stick to text for efficiency
-            let mut content = String::new();
-            for node in &state.file_explorer.nodes {
-                let indent = "  ".repeat(node.depth + 1);
-                let icon = if node.is_dir {
-                    if node.expanded {
-                        forge_icons::UiIcon::FolderOpen.glyph()
-                    } else {
-                        forge_icons::UiIcon::Folder.glyph()
+                        let line_height = 24.0;
+                        let visible_count = (zone.height / line_height).ceil() as usize;
+                        let scroll = search_panel.ui.scroll_offset;
+
+                        let file_color = theme.color("sideBar.foreground").unwrap_or([0.8, 0.8, 0.8, 1.0]);
+                        let match_color = theme.color("editor.foreground").unwrap_or([0.9, 0.9, 0.9, 1.0]);
+
+                        let file_attrs = Attrs::new().family(Family::SansSerif).color(GlyphonColor::rgb(
+                            (file_color[0] * 255.0) as u8, (file_color[1] * 255.0) as u8, (file_color[2] * 255.0) as u8
+                        ));
+                        let match_attrs = Attrs::new().family(Family::SansSerif).color(GlyphonColor::rgb(
+                            (match_color[0] * 255.0) as u8, (match_color[1] * 255.0) as u8, (match_color[2] * 255.0) as u8
+                        ));
+
+                        for (_i, result) in search_panel.results.iter().enumerate().skip(scroll).take(visible_count) {
+                            let path = std::path::Path::new(&result.file);
+                            let filename = path.file_name().map(|s| s.to_string_lossy()).unwrap_or_default();
+                            rich_spans.push((format!("  {}:{}", filename, result.line), file_attrs));
+
+                            let snippet = result.text.trim();
+                            let max_len = 30;
+                            let display_snippet = if snippet.len() > max_len {
+                                format!(" {}...", &snippet[..max_len])
+                            } else {
+                                format!(" {}", snippet)
+                            };
+                            rich_spans.push((display_snippet, match_attrs));
+                            rich_spans.push(("\n".to_string(), file_attrs));
+                        }
                     }
-                } else {
-                    forge_icons::FileIcon::from_filename(&node.label).glyph()
-                };
-                content.push_str(&format!("{}{}{}\n", indent, icon, node.label));
+                }
+                crate::ui::SidebarMode::Debug => {
+                    let debug_text = state.debug_ui.render_text();
+                    rich_spans.push((debug_text, Attrs::new().family(Family::SansSerif).color(GlyphonColor::rgb(204, 204, 204))));
+                }
+                crate::ui::SidebarMode::Explorer => {
+                    rich_spans.push(("  EXPLORER\n\n".to_string(), header_attrs));
+                    let item_attrs = Attrs::new()
+                        .family(Family::SansSerif)
+                        .color(GlyphonColor::rgb(204, 204, 204));
+
+                    let mut content = String::new();
+                    for node in &state.file_explorer.nodes {
+                        let indent = "  ".repeat(node.depth + 1);
+                        let icon = if node.is_dir {
+                            if node.expanded {
+                                forge_icons::UiIcon::FolderOpen.glyph()
+                            } else {
+                                forge_icons::UiIcon::Folder.glyph()
+                            }
+                        } else {
+                            forge_icons::FileIcon::from_filename(&node.label).glyph()
+                        };
+                        content.push_str(&format!("{}{}{}\n", indent, icon, node.label));
+                    }
+                    rich_spans.push((content, item_attrs));
+                }
+                _ => {}
             }
-            rich_spans.push((&content, item_attrs));
 
             if let Some(ref sb) = state.layout.sidebar {
                 state.sidebar_buffer.set_size(
@@ -1141,10 +1245,12 @@ impl Application {
                     Some(sb.height),
                 );
             }
+
+            let rich_refs: Vec<(&str, Attrs)> = rich_spans.iter().map(|(s, a)| (s.as_str(), *a)).collect();
             state.sidebar_buffer.set_rich_text(
                 &mut state.font_system,
-                rich_spans,
-                item_attrs,
+                rich_refs,
+                Attrs::new(),
                 Shaping::Advanced,
             );
         } else {
@@ -1784,6 +1890,7 @@ impl Application {
         event: &WindowEvent,
         bottom_panel_visible: bool,
         context_menu: &mut crate::context_menu::ContextMenu,
+        search_panel: &mut crate::search_panel::SearchPanel,
         rt: &Arc<Runtime>,
         lsp_client: &Option<Arc<LspClient>>,
     ) {
@@ -1795,6 +1902,35 @@ impl Application {
             } => {
                 if *element_state == ElementState::Pressed {
                     if let Some((mx, my)) = state.last_mouse_position {
+                        // Search Panel Click
+                        if state.sidebar_open && search_panel.visible {
+                            if let Some(sb) = &state.layout.sidebar {
+                                if sb.contains(mx, my) {
+                                     let zone = crate::ui::Zone {
+                                        x: sb.x,
+                                        y: sb.y + 30.0,
+                                        width: sb.width,
+                                        height: sb.height - 30.0,
+                                    };
+                                    if let Some(idx) = search_panel.ui.handle_click(my, &zone) {
+                                        if let Some(res) = search_panel.results.get(idx) {
+                                            // Open file
+                                            if let Err(e) = state.tab_manager.open_file(&res.file) {
+                                                tracing::error!("Failed to open file: {}", e);
+                                            } else {
+                                                 if let Some(ed) = state.tab_manager.active_editor_mut() {
+                                                     let line = res.line.saturating_sub(1);
+                                                     let offset = ed.buffer.line_col_to_offset(line, 0);
+                                                     ed.buffer.set_selection(forge_core::Selection::point(forge_core::Position::new(offset)));
+                                                     ed.set_scroll_top(line.saturating_sub(5));
+                                                 }
+                                            }
+                                        }
+                                    }
+                                    return;
+                                }
+                            }
+                        }
                         if *button == winit::event::MouseButton::Right {
                             // Show context menu
                             context_menu.show(
@@ -1815,9 +1951,38 @@ impl Application {
                                     .activity_bar
                                     .handle_click(my, &state.layout.activity_bar)
                                 {
+                                    // Handle AI Agent separately (panel toggle)
                                     if item == crate::activity_bar::ActivityItem::AiAgent {
                                         state.ai_panel_open = !state.ai_panel_open;
+                                    } else {
+                                        // Update sidebar mode
+                                        match item {
+                                            crate::activity_bar::ActivityItem::Explorer => {
+                                                state.sidebar_mode = crate::ui::SidebarMode::Explorer;
+                                            }
+                                            crate::activity_bar::ActivityItem::Search => {
+                                                state.sidebar_mode = crate::ui::SidebarMode::Search;
+                                            }
+                                            crate::activity_bar::ActivityItem::Debug => {
+                                                state.sidebar_mode = crate::ui::SidebarMode::Debug;
+                                            }
+                                            crate::activity_bar::ActivityItem::Extensions => {
+                                                state.sidebar_mode = crate::ui::SidebarMode::Extensions;
+                                            }
+                                            _ => {}
+                                        }
+
+                                        // Sync sidebar visibility
+                                        if state.activity_bar.active_item.is_none() {
+                                            state.sidebar_open = false;
+                                        } else if item != crate::activity_bar::ActivityItem::AiAgent && item != crate::activity_bar::ActivityItem::Settings {
+                                            state.sidebar_open = true;
+                                        }
+
+                                        // Sync search panel visibility
+                                        search_panel.visible = state.sidebar_open && state.sidebar_mode == crate::ui::SidebarMode::Search;
                                     }
+
                                     let (w, h) = state.gpu.size();
                                     state.layout = LayoutZones::compute(
                                         w as f32,
@@ -2020,6 +2185,28 @@ impl ApplicationHandler for Application {
                                     "closed"
                                 }
                             );
+                            state.window.request_redraw();
+                        }
+                        "f" if shift => {
+                            self.command_palette.close();
+                            self.go_to_line.cancel();
+                            self.replace_bar.close();
+                            self.find_bar.close();
+
+                            // Open Search Sidebar
+                            state.sidebar_mode = crate::ui::SidebarMode::Search;
+                            state.sidebar_open = true;
+                            self.search_panel.visible = true;
+
+                            let cwd = std::env::current_dir().unwrap_or_default();
+                            // If selection exists, pre-fill query?
+                            // For now, if query is empty, use "TODO" or just focus
+                            if self.search_panel.query.is_empty() {
+                                self.search_panel.query = "".to_string();
+                            }
+                            // Don't auto-search on open unless we have context,
+                            // but existing logic did auto-search.
+
                             state.window.request_redraw();
                         }
                         "f" => {
@@ -2236,6 +2423,7 @@ impl ApplicationHandler for Application {
                                         line as u32,
                                         col as u32,
                                         &mut self.notifications,
+                                        state.event_tx.clone(),
                                     );
                                 }
                             }
@@ -2366,16 +2554,14 @@ impl ApplicationHandler for Application {
                                         self.replace_bar.open();
                                     }
                                             "edit.find_in_files" => {
-                                                // Trigger search panel (stub logic for now)
-                                                // Ideally we'd toggle a side panel or bottom panel for search
-                                                self.search_panel.visible = !self.search_panel.visible;
-                                                if self.search_panel.visible {
-                                                    let cwd = std::env::current_dir().unwrap_or_default();
-                                                    // Default search for selection or "TODO"
-                                                    self.search_panel.query = "TODO".to_string();
-                                                    self.search_panel.search(&cwd);
-                                                }
-                                                // Recompute layout if we had a dedicated zone
+                                        state.sidebar_mode = crate::ui::SidebarMode::Search;
+                                        state.sidebar_open = true;
+                                        self.search_panel.visible = true;
+
+                                        let cwd = std::env::current_dir().unwrap_or_default();
+                                        self.search_panel.query = "TODO".to_string();
+                                        self.search_panel.search(&cwd);
+
                                                 state.window.request_redraw();
                                             }
                                     "view.terminal" => {
@@ -2629,8 +2815,35 @@ impl ApplicationHandler for Application {
                         -pos.y / LayoutConstants::LINE_HEIGHT as f64
                     }
                 };
-                if let Some(ed) = state.tab_manager.active_editor_mut() {
-                    ed.scroll(scroll);
+
+                let mut handled = false;
+                if let Some((mx, my)) = state.last_mouse_position {
+                     if let Some(sb) = &state.layout.sidebar {
+                         if sb.contains(mx, my) && state.sidebar_open {
+                             if self.search_panel.visible {
+                                 let current = self.search_panel.ui.scroll_offset as isize;
+                                 // Scroll direction: positive 'scroll' (from delta y) means scrolling down (view moves down, content moves up)
+                                 // Usually wheel down gives negative y?
+                                 // Wait, my scroll calculation above: -y * 3.0.
+                                 // If I scroll down (wheel back), y is -1. scroll is 3.0.
+                                 // For editor, positive scroll increases scroll_top (moves view down).
+                                 // So here, positive scroll should increase scroll_offset.
+                                 let new_val = (current + scroll as isize).max(0);
+                                 // Clamp to max results
+                                 let max_scroll = self.search_panel.results.len().saturating_sub(1);
+                                 let clamped = (new_val as usize).min(max_scroll);
+
+                                 self.search_panel.ui.scroll_offset = clamped;
+                                 handled = true;
+                             }
+                         }
+                     }
+                }
+
+                if !handled {
+                    if let Some(ed) = state.tab_manager.active_editor_mut() {
+                        ed.scroll(scroll);
+                    }
                 }
                 state.window.request_redraw();
             }
@@ -2645,6 +2858,7 @@ impl ApplicationHandler for Application {
                     &self.replace_bar,
                     &self.go_to_line,
                     &self.command_palette,
+                    &mut self.search_panel,
                     &self.settings_ui,
                     &mut self.notifications,
                     &self.context_menu,
@@ -2658,6 +2872,7 @@ impl ApplicationHandler for Application {
                     &event,
                     self.bottom_panel.visible,
                     &mut self.context_menu,
+                    &mut self.search_panel,
                     &self.rt,
                     &self.lsp_client,
                 );

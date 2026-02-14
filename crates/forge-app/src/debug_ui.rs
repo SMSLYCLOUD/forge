@@ -95,4 +95,53 @@ impl DebugUi {
     }
 
     // UI rendering logic would go here
+    pub fn render_text(&self) -> String {
+        let mut text = String::new();
+
+        text.push_str("  RUN AND DEBUG\n\n");
+
+        if self.client.is_none() {
+            text.push_str("  No active debug session.\n");
+            text.push_str("  Press F5 to start (stub).\n");
+            return text;
+        }
+
+        // Breakpoints
+        text.push_str("  BREAKPOINTS\n");
+        if self.breakpoints.is_empty() {
+             text.push_str("    No breakpoints.\n");
+        } else {
+            for bp in &self.breakpoints {
+                let status = if bp.verified { "●" } else { "○" };
+                let path = std::path::Path::new(&bp.file);
+                let file = path.file_name().map(|s| s.to_string_lossy()).unwrap_or_default();
+                text.push_str(&format!("    {} {}:{}\n", status, file, bp.line));
+            }
+        }
+        text.push_str("\n");
+
+        // Call Stack
+        text.push_str("  CALL STACK\n");
+        if self.stack_frames.is_empty() {
+            text.push_str("    (Paused or Running)\n");
+        } else {
+            for frame in &self.stack_frames {
+                let arrow = if Some(frame.id) == self.active_frame_id { "→" } else { " " };
+                text.push_str(&format!("   {} {}\n", arrow, frame.name));
+            }
+        }
+        text.push_str("\n");
+
+        // Variables
+        text.push_str("  VARIABLES\n");
+        if self.variables.is_empty() {
+            text.push_str("    No variables.\n");
+        } else {
+            for (name, val) in &self.variables {
+                text.push_str(&format!("    {}: {}\n", name, val));
+            }
+        }
+
+        text
+    }
 }

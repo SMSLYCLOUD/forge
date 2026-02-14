@@ -145,6 +145,49 @@ impl LspClient {
         }
     }
 
+    pub async fn goto_definition(
+        &self,
+        uri: Url,
+        line: u32,
+        character: u32,
+    ) -> Result<Option<lsp_types::Location>> {
+        let uri = Uri::from_str(uri.as_str()).map_err(|e| anyhow::anyhow!("Invalid URI: {}", e))?;
+
+        let params = TextDocumentPositionParams {
+            text_document: TextDocumentIdentifier { uri },
+            position: Position { line, character },
+        };
+
+        let response = self.request("textDocument/definition", params).await?;
+
+        // Response can be Location | Location[] | LocationLink[] | null
+        if response.is_null() {
+            return Ok(None);
+        }
+
+        // Try single Location
+        if let Ok(loc) = serde_json::from_value::<lsp_types::Location>(response.clone()) {
+            return Ok(Some(loc));
+        }
+
+        // Try Vec<Location> - take first
+        if let Ok(locs) = serde_json::from_value::<Vec<lsp_types::Location>>(response.clone()) {
+            return Ok(locs.into_iter().next());
+        }
+
+        // Try LocationLink[] - map to Location (targetUri + targetRange)
+        if let Ok(links) = serde_json::from_value::<Vec<lsp_types::LocationLink>>(response) {
+            if let Some(link) = links.into_iter().next() {
+                return Ok(Some(lsp_types::Location {
+                    uri: link.target_uri,
+                    range: link.target_range,
+                }));
+            }
+        }
+
+        Ok(None)
+    }
+
     async fn request<T: serde::Serialize>(
         &self,
         method: &str,

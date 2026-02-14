@@ -1,5 +1,19 @@
 use crate::rect_renderer::Rect;
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum SidebarMode {
+    Explorer,
+    Search,
+    Debug,
+    Extensions,
+}
+
+impl Default for SidebarMode {
+    fn default() -> Self {
+        Self::Explorer
+    }
+}
+
 /// VS Code color scheme — dark theme (Fallback)
 pub mod colors {
     /// Activity bar background (#333333)
