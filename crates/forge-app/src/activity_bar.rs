@@ -10,21 +10,22 @@ pub enum ActivityItem {
     Debug,
     Extensions,
     AiAgent,
+    Account,
     Settings,
 }
 
 impl ActivityItem {
-    /// Unicode icon character for each item
-    /// We use standard unicode chars that look closest to VS Code icons
+    /// Unicode icon character for each item (using Codicons via forge-icons)
     pub fn icon_char(&self) -> &'static str {
         match self {
-            Self::Explorer => "🗂",      // Card Index Dividers (looks like files)
-            Self::Search => "🔍",       // Magnifying Glass
-            Self::SourceControl => "⎇", // Broken Circle (Git branch)
-            Self::Debug => "🐞",        // Lady Beetle
-            Self::Extensions => "🧩",   // Puzzle Piece
-            Self::AiAgent => "🤖",      // Robot Face
-            Self::Settings => "⚙",      // Gear
+            Self::Explorer => forge_icons::UiIcon::Folder.glyph(),
+            Self::Search => forge_icons::UiIcon::Search.glyph(),
+            Self::SourceControl => forge_icons::UiIcon::SourceControl.glyph(),
+            Self::Debug => forge_icons::UiIcon::Debug.glyph(),
+            Self::Extensions => forge_icons::UiIcon::Extensions.glyph(),
+            Self::AiAgent => forge_icons::UiIcon::AiAgent.glyph(),
+            Self::Account => forge_icons::UiIcon::Account.glyph(),
+            Self::Settings => forge_icons::UiIcon::Settings.glyph(),
         }
     }
 
@@ -38,6 +39,7 @@ impl ActivityItem {
             Self::Debug => "Run and Debug",
             Self::Extensions => "Extensions",
             Self::AiAgent => "AI Chat",
+            Self::Account => "Accounts",
             Self::Settings => "Settings",
         }
     }
@@ -56,7 +58,10 @@ impl ActivityItem {
 
     /// Bottom items (shown at bottom of activity bar)
     pub fn bottom_items() -> &'static [ActivityItem] {
-        &[ActivityItem::Settings]
+        &[
+            ActivityItem::Account,
+            ActivityItem::Settings
+        ]
     }
 }
 
