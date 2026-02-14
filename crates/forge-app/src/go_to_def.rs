@@ -1,5 +1,6 @@
-use crate::application::Application;
 use forge_lsp::LspClient;
+use lsp_types::Location;
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
 use url::Url;
@@ -14,24 +15,27 @@ impl GoToDef {
         line: u32,
         character: u32,
         notifications: &mut crate::notifications::NotificationManager,
+        event_proxy: std::sync::mpsc::Sender<crate::application::AppEvent>,
     ) {
         if let Some(client) = client {
             if let Ok(path_abs) = std::fs::canonicalize(file_path) {
                 if let Ok(uri) = Url::from_file_path(&path_abs) {
                     let client = client.clone();
-                    // Clone simple values to move into future
                     let uri = uri.clone();
-                    let file_path = file_path.to_string();
-
-                    // We need a way to communicate back to the UI thread.
-                    // Ideally we'd use a channel, but for now we'll just log/notify.
-                    // Since notifications is &mut, we can't capture it easily in async without interior mutability or channels.
-                    // For this minimum viable implementation, we will log to stdout and rely on a future mechanism to jump.
+                    let proxy = event_proxy.clone();
 
                     rt.spawn(async move {
-                        // TODO: Implement proper response handling and navigation
-                        // This stub satisfies the "integrate go_to_def" requirement by wiring the call
-                        tracing::info!("GoToDef request for {}:{}:{}", file_path, line, character);
+                        match client.goto_definition(uri, line, character).await {
+                            Ok(Some(location)) => {
+                                let _ = proxy.send(crate::application::AppEvent::GoToLocation(location));
+                            }
+                            Ok(None) => {
+                                tracing::info!("No definition found");
+                            }
+                            Err(e) => {
+                                tracing::error!("GoToDef error: {}", e);
+                            }
+                        }
                     });
                 }
             }
