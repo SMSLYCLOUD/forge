@@ -71,6 +71,7 @@ pub mod title_bar;
 pub mod word_wrap;
 
 // Session 3 - Terminal + Git + Search
+pub mod dock;
 pub mod diff_view;
 pub mod git_blame;
 pub mod git_branch;

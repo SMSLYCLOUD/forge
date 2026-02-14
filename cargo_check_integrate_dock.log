@@ -1,0 +1,54 @@
+warning: unused import: `Pixel`
+ --> crates/forge-test-tools/src/screenshot.rs:1:24
+  |
+1 | use image::{RgbaImage, Pixel};
+  |                        ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `ElementState` and `MouseButton`
+ --> crates/forge-test-tools/src/input_sim.rs:1:20
+  |
+1 | use winit::event::{ElementState, MouseButton, WindowEvent};
+  |                    ^^^^^^^^^^^^  ^^^^^^^^^^^
+
+warning: `forge-test-tools` (lib) generated 2 warnings (run `cargo fix --lib -p forge-test-tools` to apply 2 suggestions)
+    Checking forge-app v0.1.0 (/app/crates/forge-app)
+error[E0063]: missing field `color` in initializer of `rect_renderer::Rect`
+   --> crates/forge-app/src/application.rs:482:49
+    |
+482 |         let dock_map = dock_tree.compute_layout(crate::rect_renderer::Rect {
+    |                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^ missing `color`
+
+error[E0063]: missing field `color` in initializer of `rect_renderer::Rect`
+    --> crates/forge-app/src/application.rs:2206:83
+     |
+2206 | ...                   let dock_map = state.dock_tree.compute_layout(crate::rect_renderer::Rect {
+     |                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^ missing `color`
+
+error[E0063]: missing field `color` in initializer of `rect_renderer::Rect`
+    --> crates/forge-app/src/application.rs:2435:67
+     |
+2435 |                     let dock_map = state.dock_tree.compute_layout(crate::rect_renderer::Rect {
+     |                                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^ missing `color`
+
+error[E0063]: missing field `color` in initializer of `rect_renderer::Rect`
+    --> crates/forge-app/src/application.rs:2531:75
+     |
+2531 | ...                   let dock_map = state.dock_tree.compute_layout(crate::rect_renderer::Rect {
+     |                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^ missing `color`
+
+error[E0063]: missing field `color` in initializer of `rect_renderer::Rect`
+    --> crates/forge-app/src/application.rs:2600:75
+     |
+2600 | ...                   let dock_map = state.dock_tree.compute_layout(crate::rect_renderer::Rect {
+     |                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^ missing `color`
+
+error[E0063]: missing field `color` in initializer of `rect_renderer::Rect`
+    --> crates/forge-app/src/application.rs:2652:75
+     |
+2652 | ...                   let dock_map = state.dock_tree.compute_layout(crate::rect_renderer::Rect {
+     |                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^ missing `color`
+
+For more information about this error, try `rustc --explain E0063`.
+error: could not compile `forge-app` (bin "forge") due to 6 previous errors

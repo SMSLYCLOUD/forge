@@ -207,6 +207,7 @@ struct AppState {
     debug_zones: bool,
 
     // UI components
+    dock_tree: crate::dock::DockTree,
     layout: LayoutZones,
     tab_bar: TabBar,
     activity_bar: ActivityBar,
@@ -476,8 +477,18 @@ impl Application {
         // Init rectangle renderer
         let rect_renderer = RectRenderer::new(&gpu.device, gpu.format());
 
-        // Compute layout
-        let layout = LayoutZones::compute(width as f32, height as f32, true, false, false);
+        // Init DockTree
+        let dock_tree = crate::dock::DockTree::default_layout();
+        let dock_map = dock_tree.compute_layout(crate::rect_renderer::Rect {
+            x: 0.0,
+            y: 0.0,
+            width: width as f32,
+            height: height as f32,
+            color: [0.0; 4],
+        });
+
+        // Compute layout from dock
+        let layout = LayoutZones::from_dock_layout(dock_map, width as f32, height as f32);
 
         // Init UI components
         let tab_bar = TabBar::new();
@@ -552,6 +563,7 @@ impl Application {
             organism_state,
             sidebar_mode: crate::ui::SidebarMode::Explorer,
             debug_zones: self.debug_zones,
+            dock_tree,
             event_tx,
             event_rx,
         });
@@ -2147,6 +2159,7 @@ impl Application {
                                     // Handle AI Agent separately (panel toggle)
                                     if item == crate::activity_bar::ActivityItem::AiAgent {
                                         state.ai_panel_open = !state.ai_panel_open;
+                                        state.dock_tree.set_panel_size(crate::dock::PanelId::AiPanel, if state.ai_panel_open { 350.0 } else { 0.0 });
                                     } else {
                                         // Update sidebar mode
                                         match item {
@@ -2183,19 +2196,22 @@ impl Application {
                                             state.sidebar_open = true;
                                         }
 
+                                        state.dock_tree.set_panel_size(crate::dock::PanelId::Sidebar, if state.sidebar_open { 250.0 } else { 0.0 });
+
                                         // Sync search panel visibility
                                         search_panel.visible = state.sidebar_open
                                             && state.sidebar_mode == crate::ui::SidebarMode::Search;
                                     }
 
                                     let (w, h) = state.gpu.size();
-                                    state.layout = LayoutZones::compute(
-                                        w as f32,
-                                        h as f32,
-                                        state.sidebar_open,
-                                        state.ai_panel_open,
-                                        bottom_panel_visible,
-                                    );
+                                    let dock_map = state.dock_tree.compute_layout(crate::rect_renderer::Rect {
+                                        x: 0.0,
+                                        y: 0.0,
+                                        width: w as f32,
+                                        height: h as f32,
+                                        color: [0.0; 4],
+                                    });
+                                    state.layout = LayoutZones::from_dock_layout(dock_map, w as f32, h as f32);
                                 }
                             } else if state.layout.tab_bar.contains(mx, my) {
                                 state.tab_bar.handle_click(mx, &state.layout.tab_bar);
@@ -2418,12 +2434,17 @@ impl ApplicationHandler for Application {
                 if size.width > 0 && size.height > 0 {
                     state.gpu.resize(size.width, size.height);
 
-                    state.layout = LayoutZones::compute(
+                    let dock_map = state.dock_tree.compute_layout(crate::rect_renderer::Rect {
+                        x: 0.0,
+                        y: 0.0,
+                        width: size.width as f32,
+                        height: size.height as f32,
+                        color: [0.0; 4],
+                    });
+                    state.layout = LayoutZones::from_dock_layout(
+                        dock_map,
                         size.width as f32,
                         size.height as f32,
-                        state.sidebar_open,
-                        state.ai_panel_open,
-                        self.bottom_panel.visible,
                     );
 
                     state.rect_renderer.resize(
@@ -2508,14 +2529,16 @@ impl ApplicationHandler for Application {
                         "i" if shift => {
                             // Phase 3: Toggle AI Panel
                             state.ai_panel_open = !state.ai_panel_open;
+                            state.dock_tree.set_panel_size(crate::dock::PanelId::AiPanel, if state.ai_panel_open { 350.0 } else { 0.0 });
                             let (w, h) = state.gpu.size();
-                            state.layout = LayoutZones::compute(
-                                w as f32,
-                                h as f32,
-                                state.sidebar_open,
-                                state.ai_panel_open,
-                                self.bottom_panel.visible,
-                            );
+                            let dock_map = state.dock_tree.compute_layout(crate::rect_renderer::Rect {
+                                x: 0.0,
+                                y: 0.0,
+                                width: w as f32,
+                                height: h as f32,
+                                color: [0.0; 4],
+                            });
+                            state.layout = LayoutZones::from_dock_layout(dock_map, w as f32, h as f32);
                             tracing::info!(
                                 "AI Panel: {}",
                                 if state.ai_panel_open {
@@ -2576,14 +2599,16 @@ impl ApplicationHandler for Application {
                                 }
                             }
                             // Recompute layout
+                            state.dock_tree.set_panel_size(crate::dock::PanelId::BottomPanel, if self.bottom_panel.visible { 200.0 } else { 0.0 });
                             let (w, h) = state.gpu.size();
-                            state.layout = LayoutZones::compute(
-                                w as f32,
-                                h as f32,
-                                state.sidebar_open,
-                                state.ai_panel_open,
-                                self.bottom_panel.visible,
-                            );
+                            let dock_map = state.dock_tree.compute_layout(crate::rect_renderer::Rect {
+                                x: 0.0,
+                                y: 0.0,
+                                width: w as f32,
+                                height: h as f32,
+                                color: [0.0; 4],
+                            });
+                            state.layout = LayoutZones::from_dock_layout(dock_map, w as f32, h as f32);
                             state.window.request_redraw();
                         }
                         "," => {
@@ -2617,34 +2642,26 @@ impl ApplicationHandler for Application {
                             }
                         }
                         "k" => {
-                            if self.zen_mode.active {
-                                if let Some(prev_layout) = self.zen_mode.exit() {
-                                    state.sidebar_open = prev_layout.sidebar.is_some();
-                                    state.ai_panel_open = prev_layout.ai_panel.is_some();
-                                    self.bottom_panel.visible = prev_layout.bottom_panel.is_some();
-                                    let (w, h) = state.gpu.size();
-                                    state.layout = LayoutZones::compute(
-                                        w as f32,
-                                        h as f32,
-                                        state.sidebar_open,
-                                        state.ai_panel_open,
-                                        self.bottom_panel.visible,
-                                    );
-                                }
-                            } else {
-                                self.zen_mode.enter(state.layout.clone());
-                                state.sidebar_open = false;
-                                state.ai_panel_open = false;
-                                self.bottom_panel.visible = false;
-                                let (w, h) = state.gpu.size();
-                                state.layout = LayoutZones::compute(
-                                    w as f32,
-                                    h as f32,
-                                    state.sidebar_open,
-                                    state.ai_panel_open,
-                                    self.bottom_panel.visible,
-                                );
-                            }
+                            // Zen mode temporary logic (simplified)
+                            // Ideally zen mode modifies dock tree directly, but current zen implementation expects LayoutZones
+                            // For now we'll just toggle panels off
+                            state.sidebar_open = false;
+                            state.ai_panel_open = false;
+                            self.bottom_panel.visible = false;
+
+                            state.dock_tree.set_panel_size(crate::dock::PanelId::Sidebar, 0.0);
+                            state.dock_tree.set_panel_size(crate::dock::PanelId::AiPanel, 0.0);
+                            state.dock_tree.set_panel_size(crate::dock::PanelId::BottomPanel, 0.0);
+
+                            let (w, h) = state.gpu.size();
+                            let dock_map = state.dock_tree.compute_layout(crate::rect_renderer::Rect {
+                                x: 0.0,
+                                y: 0.0,
+                                width: w as f32,
+                                height: h as f32,
+                                color: [0.0; 4],
+                            });
+                            state.layout = LayoutZones::from_dock_layout(dock_map, w as f32, h as f32);
                             state.window.request_redraw();
                         }
                         "s" => {

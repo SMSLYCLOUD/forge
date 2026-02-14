@@ -249,6 +249,94 @@ impl LayoutZones {
     }
 
     /// Generate all background rectangles for the UI chrome
+    pub fn from_dock_layout(
+        map: std::collections::HashMap<crate::dock::PanelId, crate::rect_renderer::Rect>,
+        window_width: f32,
+        window_height: f32,
+    ) -> Self {
+        use crate::dock::PanelId;
+        use crate::ui::Zone;
+
+        let empty = Zone::new(0.0, 0.0, 0.0, 0.0);
+        let to_zone = |id: PanelId| {
+            if let Some(r) = map.get(&id) {
+                Zone::new(r.x, r.y, r.width, r.height)
+            } else {
+                empty.clone()
+            }
+        };
+
+        let title_bar = to_zone(PanelId::TitleBar);
+        let activity_bar = to_zone(PanelId::ActivityBar);
+        let sidebar = if map.contains_key(&PanelId::Sidebar) && map[&PanelId::Sidebar].width > 1.0 {
+            Some(to_zone(PanelId::Sidebar))
+        } else {
+            None
+        };
+        let status_bar = to_zone(PanelId::StatusBar);
+        let editor_zone = to_zone(PanelId::Editor);
+        let bottom_panel =
+            if map.contains_key(&PanelId::BottomPanel) && map[&PanelId::BottomPanel].height > 1.0 {
+                Some(to_zone(PanelId::BottomPanel))
+            } else {
+                None
+            };
+        let ai_panel =
+            if map.contains_key(&PanelId::AiPanel) && map[&PanelId::AiPanel].width > 1.0 {
+                Some(to_zone(PanelId::AiPanel))
+            } else {
+                None
+            };
+
+        // Derived zones within editor area
+        let gutter_w = LayoutConstants::GUTTER_WIDTH;
+        let scrollbar_w = LayoutConstants::SCROLLBAR_WIDTH;
+        let breadcrumb_h = LayoutConstants::BREADCRUMB_HEIGHT;
+        let tab_h = LayoutConstants::TAB_BAR_HEIGHT;
+
+        let tab_bar = Zone::new(editor_zone.x, editor_zone.y, editor_zone.width, tab_h);
+        let breadcrumb_bar = Zone::new(
+            editor_zone.x,
+            editor_zone.y + tab_h,
+            editor_zone.width,
+            breadcrumb_h,
+        );
+        let gutter = Zone::new(
+            editor_zone.x,
+            editor_zone.y + tab_h + breadcrumb_h,
+            gutter_w,
+            editor_zone.height - tab_h - breadcrumb_h,
+        );
+        let editor_text = Zone::new(
+            editor_zone.x + gutter_w,
+            editor_zone.y + tab_h + breadcrumb_h,
+            (editor_zone.width - gutter_w - scrollbar_w).max(0.0),
+            editor_zone.height - tab_h - breadcrumb_h,
+        );
+        let scrollbar_v = Zone::new(
+            editor_zone.x + editor_zone.width - scrollbar_w,
+            editor_zone.y + tab_h + breadcrumb_h,
+            scrollbar_w,
+            editor_zone.height - tab_h - breadcrumb_h,
+        );
+
+        Self {
+            window_width,
+            window_height,
+            title_bar,
+            activity_bar,
+            sidebar,
+            tab_bar,
+            breadcrumb_bar,
+            gutter,
+            editor: editor_text, // Mapped to the text area, not container
+            status_bar,
+            ai_panel,
+            bottom_panel,
+            scrollbar_v,
+        }
+    }
+
     pub fn background_rects(&self, theme: &forge_theme::Theme) -> Vec<Rect> {
         let mut rects = Vec::with_capacity(32);
 
