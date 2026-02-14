@@ -1,0 +1,49 @@
+    Checking forge-renderer v0.1.0 (/app/crates/forge-renderer)
+warning: variable does not need to be mutable
+  --> crates/forge-search/src/content.rs:54:13
+   |
+54 |         let mut results = Vec::new();
+   |             ----^^^^^^^
+   |             |
+   |             help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: `forge-search` (lib) generated 1 warning (run `cargo fix --lib -p forge-search` to apply 1 suggestion)
+warning: unused import: `Pixel`
+ --> crates/forge-test-tools/src/screenshot.rs:1:24
+  |
+1 | use image::{RgbaImage, Pixel};
+  |                        ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `ElementState` and `MouseButton`
+ --> crates/forge-test-tools/src/input_sim.rs:1:20
+  |
+1 | use winit::event::{ElementState, MouseButton, WindowEvent};
+  |                    ^^^^^^^^^^^^  ^^^^^^^^^^^
+
+warning: `forge-test-tools` (lib) generated 2 warnings (run `cargo fix --lib -p forge-test-tools` to apply 2 suggestions)
+    Checking forge-debug v0.1.0 (/app/crates/forge-debug)
+    Checking forge-app v0.1.0 (/app/crates/forge-app)
+warning: variable does not need to be mutable
+   --> crates/forge-app/src/application.rs:371:13
+    |
+371 |         let mut file_explorer = crate::file_explorer::FileExplorer::new();
+    |             ----^^^^^^^^^^^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+ --> crates/forge-app/src/debug_views.rs:9:13
+  |
+9 |         let mut rects = Vec::new();
+  |             ----^^^^^
+  |             |
+  |             help: remove this `mut`
+
+warning: `forge-app` (bin "forge") generated 2 warnings (run `cargo fix --bin "forge" -p forge-app` to apply 2 suggestions)
+    Finished `dev` profile [optimized + debuginfo] target(s) in 2.28s

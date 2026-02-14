@@ -389,4 +389,11 @@ impl Editor {
             ));
         }
     }
+
+    /// Add a cursor at a specific point (Alt+Click)
+    pub fn add_cursor_at_point(&mut self, line: usize, col: usize) {
+        let offset = self.buffer.line_col_to_offset(line, col);
+        let pos = forge_core::Position::new(offset);
+        self.buffer.add_selection_range(forge_core::Range::new(pos, pos));
+    }
 }

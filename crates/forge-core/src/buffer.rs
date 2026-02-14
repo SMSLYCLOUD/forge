@@ -23,6 +23,8 @@ pub struct Buffer {
     path: Option<String>,
     /// Syntax highlighting state
     syntax: Option<Syntax>,
+    /// Is the buffer fully loaded? (Async loading support)
+    pub is_loading: bool,
 }
 
 // Manual Clone impl because Syntax is not Clone
@@ -37,6 +39,7 @@ impl Clone for Buffer {
             encoding: self.encoding,
             path: self.path.clone(),
             syntax: None, // We don't clone syntax state for now
+            is_loading: self.is_loading,
         }
     }
 }
@@ -109,6 +112,7 @@ impl Buffer {
             encoding: Encoding::Utf8,
             path: None,
             syntax: None,
+            is_loading: false,
         }
     }
 
@@ -124,6 +128,7 @@ impl Buffer {
             encoding: Encoding::Utf8,
             path: None,
             syntax: None,
+            is_loading: false,
         }
     }
 
@@ -141,6 +146,7 @@ impl Buffer {
             encoding: Encoding::Utf8,
             path: Some(path.as_ref().to_string_lossy().to_string()),
             syntax: None,
+            is_loading: false,
         };
 
         // Auto-detect Rust

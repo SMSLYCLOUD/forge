@@ -1,8 +1,9 @@
-use forge_debug::DebugClient;
+use forge_debug::{DebugClient, DebugSession};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
 use tokio::sync::Mutex;
+use crate::debug_views::{VariablesTree, CallStackList};
 
 #[derive(Clone, Debug)]
 pub struct Breakpoint {
@@ -21,6 +22,7 @@ pub struct StackFrame {
 
 pub struct DebugUi {
     pub client: Option<Arc<Mutex<DebugClient>>>,
+    pub session: DebugSession,
     pub breakpoints: Vec<Breakpoint>,
     pub stack_frames: Vec<StackFrame>,
     pub variables: HashMap<String, String>,
@@ -31,6 +33,7 @@ impl DebugUi {
     pub fn new() -> Self {
         Self {
             client: None,
+            session: DebugSession::mock(),
             breakpoints: Vec::new(),
             stack_frames: Vec::new(),
             variables: HashMap::new(),
@@ -100,48 +103,15 @@ impl DebugUi {
 
         text.push_str("  RUN AND DEBUG\n\n");
 
-        if self.client.is_none() {
+        if !self.session.active {
             text.push_str("  No active debug session.\n");
             text.push_str("  Press F5 to start (stub).\n");
             return text;
         }
 
-        // Breakpoints
-        text.push_str("  BREAKPOINTS\n");
-        if self.breakpoints.is_empty() {
-             text.push_str("    No breakpoints.\n");
-        } else {
-            for bp in &self.breakpoints {
-                let status = if bp.verified { "●" } else { "○" };
-                let path = std::path::Path::new(&bp.file);
-                let file = path.file_name().map(|s| s.to_string_lossy()).unwrap_or_default();
-                text.push_str(&format!("    {} {}:{}\n", status, file, bp.line));
-            }
-        }
-        text.push_str("\n");
-
-        // Call Stack
-        text.push_str("  CALL STACK\n");
-        if self.stack_frames.is_empty() {
-            text.push_str("    (Paused or Running)\n");
-        } else {
-            for frame in &self.stack_frames {
-                let arrow = if Some(frame.id) == self.active_frame_id { "→" } else { " " };
-                text.push_str(&format!("   {} {}\n", arrow, frame.name));
-            }
-        }
-        text.push_str("\n");
-
-        // Variables
-        text.push_str("  VARIABLES\n");
-        if self.variables.is_empty() {
-            text.push_str("    No variables.\n");
-        } else {
-            for (name, val) in &self.variables {
-                text.push_str(&format!("    {}: {}\n", name, val));
-            }
-        }
-
+        text.push_str(&VariablesTree::render_text(&self.session));
+        text.push('\n');
+        text.push_str(&CallStackList::render_text(&self.session));
         text
     }
 }

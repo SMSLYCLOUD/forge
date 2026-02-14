@@ -1,0 +1,35 @@
+    Checking forge-core v0.1.0 (/app/crates/forge-core)
+warning: variable does not need to be mutable
+  --> crates/forge-search/src/content.rs:54:13
+   |
+54 |         let mut results = Vec::new();
+   |             ----^^^^^^^
+   |             |
+   |             help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: `forge-search` (lib) generated 1 warning (run `cargo fix --lib -p forge-search` to apply 1 suggestion)
+warning: unused import: `Pixel`
+ --> crates/forge-test-tools/src/screenshot.rs:1:24
+  |
+1 | use image::{RgbaImage, Pixel};
+  |                        ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `ElementState` and `MouseButton`
+ --> crates/forge-test-tools/src/input_sim.rs:1:20
+  |
+1 | use winit::event::{ElementState, MouseButton, WindowEvent};
+  |                    ^^^^^^^^^^^^  ^^^^^^^^^^^
+
+warning: `forge-test-tools` (lib) generated 2 warnings (run `cargo fix --lib -p forge-test-tools` to apply 2 suggestions)
+error[E0063]: missing field `is_loading` in initializer of `Buffer`
+  --> crates/forge-core/src/buffer.rs:33:9
+   |
+33 |         Self {
+   |         ^^^^ missing `is_loading`
+
+For more information about this error, try `rustc --explain E0063`.
+error: could not compile `forge-core` (lib) due to 1 previous error

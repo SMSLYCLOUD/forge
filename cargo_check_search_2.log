@@ -1,0 +1,53 @@
+    Checking forge-search v0.1.0 (/app/crates/forge-search)
+error[E0061]: this function takes 1 argument but 0 arguments were supplied
+   --> crates/forge-search/src/content.rs:95:35
+    |
+ 95 |         let mut matcher_builder = RegexMatcher::new_line_matcher();
+    |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-- argument #1 of type `&str` is missing
+    |
+note: associated function defined here
+   --> /home/jules/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/grep-regex-0.1.14/src/matcher.rs:401:12
+    |
+401 |     pub fn new_line_matcher(pattern: &str) -> Result<RegexMatcher, Error> {
+    |            ^^^^^^^^^^^^^^^^
+help: provide the argument
+    |
+ 95 |         let mut matcher_builder = RegexMatcher::new_line_matcher(/* &str */);
+    |                                                                  ++++++++++
+
+error[E0599]: no method named `case_insensitive` found for enum `Result<T, E>` in the current scope
+  --> crates/forge-search/src/content.rs:96:25
+   |
+96 |         matcher_builder.case_insensitive(!opts.case_sensitive);
+   |                         ^^^^^^^^^^^^^^^^ method not found in `Result<RegexMatcher, grep::grep_regex::Error>`
+
+error[E0599]: no method named `word` found for enum `Result<T, E>` in the current scope
+  --> crates/forge-search/src/content.rs:98:29
+   |
+98 |             matcher_builder.word(true);
+   |                             ^^^^
+   |
+help: there is a method `or` with a similar name
+   |
+98 -             matcher_builder.word(true);
+98 +             matcher_builder.or(true);
+   |
+
+error[E0599]: no method named `build` found for enum `Result<T, E>` in the current scope
+   --> crates/forge-search/src/content.rs:107:39
+    |
+107 |         let matcher = matcher_builder.build(&pattern)?;
+    |                                       ^^^^^ method not found in `Result<RegexMatcher, grep::grep_regex::Error>`
+
+warning: unused variable: `path`
+  --> crates/forge-search/src/content.rs:41:13
+   |
+41 |         let path = "TODO"; // Path is not passed directly to sink in this simple setup
+   |             ^^^^ help: if this is intentional, prefix it with an underscore: `_path`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+Some errors have detailed explanations: E0061, E0599.
+For more information about an error, try `rustc --explain E0061`.
+warning: `forge-search` (lib) generated 1 warning
+error: could not compile `forge-search` (lib) due to 4 previous errors; 1 warning emitted
