@@ -71,6 +71,7 @@ pub mod title_bar;
 pub mod word_wrap;
 
 // Session 3 - Terminal + Git + Search
+pub mod dock;
 pub mod diff_view;
 pub mod git_blame;
 pub mod git_branch;
@@ -97,13 +98,15 @@ fn main() -> Result<()> {
     let mut args = std::env::args().skip(1).peekable();
     let mut file_path = None;
     let mut screenshot_path = None;
+    let mut debug_zones = false;
 
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--help" | "-h" => {
-                println!("Usage: forge [FILE] [--screenshot [PATH]]");
+                println!("Usage: forge [FILE] [--screenshot [PATH]] [--debug-zones]");
                 println!("  FILE                    Optional file path to open");
                 println!("  --screenshot [PATH]     Render one frame and save as PNG");
+                println!("  --debug-zones           Draw colored borders around UI zones");
                 return Ok(());
             }
             "--screenshot" => {
@@ -116,6 +119,9 @@ fn main() -> Result<()> {
                 } else {
                     screenshot_path = Some("screenshot.png".to_string());
                 }
+            }
+            "--debug-zones" => {
+                debug_zones = true;
             }
             _ if arg.starts_with("--") => {
                 return Err(anyhow!("Unknown argument: {}", arg));
@@ -133,7 +139,7 @@ fn main() -> Result<()> {
     let event_loop = EventLoop::new()?;
     event_loop.set_control_flow(winit::event_loop::ControlFlow::Wait);
 
-    let mut app = application::Application::new(file_path, screenshot_path);
+    let mut app = application::Application::new(file_path, screenshot_path, debug_zones);
 
     event_loop.run_app(&mut app)?;
 

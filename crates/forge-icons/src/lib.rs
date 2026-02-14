@@ -98,42 +98,18 @@ impl FileIcon {
     }
 
     pub fn glyph(&self) -> &'static str {
+        // Mapped to Codicon generic file icons
         match self {
-            Self::Rust => "🦀",
-            Self::JavaScript => "📜", // JS logo is hard, scroll is classic script
-            Self::TypeScript => "🔷", // TS blue
-            Self::React => "⚛️",
-            Self::Vue => "🇻",
-            Self::Python => "🐍",
-            Self::Go => "🐹", // No gopher, hamster is close? Or just blue dot
-            Self::C => "🇨",
-            Self::Cpp => "🇨", // C++
-            Self::Java => "☕",
-            Self::Kotlin => "🇰",
-            Self::Swift => "🐦", // Swift bird
-            Self::Ruby => "💎",
-            Self::PHP => "🐘",
-            Self::Json => "📋",
-            Self::Toml => "⚙️",
-            Self::Yaml => "📄",
-            Self::Xml => "📰",
-            Self::Html => "🌐",
-            Self::Css => "🎨",
-            Self::Sass => "💅",
-            Self::Markdown => "📝",
-            Self::Shell => "💻",
-            Self::Bat => "⌨️",
-            Self::Docker => "🐳",
-            Self::Git => "🌲", // Git graph
-            Self::Image => "🖼️",
-            Self::Audio => "🎵",
-            Self::Video => "🎬",
-            Self::Archive => "📦",
-            Self::Database => "🗄️",
-            Self::Lock => "🔒",
-            Self::License => "⚖️",
-            Self::Readme => "📖",
-            Self::Generic => "📄",
+            Self::Rust | Self::JavaScript | Self::TypeScript | Self::React | Self::Vue |
+            Self::Python | Self::Go | Self::C | Self::Cpp | Self::Java | Self::Kotlin |
+            Self::Swift | Self::Ruby | Self::PHP | Self::Json | Self::Toml | Self::Yaml |
+            Self::Xml | Self::Html | Self::Css | Self::Sass | Self::Markdown | Self::Shell |
+            Self::Bat | Self::Docker | Self::Git | Self::License | Self::Readme => "\u{ea77}", // file-code
+
+            Self::Image | Self::Audio | Self::Video => "\u{ea78}", // file-media
+            Self::Archive => "\u{ea7d}", // file-zip
+            Self::Database | Self::Lock => "\u{ea76}", // file-binary
+            Self::Generic => "\u{ea7b}", // file (generic)
         }
     }
 
@@ -178,6 +154,7 @@ pub enum UiIcon {
     Extensions,
     AiAgent,
     Settings,
+    Account,
     Terminal,
     Error,
     Warning,
@@ -187,28 +164,36 @@ pub enum UiIcon {
     Add,
     Edit,
     Delete,
+    ChevronRight,
+    ChevronDown,
 }
 
 impl UiIcon {
+    /// Returns the Codicon unicode character
     pub fn glyph(&self) -> &'static str {
         match self {
-            Self::Folder => "📁",
-            Self::FolderOpen => "📂",
-            Self::Search => "🔍",
-            Self::SourceControl => "⎇",
-            Self::Debug => "🐞",
-            Self::Extensions => "🧩",
-            Self::AiAgent => "🤖",
-            Self::Settings => "⚙",
-            Self::Terminal => "💻",
-            Self::Error => "✕",
-            Self::Warning => "⚠",
-            Self::Info => "ℹ",
-            Self::Check => "✓",
-            Self::Close => "✕",
-            Self::Add => "＋",
-            Self::Edit => "✎",
-            Self::Delete => "🗑️",
+            // VS Code Codicons
+            // https://microsoft.github.io/vscode-codicons/dist/codicon.html
+            Self::Folder => "\u{ea83}",         // folder
+            Self::FolderOpen => "\u{ea84}",     // folder-opened
+            Self::Search => "\u{ea6d}",         // search
+            Self::SourceControl => "\u{ea68}",  // source-control
+            Self::Debug => "\u{ea71}",          // debug-alt
+            Self::Extensions => "\u{ea6b}",     // extensions
+            Self::AiAgent => "\u{ea44}",        // robot (closest)
+            Self::Settings => "\u{ea6e}",       // settings-gear
+            Self::Account => "\u{ea60}",        // account
+            Self::Terminal => "\u{ea85}",       // terminal
+            Self::Error => "\u{ea87}",          // error
+            Self::Warning => "\u{ea6c}",        // warning
+            Self::Info => "\u{ea74}",           // info
+            Self::Check => "\u{ea5e}",          // check
+            Self::Close => "\u{ea76}",          // close
+            Self::Add => "\u{ea60}",            // add
+            Self::Edit => "\u{ea73}",           // edit
+            Self::Delete => "\u{ea81}",         // trash
+            Self::ChevronRight => "\u{ea61}",   // chevron-right
+            Self::ChevronDown => "\u{ea5e}",    // chevron-down
         }
     }
 }
@@ -228,9 +213,9 @@ mod tests {
 
     #[test]
     fn test_glyphs() {
-        assert_eq!(FileIcon::Rust.glyph(), "🦀");
-        assert_eq!(UiIcon::Folder.glyph(), "📁");
-        assert_eq!(UiIcon::SourceControl.glyph(), "⎇");
+        assert_eq!(FileIcon::Rust.glyph(), "\u{ea77}");
+        assert_eq!(UiIcon::Folder.glyph(), "\u{ea83}");
+        assert_eq!(UiIcon::SourceControl.glyph(), "\u{ea68}");
     }
 
     #[test]

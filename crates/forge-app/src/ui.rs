@@ -16,37 +16,37 @@ impl Default for SidebarMode {
 
 /// Antigravity color scheme — SMSLY signature dark (Fallback)
 pub mod colors {
-    /// Activity bar background (#08071a)
-    pub const ACTIVITY_BAR: [f32; 4] = [0.031, 0.027, 0.102, 1.0];
-    /// Tab bar background (#08071a)
-    pub const TAB_BAR: [f32; 4] = [0.031, 0.027, 0.102, 1.0];
-    /// Active tab background (#0d0b1a)
-    pub const TAB_ACTIVE: [f32; 4] = [0.051, 0.043, 0.102, 1.0];
-    /// Inactive tab background (#08071a)
-    pub const TAB_INACTIVE: [f32; 4] = [0.031, 0.027, 0.102, 1.0];
-    /// Breadcrumb bar background (#0d0b1a)
-    pub const BREADCRUMB: [f32; 4] = [0.051, 0.043, 0.102, 1.0];
-    /// Editor background (#0d0b1a)
-    pub const EDITOR_BG: [f32; 4] = [0.051, 0.043, 0.102, 1.0];
-    /// Gutter background (#0d0b1a)
-    pub const GUTTER: [f32; 4] = [0.051, 0.043, 0.102, 1.0];
-    /// Status bar background (#7c3aed — violet)
-    pub const STATUS_BAR: [f32; 4] = [0.486, 0.227, 0.929, 1.0];
-    /// Current line highlight (#1a1730)
-    pub const CURRENT_LINE: [f32; 4] = [0.102, 0.090, 0.188, 1.0];
-    /// Sidebar background (#0d0b1a)
-    pub const SIDEBAR: [f32; 4] = [0.051, 0.043, 0.102, 1.0];
-    /// Scrollbar (#3e2d73, semi-transparent)
-    pub const SCROLLBAR: [f32; 4] = [0.243, 0.176, 0.451, 0.4];
-    /// Separator lines (#1a1730)
-    pub const SEPARATOR: [f32; 4] = [0.102, 0.090, 0.188, 1.0];
-    /// AI panel background (#0d0b1a)
-    pub const AI_PANEL: [f32; 4] = [0.051, 0.043, 0.102, 1.0];
-    /// Text foreground (#e0def4)
+    /// Activity bar background (#333333)
+    pub const ACTIVITY_BAR: [f32; 4] = [0.2, 0.2, 0.2, 1.0];
+    /// Tab bar background (#252526)
+    pub const TAB_BAR: [f32; 4] = [0.145, 0.145, 0.149, 1.0];
+    /// Active tab background (#1e1e1e)
+    pub const TAB_ACTIVE: [f32; 4] = [0.118, 0.118, 0.118, 1.0];
+    /// Inactive tab background (#2d2d2d)
+    pub const TAB_INACTIVE: [f32; 4] = [0.176, 0.176, 0.176, 1.0];
+    /// Breadcrumb bar background (#1e1e1e)
+    pub const BREADCRUMB: [f32; 4] = [0.118, 0.118, 0.118, 1.0];
+    /// Editor background (#1e1e1e)
+    pub const EDITOR_BG: [f32; 4] = [0.118, 0.118, 0.118, 1.0];
+    /// Gutter background (#1e1e1e)
+    pub const GUTTER: [f32; 4] = [0.118, 0.118, 0.118, 1.0];
+    /// Status bar background (#007acc)
+    pub const STATUS_BAR: [f32; 4] = [0.0, 0.478, 0.8, 1.0];
+    /// Current line highlight (#2f3337)
+    pub const CURRENT_LINE: [f32; 4] = [0.184, 0.2, 0.216, 1.0];
+    /// Sidebar background (#252526)
+    pub const SIDEBAR: [f32; 4] = [0.145, 0.145, 0.149, 1.0];
+    /// Scrollbar (semi-transparent)
+    pub const SCROLLBAR: [f32; 4] = [0.5, 0.5, 0.5, 0.4];
+    /// Separator lines (#444444)
+    pub const SEPARATOR: [f32; 4] = [0.267, 0.267, 0.267, 1.0];
+    /// AI panel background (#252526)
+    pub const AI_PANEL: [f32; 4] = [0.145, 0.145, 0.149, 1.0];
+    /// Text foreground (#cccccc)
     #[allow(dead_code)]
-    pub const TEXT_FG: [f32; 4] = [0.878, 0.871, 0.957, 1.0];
-    /// Dimmed text (#4a456e)
-    pub const TEXT_DIM: [f32; 4] = [0.290, 0.271, 0.431, 1.0];
+    pub const TEXT_FG: [f32; 4] = [0.8, 0.8, 0.8, 1.0];
+    /// Dimmed text (#858585)
+    pub const TEXT_DIM: [f32; 4] = [0.522, 0.522, 0.522, 1.0];
     /// White text
     pub const TEXT_WHITE: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
     /// Cursor color (#00e5ff — cyan accent)
@@ -249,6 +249,94 @@ impl LayoutZones {
     }
 
     /// Generate all background rectangles for the UI chrome
+    pub fn from_dock_layout(
+        map: std::collections::HashMap<crate::dock::PanelId, crate::rect_renderer::Rect>,
+        window_width: f32,
+        window_height: f32,
+    ) -> Self {
+        use crate::dock::PanelId;
+        use crate::ui::Zone;
+
+        let empty = Zone::new(0.0, 0.0, 0.0, 0.0);
+        let to_zone = |id: PanelId| {
+            if let Some(r) = map.get(&id) {
+                Zone::new(r.x, r.y, r.width, r.height)
+            } else {
+                empty.clone()
+            }
+        };
+
+        let title_bar = to_zone(PanelId::TitleBar);
+        let activity_bar = to_zone(PanelId::ActivityBar);
+        let sidebar = if map.contains_key(&PanelId::Sidebar) && map[&PanelId::Sidebar].width > 1.0 {
+            Some(to_zone(PanelId::Sidebar))
+        } else {
+            None
+        };
+        let status_bar = to_zone(PanelId::StatusBar);
+        let editor_zone = to_zone(PanelId::Editor);
+        let bottom_panel =
+            if map.contains_key(&PanelId::BottomPanel) && map[&PanelId::BottomPanel].height > 1.0 {
+                Some(to_zone(PanelId::BottomPanel))
+            } else {
+                None
+            };
+        let ai_panel =
+            if map.contains_key(&PanelId::AiPanel) && map[&PanelId::AiPanel].width > 1.0 {
+                Some(to_zone(PanelId::AiPanel))
+            } else {
+                None
+            };
+
+        // Derived zones within editor area
+        let gutter_w = LayoutConstants::GUTTER_WIDTH;
+        let scrollbar_w = LayoutConstants::SCROLLBAR_WIDTH;
+        let breadcrumb_h = LayoutConstants::BREADCRUMB_HEIGHT;
+        let tab_h = LayoutConstants::TAB_BAR_HEIGHT;
+
+        let tab_bar = Zone::new(editor_zone.x, editor_zone.y, editor_zone.width, tab_h);
+        let breadcrumb_bar = Zone::new(
+            editor_zone.x,
+            editor_zone.y + tab_h,
+            editor_zone.width,
+            breadcrumb_h,
+        );
+        let gutter = Zone::new(
+            editor_zone.x,
+            editor_zone.y + tab_h + breadcrumb_h,
+            gutter_w,
+            editor_zone.height - tab_h - breadcrumb_h,
+        );
+        let editor_text = Zone::new(
+            editor_zone.x + gutter_w,
+            editor_zone.y + tab_h + breadcrumb_h,
+            (editor_zone.width - gutter_w - scrollbar_w).max(0.0),
+            editor_zone.height - tab_h - breadcrumb_h,
+        );
+        let scrollbar_v = Zone::new(
+            editor_zone.x + editor_zone.width - scrollbar_w,
+            editor_zone.y + tab_h + breadcrumb_h,
+            scrollbar_w,
+            editor_zone.height - tab_h - breadcrumb_h,
+        );
+
+        Self {
+            window_width,
+            window_height,
+            title_bar,
+            activity_bar,
+            sidebar,
+            tab_bar,
+            breadcrumb_bar,
+            gutter,
+            editor: editor_text, // Mapped to the text area, not container
+            status_bar,
+            ai_panel,
+            bottom_panel,
+            scrollbar_v,
+        }
+    }
+
     pub fn background_rects(&self, theme: &forge_theme::Theme) -> Vec<Rect> {
         let mut rects = Vec::with_capacity(32);
 
