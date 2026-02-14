@@ -18,11 +18,17 @@ pub fn forge_dark() -> Theme {
     colors.insert("editor.foreground".into(), "#d4d4d4".into());
     colors.insert("editor.lineHighlightBackground".into(), "#2f3337".into());
     colors.insert("editor.selectionBackground".into(), "#264f78".into());
-    colors.insert("editor.inactiveSelectionBackground".into(), "#3a3d41".into());
+    colors.insert(
+        "editor.inactiveSelectionBackground".into(),
+        "#3a3d41".into(),
+    );
     colors.insert("editorCursor.foreground".into(), "#aeafad".into());
     colors.insert("editorWhitespace.foreground".into(), "#3e3e42".into());
     colors.insert("editorIndentGuide.background".into(), "#404040".into());
-    colors.insert("editorIndentGuide.activeBackground".into(), "#707070".into());
+    colors.insert(
+        "editorIndentGuide.activeBackground".into(),
+        "#707070".into(),
+    );
     colors.insert("editorLineNumber.foreground".into(), "#858585".into());
     colors.insert("editorLineNumber.activeForeground".into(), "#c6c6c6".into());
     colors.insert("editorRuler.foreground".into(), "#5a5a5a".into());
@@ -94,14 +100,32 @@ pub fn forge_dark() -> Theme {
     colors.insert("scrollbar.shadow".into(), "#000000".into());
     colors.insert("scrollbarSlider.background".into(), "#79797966".into());
     colors.insert("scrollbarSlider.hoverBackground".into(), "#646464b3".into());
-    colors.insert("scrollbarSlider.activeBackground".into(), "#bfbfbf66".into());
+    colors.insert(
+        "scrollbarSlider.activeBackground".into(),
+        "#bfbfbf66".into(),
+    );
 
     // ─── Git ───
-    colors.insert("gitDecoration.addedResourceForeground".into(), "#81b88b".into());
-    colors.insert("gitDecoration.modifiedResourceForeground".into(), "#e2c08d".into());
-    colors.insert("gitDecoration.deletedResourceForeground".into(), "#c74e39".into());
-    colors.insert("gitDecoration.untrackedResourceForeground".into(), "#73c991".into());
-    colors.insert("gitDecoration.ignoredResourceForeground".into(), "#8c8c8c".into());
+    colors.insert(
+        "gitDecoration.addedResourceForeground".into(),
+        "#81b88b".into(),
+    );
+    colors.insert(
+        "gitDecoration.modifiedResourceForeground".into(),
+        "#e2c08d".into(),
+    );
+    colors.insert(
+        "gitDecoration.deletedResourceForeground".into(),
+        "#c74e39".into(),
+    );
+    colors.insert(
+        "gitDecoration.untrackedResourceForeground".into(),
+        "#73c991".into(),
+    );
+    colors.insert(
+        "gitDecoration.ignoredResourceForeground".into(),
+        "#8c8c8c".into(),
+    );
 
     // ─── Diagnostics ───
     colors.insert("editorError.foreground".into(), "#f48771".into());
@@ -115,7 +139,10 @@ pub fn forge_dark() -> Theme {
     colors.insert("editorSuggestWidget.background".into(), "#252526".into());
     colors.insert("editorSuggestWidget.border".into(), "#454545".into());
     colors.insert("editorSuggestWidget.foreground".into(), "#d4d4d4".into());
-    colors.insert("editorSuggestWidget.selectedBackground".into(), "#062f4a".into());
+    colors.insert(
+        "editorSuggestWidget.selectedBackground".into(),
+        "#062f4a".into(),
+    );
     colors.insert("editorHoverWidget.background".into(), "#252526".into());
     colors.insert("editorHoverWidget.border".into(), "#454545".into());
     colors.insert("debugToolBar.background".into(), "#333333".into());
@@ -139,15 +166,30 @@ pub fn forge_dark() -> Theme {
     // ─── Peek View ───
     colors.insert("peekView.border".into(), "#007acc".into());
     colors.insert("peekViewEditor.background".into(), "#001f33".into());
-    colors.insert("peekViewEditor.matchHighlightBackground".into(), "#ff8f0099".into());
+    colors.insert(
+        "peekViewEditor.matchHighlightBackground".into(),
+        "#ff8f0099".into(),
+    );
     colors.insert("peekViewResult.background".into(), "#252526".into());
     colors.insert("peekViewResult.fileForeground".into(), "#ffffff".into());
     colors.insert("peekViewResult.lineForeground".into(), "#bbbbbb".into());
-    colors.insert("peekViewResult.matchHighlightBackground".into(), "#ea5c004d".into());
-    colors.insert("peekViewResult.selectionBackground".into(), "#3399ff33".into());
-    colors.insert("peekViewResult.selectionForeground".into(), "#ffffff".into());
+    colors.insert(
+        "peekViewResult.matchHighlightBackground".into(),
+        "#ea5c004d".into(),
+    );
+    colors.insert(
+        "peekViewResult.selectionBackground".into(),
+        "#3399ff33".into(),
+    );
+    colors.insert(
+        "peekViewResult.selectionForeground".into(),
+        "#ffffff".into(),
+    );
     colors.insert("peekViewTitle.background".into(), "#1e1e1e".into());
-    colors.insert("peekViewTitleDescription.foreground".into(), "#ccccccb3".into());
+    colors.insert(
+        "peekViewTitleDescription.foreground".into(),
+        "#ccccccb3".into(),
+    );
     colors.insert("peekViewTitleLabel.foreground".into(), "#ffffff".into());
 
     // ─── Other ───

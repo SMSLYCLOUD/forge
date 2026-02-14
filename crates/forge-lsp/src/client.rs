@@ -48,7 +48,7 @@ impl LspClient {
             Uri::from_str(root_url.as_str()).map_err(|e| anyhow::anyhow!("Invalid URI: {}", e))?;
         let workspace_name = root_url
             .path_segments()
-            .and_then(|segments| segments.filter(|s| !s.is_empty()).next_back())
+            .and_then(|mut segments| segments.rfind(|s| !s.is_empty()))
             .unwrap_or("workspace")
             .to_string();
 

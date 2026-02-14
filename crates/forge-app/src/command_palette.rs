@@ -6,20 +6,32 @@ pub struct Command {
     pub category: Option<String>,
 }
 
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum PaletteMode {
+    Commands,
+    Files,
+}
+
 pub struct CommandPalette {
     pub visible: bool,
+    pub mode: PaletteMode,
     pub query: String,
     pub commands: Vec<Command>,
-    pub filtered: Vec<usize>,
+    pub files: Vec<String>,
+    pub filtered_commands: Vec<usize>,
+    pub filtered_files: Vec<usize>,
 }
 
 impl Default for CommandPalette {
     fn default() -> Self {
         let mut cp = Self {
             visible: false,
+            mode: PaletteMode::Commands,
             query: String::new(),
             commands: Vec::new(),
-            filtered: Vec::new(),
+            files: Vec::new(),
+            filtered_commands: Vec::new(),
+            filtered_files: Vec::new(),
         };
         cp.register_defaults();
         cp.filter(); // Initial filter (all)
@@ -30,6 +42,10 @@ impl Default for CommandPalette {
 impl CommandPalette {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn set_files(&mut self, files: Vec<String>) {
+        self.files = files;
     }
 
     fn register_defaults(&mut self) {
@@ -51,6 +67,12 @@ impl CommandPalette {
             ("edit.copy", "Edit: Copy", Some("Ctrl+C"), "Edit"),
             ("edit.paste", "Edit: Paste", Some("Ctrl+V"), "Edit"),
             ("edit.find", "Edit: Find", Some("Ctrl+F"), "Edit"),
+            (
+                "edit.find_in_files",
+                "Edit: Find in Files",
+                Some("Ctrl+Shift+F"),
+                "Edit",
+            ),
             ("edit.replace", "Edit: Replace", Some("Ctrl+H"), "Edit"),
             (
                 "view.command_palette",
@@ -127,8 +149,9 @@ impl CommandPalette {
         }
     }
 
-    pub fn open(&mut self) {
+    pub fn open(&mut self, mode: PaletteMode) {
         self.visible = true;
+        self.mode = mode;
         self.query.clear();
         self.filter();
     }
@@ -136,7 +159,8 @@ impl CommandPalette {
     pub fn close(&mut self) {
         self.visible = false;
         self.query.clear();
-        self.filtered.clear();
+        self.filtered_commands.clear();
+        self.filtered_files.clear();
     }
 
     pub fn type_char(&mut self, c: char) {
@@ -149,33 +173,56 @@ impl CommandPalette {
         self.filter();
     }
 
-    pub fn select(&self, idx: usize) -> Option<&Command> {
-        if idx < self.filtered.len() {
-            let command_idx = self.filtered[idx];
+    pub fn select_command(&self, idx: usize) -> Option<&Command> {
+        if self.mode == PaletteMode::Commands && idx < self.filtered_commands.len() {
+            let command_idx = self.filtered_commands[idx];
             self.commands.get(command_idx)
         } else {
             None
         }
     }
 
-    fn filter(&mut self) {
-        if self.query.is_empty() {
-            self.filtered = (0..self.commands.len()).collect();
-            return;
+    pub fn select_file(&self, idx: usize) -> Option<&String> {
+        if self.mode == PaletteMode::Files && idx < self.filtered_files.len() {
+            let file_idx = self.filtered_files[idx];
+            self.files.get(file_idx)
+        } else {
+            None
         }
+    }
 
-        let mut scored: Vec<(usize, i32)> = Vec::new();
-
-        for (i, cmd) in self.commands.iter().enumerate() {
-            if let Some(score) = Self::fuzzy_score(&self.query, &cmd.label) {
-                scored.push((i, score));
+    fn filter(&mut self) {
+        match self.mode {
+            PaletteMode::Commands => {
+                if self.query.is_empty() {
+                    self.filtered_commands = (0..self.commands.len()).collect();
+                    return;
+                }
+                let mut scored: Vec<(usize, i32)> = Vec::new();
+                for (i, cmd) in self.commands.iter().enumerate() {
+                    if let Some(score) = Self::fuzzy_score(&self.query, &cmd.label) {
+                        scored.push((i, score));
+                    }
+                }
+                scored.sort_by(|a, b| b.1.cmp(&a.1));
+                self.filtered_commands = scored.into_iter().map(|(i, _)| i).collect();
+            }
+            PaletteMode::Files => {
+                if self.query.is_empty() {
+                    self.filtered_files = (0..self.files.len()).take(50).collect(); // Limit to 50 initially
+                    return;
+                }
+                let mut scored: Vec<(usize, i32)> = Vec::new();
+                for (i, file) in self.files.iter().enumerate() {
+                    // Simple optimization: only score if filename matches somewhat
+                    if let Some(score) = Self::fuzzy_score(&self.query, file) {
+                        scored.push((i, score));
+                    }
+                }
+                scored.sort_by(|a, b| b.1.cmp(&a.1));
+                self.filtered_files = scored.into_iter().take(20).map(|(i, _)| i).collect();
             }
         }
-
-        // Sort by score descending
-        scored.sort_by(|a, b| b.1.cmp(&a.1));
-
-        self.filtered = scored.into_iter().map(|(i, _)| i).collect();
     }
 
     fn fuzzy_score(query: &str, target: &str) -> Option<i32> {
@@ -234,9 +281,9 @@ mod tests {
         cp.type_char('l');
         // "fil" matches "File: ..."
 
-        assert!(!cp.filtered.is_empty());
+        assert!(!cp.filtered_commands.is_empty());
 
-        let first = cp.select(0).unwrap();
+        let first = cp.select_command(0).unwrap();
         assert!(first.label.to_lowercase().contains("file"));
     }
 
@@ -249,9 +296,9 @@ mod tests {
     #[test]
     fn test_select() {
         let mut cp = CommandPalette::new();
-        cp.open();
+        cp.open(PaletteMode::Commands);
         // Assuming filtered contains all
-        let cmd = cp.select(0);
+        let cmd = cp.select_command(0);
         assert!(cmd.is_some());
     }
 }

@@ -30,7 +30,7 @@ impl InlineCompletionProvider {
     pub fn suggest(&mut self, context: &str, line: usize, col: usize) -> Option<InlineCompletion> {
         // Extract surrounding context (10 lines before, 5 after)
         let lines: Vec<&str> = context.lines().collect();
-        let start_line = if line > 10 { line - 10 } else { 0 };
+        let start_line = line.saturating_sub(10);
         let end_line = std::cmp::min(line + 5, lines.len());
 
         let _context_snippet = if start_line < end_line {

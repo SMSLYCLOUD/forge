@@ -10,6 +10,9 @@ name = "forge"
 path = "src/main.rs"
 
 [dependencies]
+serde_json = { workspace = true }
+url = "2.5.8"
+tokio = { version = "1", features = ["full"] }
 ropey = { workspace = true }
 bytemuck = { version = "1", features = ["derive"] }
 forge-core = { path = "../forge-core" }

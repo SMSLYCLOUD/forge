@@ -120,6 +120,16 @@ impl Selection {
             primary_index: self.primary_index,
         }
     }
+
+    /// Add a range to the selection
+    pub fn push(&mut self, range: Range) {
+        self.ranges.push(range);
+        // Primary index stays the same unless we want the new one to be primary
+        // Usually, new cursors become active? VS Code style: all active?
+        // We'll keep the first one primary or last?
+        // Let's set the new one as primary for now as typically user looks at the new cursor.
+        self.primary_index = self.ranges.len() - 1;
+    }
 }
 
 impl Default for Selection {

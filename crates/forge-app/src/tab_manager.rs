@@ -2,9 +2,17 @@ use crate::editor::Editor;
 use anyhow::Result;
 use std::path::PathBuf;
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Pane {
+    Primary,
+    Secondary,
+}
+
 pub struct TabManager {
     pub tabs: Vec<Tab>,
     pub active: usize,
+    pub active_secondary: Option<usize>,
+    pub focused_pane: Pane,
 }
 
 pub struct Tab {
@@ -19,6 +27,8 @@ impl TabManager {
         Self {
             tabs: vec![],
             active: 0,
+            active_secondary: None,
+            focused_pane: Pane::Primary,
         }
     }
 
@@ -73,12 +83,84 @@ impl TabManager {
         }
     }
     pub fn active_editor(&self) -> Option<&Editor> {
-        self.tabs.get(self.active).map(|t| &t.editor)
+        let idx = match self.focused_pane {
+            Pane::Primary => self.active,
+            Pane::Secondary => self.active_secondary.unwrap_or(self.active),
+        };
+        self.tabs.get(idx).map(|t| &t.editor)
     }
     pub fn active_editor_mut(&mut self) -> Option<&mut Editor> {
-        self.tabs.get_mut(self.active).map(|t| &mut t.editor)
+        let idx = match self.focused_pane {
+            Pane::Primary => self.active,
+            Pane::Secondary => self.active_secondary.unwrap_or(self.active),
+        };
+        self.tabs.get_mut(idx).map(|t| &mut t.editor)
     }
     pub fn tab_count(&self) -> usize {
         self.tabs.len()
+    }
+
+    pub fn split_current(&mut self) {
+        let idx = match self.focused_pane {
+            Pane::Primary => self.active,
+            Pane::Secondary => self.active_secondary.unwrap_or(self.active),
+        };
+        if idx < self.tabs.len() {
+            let tab = &self.tabs[idx];
+            let new_editor = tab.editor.clone_view();
+            self.tabs.push(Tab {
+                title: tab.title.clone(),
+                path: tab.path.clone(),
+                editor: new_editor,
+                is_modified: tab.is_modified,
+            });
+            self.active_secondary = Some(self.tabs.len() - 1);
+            self.focused_pane = Pane::Secondary;
+        }
+    }
+
+    pub fn sync_buffers(&mut self) {
+        let active_idx = match self.focused_pane {
+            Pane::Primary => self.active,
+            Pane::Secondary => self.active_secondary.unwrap_or(self.active),
+        };
+
+        if active_idx >= self.tabs.len() {
+            return;
+        }
+
+        let path_opt = self.tabs[active_idx].path.clone();
+        if let Some(path) = path_opt {
+            let indices: Vec<usize> = self
+                .tabs
+                .iter()
+                .enumerate()
+                .filter(|(i, t)| *i != active_idx && t.path.as_ref() == Some(&path))
+                .map(|(i, _)| i)
+                .collect();
+
+            if indices.is_empty() {
+                return;
+            }
+
+            let source_buffer = self.tabs[active_idx].editor.buffer.clone();
+
+            for i in indices {
+                self.tabs[i].editor.buffer.sync_content_from(&source_buffer);
+                self.tabs[i].editor.rehighlight();
+                self.tabs[i].is_modified = self.tabs[active_idx].is_modified;
+            }
+        }
+    }
+
+    pub fn mark_active_modified(&mut self) {
+        let idx = match self.focused_pane {
+            Pane::Primary => self.active,
+            Pane::Secondary => self.active_secondary.unwrap_or(self.active),
+        };
+        if let Some(tab) = self.tabs.get_mut(idx) {
+            tab.is_modified = true;
+        }
+        self.sync_buffers();
     }
 }

@@ -5,6 +5,12 @@ pub struct RecoveryManager {
     recovery_dir: PathBuf,
 }
 
+impl Default for RecoveryManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RecoveryManager {
     pub fn new() -> Self {
         let dir = dirs_next::data_local_dir()

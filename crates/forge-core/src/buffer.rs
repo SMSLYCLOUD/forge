@@ -258,6 +258,11 @@ impl Buffer {
         self.selection = selection;
     }
 
+    /// Add a range to the current selection (Multi-cursor)
+    pub fn add_selection_range(&mut self, range: crate::Range) {
+        self.selection.push(range);
+    }
+
     /// Check if the buffer has been modified
     pub fn is_dirty(&self) -> bool {
         self.dirty
@@ -304,6 +309,20 @@ impl Buffer {
     pub fn line_col_to_offset(&self, line: usize, col: usize) -> usize {
         let line_start = self.rope.line_to_byte(line);
         line_start + col
+    }
+
+    /// Sync content from another buffer (preserves selection/syntax state)
+    pub fn sync_content_from(&mut self, other: &Buffer) {
+        self.rope = other.rope.clone();
+        self.history = other.history.clone();
+        self.dirty = other.dirty;
+        self.line_ending = other.line_ending;
+        self.encoding = other.encoding;
+        // Path should match, but we copy it anyway
+        self.path = other.path.clone();
+        // We don't sync syntax state as it depends on local parser state in Editor
+        // But invalidating it might be good?
+        // self.syntax = None;
     }
 }
 

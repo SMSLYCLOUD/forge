@@ -48,7 +48,7 @@ impl BlameView {
             let start_line = hunk.final_start_line();
             let lines_in_hunk = hunk.lines_in_hunk();
 
-            for i in 0..lines_in_hunk as usize {
+            for i in 0..lines_in_hunk {
                 self.lines.push(BlameLine {
                     commit_hash: commit_id.to_string()[0..7].to_string(),
                     author: name.clone(),

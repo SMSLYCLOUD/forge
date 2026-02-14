@@ -27,15 +27,40 @@ impl PluginRuntime {
     }
 
     pub fn load_plugin<P: AsRef<Path>>(&mut self, path: P) -> Result<Plugin> {
-        let module = Module::from_file(&self.engine, path)?;
-        let name = "unknown".to_string(); // Extract from manifest?
+        let path_ref = path.as_ref();
+
+        // Attempt to read manifest if adjacent
+        let name = if let Some(parent) = path_ref.parent() {
+            let manifest_path = parent.join("forge-ext.toml");
+            if let Ok(content) = std::fs::read_to_string(manifest_path) {
+                if let Ok(manifest) = toml::from_str::<serde_json::Value>(&content) {
+                    manifest
+                        .get("name")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("unknown")
+                        .to_string()
+                } else {
+                    "unknown".to_string()
+                }
+            } else {
+                path_ref
+                    .file_stem()
+                    .map(|s| s.to_string_lossy().to_string())
+                    .unwrap_or("unknown".to_string())
+            }
+        } else {
+            "unknown".to_string()
+        };
+
+        let module = Module::from_file(&self.engine, path_ref)
+            .context(format!("Failed to load WASM module from {:?}", path_ref))?;
 
         let mut store = Store::new(&self.engine, PluginState { name: name.clone() });
 
         let instance = self
             .linker
             .instantiate(&mut store, &module)
-            .context("Failed to instantiate plugin")?;
+            .context(format!("Failed to instantiate plugin '{}'", name))?;
 
         Ok(Plugin {
             instance,

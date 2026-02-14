@@ -7,6 +7,12 @@ pub struct PropagationEngine {
     pub max_depth: usize,
 }
 
+impl Default for PropagationEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PropagationEngine {
     pub fn new() -> Self {
         Self {
