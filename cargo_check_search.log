@@ -1,0 +1,38 @@
+    Updating crates.io index
+     Locking 8 packages to latest compatible versions
+      Adding base64 v0.20.0
+      Adding encoding_rs_io v0.1.7
+      Adding grep v0.2.13 (available: v0.4.1)
+      Adding grep-cli v0.1.12
+      Adding grep-matcher v0.1.8
+      Adding grep-printer v0.1.7
+      Adding grep-regex v0.1.14
+      Adding grep-searcher v0.1.16
+ Downloading crates ...
+  Downloaded grep-regex v0.1.14
+  Downloaded grep-matcher v0.1.8
+  Downloaded grep v0.2.13
+  Downloaded grep-searcher v0.1.16
+  Downloaded grep-printer v0.1.7
+  Downloaded grep-cli v0.1.12
+  Downloaded base64 v0.20.0
+  Downloaded encoding_rs_io v0.1.7
+    Checking regex-automata v0.4.14
+   Compiling crossbeam-utils v0.8.21
+    Checking grep-matcher v0.1.8
+    Checking encoding_rs_io v0.1.7
+    Checking serde_json v1.0.149
+    Checking base64 v0.20.0
+    Checking crossbeam-epoch v0.9.18
+    Checking crossbeam-deque v0.8.6
+    Checking bstr v1.12.1
+    Checking regex v1.12.3
+    Checking globset v0.4.18
+    Checking grep-searcher v0.1.16
+    Checking grep-regex v0.1.14
+    Checking grep-cli v0.1.12
+    Checking ignore v0.4.25
+    Checking grep-printer v0.1.7
+    Checking grep v0.2.13
+    Checking forge-search v0.1.0 (/app/crates/forge-search)
+    Finished `dev` profile [optimized + debuginfo] target(s) in 15.75s

@@ -200,6 +200,7 @@ struct AppState {
 
     // Debug UI
     debug_ui: crate::debug_ui::DebugUi,
+    debug_toolbar: crate::debug_toolbar::DebugToolbar,
 
     // Rectangle renderer
     rect_renderer: RectRenderer,
@@ -551,6 +552,7 @@ impl Application {
                 .debug_ui
                 .take()
                 .unwrap_or_else(|| crate::debug_ui::DebugUi::new()),
+            debug_toolbar: crate::debug_toolbar::DebugToolbar::new(),
             rect_renderer,
             layout,
             tab_bar,
@@ -905,6 +907,13 @@ impl Application {
             });
         }
 
+        // Debug Toolbar
+        if state.debug_ui.session.active {
+            let (w, _) = state.gpu.size();
+            let rects = state.debug_toolbar.render_rects(w as f32);
+            state.render_batch.extend(&rects);
+        }
+
         // Context Menu
         if context_menu.visible {
             let cm_width = 200.0;
@@ -976,17 +985,21 @@ impl Application {
         let mut editor_text = String::new();
 
         if let Some(editor) = state.tab_manager.active_editor() {
-            let scroll_top = editor.scroll_top();
-            let total_lines = editor.total_lines();
-            for i in 0..vis_lines {
-                let line_idx = scroll_top + i;
-                if line_idx >= total_lines {
-                    break;
-                }
-                let line = Guard::get_line(editor.buffer.rope(), line_idx);
-                editor_text.push_str(&line);
-                if !line.ends_with('\n') {
-                    editor_text.push('\n');
+            if editor.buffer.is_loading {
+                editor_text = "\n\n   Loading large file...".to_string();
+            } else {
+                let scroll_top = editor.scroll_top();
+                let total_lines = editor.total_lines();
+                for i in 0..vis_lines {
+                    let line_idx = scroll_top + i;
+                    if line_idx >= total_lines {
+                        break;
+                    }
+                    let line = Guard::get_line(editor.buffer.rope(), line_idx);
+                    editor_text.push_str(&line);
+                    if !line.ends_with('\n') {
+                        editor_text.push('\n');
+                    }
                 }
             }
         } else {
@@ -1708,7 +1721,33 @@ impl Application {
             }
         }
 
-        // 5. AI Panel text (only if panel is open)
+        // 5. Debug Toolbar Text
+        if state.debug_ui.session.active {
+            let (w, _) = state.gpu.size();
+            let items = state.debug_toolbar.render_text(w as f32, theme);
+            for (text, x, y, color) in items {
+                let mut buf = GlyphonBuffer::new(
+                    &mut state.font_system,
+                    Metrics::new(20.0, 30.0),
+                );
+                let c = GlyphonColor::rgb(
+                    (color[0] * 255.0) as u8,
+                    (color[1] * 255.0) as u8,
+                    (color[2] * 255.0) as u8,
+                );
+                buf.set_text(
+                    &mut state.font_system,
+                    &text,
+                    Attrs::new().family(Family::SansSerif).color(c),
+                    Shaping::Advanced,
+                );
+                buf.shape_until_scroll(&mut state.font_system, false);
+                dynamic_buffers.push(buf);
+                dynamic_meta.push((x, y, 30.0, 30.0));
+            }
+        }
+
+        // 6. AI Panel text (only if panel is open)
         if let Some(ref ai_zone) = state.layout.ai_panel {
             let ai_status = if state.agent.is_some() {
                 "Connected"
@@ -2110,6 +2149,7 @@ impl Application {
 
     /// Handle mouse/input events on UI components
     fn handle_input(
+        modifiers: ModifiersState,
         state: &mut AppState,
         event: &WindowEvent,
         bottom_panel_visible: bool,
@@ -2291,9 +2331,14 @@ impl Application {
 
                                     let offset =
                                         ed.buffer.line_col_to_offset(target_line, target_col);
-                                    ed.buffer.set_selection(forge_core::Selection::point(
-                                        forge_core::Position::new(offset),
-                                    ));
+
+                                    if modifiers.alt_key() {
+                                        ed.add_cursor_at_point(target_line, target_col);
+                                    } else {
+                                        ed.buffer.set_selection(forge_core::Selection::point(
+                                            forge_core::Position::new(offset),
+                                        ));
+                                    }
                                 }
                                 state.window.request_redraw();
                             } else if state.sidebar_open
@@ -3319,7 +3364,8 @@ impl ApplicationHandler for Application {
             }
 
             _ => {
-                Application::handle_input(
+                Self::handle_input(
+                    self.modifiers,
                     state,
                     &event,
                     self.bottom_panel.visible,

@@ -1,10 +1,11 @@
-//! Content search (grep) functionality.
+//! Content search (grep) functionality using ripgrep primitives.
 
 use anyhow::Result;
+use grep::regex::RegexMatcherBuilder;
+use grep::searcher::{BinaryDetection, SearcherBuilder, Sink, SinkMatch};
 use ignore::WalkBuilder;
-use regex::RegexBuilder;
-use std::fs;
 use std::path::Path;
+use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Clone)]
 pub struct SearchOpts {
@@ -25,16 +26,36 @@ pub struct SearchResult {
 
 pub struct ContentSearcher;
 
+// Custom sink to capture results with file context
+struct CollectingSink<'a> {
+    results: &'a mut Vec<SearchResult>,
+    file_path: String,
+}
+
+impl<'a> Sink for CollectingSink<'a> {
+    type Error = std::io::Error;
+
+    fn matched(&mut self, _searcher: &grep::searcher::Searcher, mat: &SinkMatch) -> Result<bool, std::io::Error> {
+        let text = std::str::from_utf8(mat.bytes()).unwrap_or("").trim().to_string();
+        if text.len() > 1000 { return Ok(true); } // Skip long lines
+
+        self.results.push(SearchResult {
+            file: self.file_path.clone(),
+            line: mat.line_number().unwrap_or(0) as usize,
+            col: 0, // grep-searcher match doesn't give col easily without byte offset calc
+            text,
+        });
+        Ok(true)
+    }
+}
+
 impl ContentSearcher {
     pub fn search(root: &Path, query: &str, opts: SearchOpts) -> Result<Vec<SearchResult>> {
         let mut results = Vec::new();
+        let results_mutex = Arc::new(Mutex::new(results));
 
         let mut builder = WalkBuilder::new(root);
-        // Default to respecting gitignore
-        builder.hidden(false); // Search hidden files? Typically yes for .gitignore.
-                               // If hidden(true), it skips hidden files. We probably want to search hidden files if they are not ignored.
-                               // But typically .git is hidden and ignored.
-                               // Let's use defaults.
+        builder.hidden(false);
 
         if let Some(ref glob) = opts.include_glob {
             let mut overrides = ignore::overrides::OverrideBuilder::new(root);
@@ -43,68 +64,79 @@ impl ContentSearcher {
         }
         if let Some(ref glob) = opts.exclude_glob {
             let mut overrides = ignore::overrides::OverrideBuilder::new(root);
-            overrides.add(&format!("!{}", glob))?; // Exclude means ignore
+            overrides.add(&format!("!{}", glob))?;
             builder.overrides(overrides.build()?);
         }
 
-        let walker = builder.build();
+        // Prepare Matcher
+        let mut matcher_builder = RegexMatcherBuilder::new();
+        matcher_builder.case_insensitive(!opts.case_sensitive);
+        if opts.whole_word {
+            matcher_builder.word(true);
+        }
 
-        // Prepare regex
-        let mut pattern = if opts.regex {
+        let pattern = if opts.regex {
             query.to_string()
         } else {
             regex::escape(query)
         };
 
-        if opts.whole_word {
-            pattern = format!(r"\b{}\b", pattern);
-        }
+        let matcher = matcher_builder.build(&pattern)?;
 
-        let re = RegexBuilder::new(&pattern)
-            .case_insensitive(!opts.case_sensitive)
-            .build()?;
+        // Parallel walk
+        let walker = builder.build_parallel();
 
-        for result in walker {
-            match result {
-                Ok(entry) => {
-                    if entry.file_type().is_some_and(|ft| ft.is_file()) {
-                        let path = entry.path();
-                        // Check if binary
-                        // A simple heuristic: read first few bytes, if null byte, skip.
-                        // Or use strict UTF-8 check.
+        walker.run(|| {
+            let results_mutex = results_mutex.clone();
+            let matcher = matcher.clone();
 
-                        // We will read the file as string. If it fails, it's likely binary.
-                        // This is not efficient for huge files, but for a simple editor it's okay.
-                        // A better way is memory mapping or reading line by line.
-                        // For simplicity, read entire file.
+            Box::new(move |result| {
+                use ignore::WalkState;
 
-                        match fs::read_to_string(path) {
-                            Ok(content) => {
-                                for (line_idx, line) in content.lines().enumerate() {
-                                    if let Some(mat) = re.find(line) {
-                                        results.push(SearchResult {
-                                            file: path.to_string_lossy().to_string(),
-                                            line: line_idx + 1,
-                                            col: mat.start() + 1,
-                                            text: line.trim().to_string(), // Trim for display
-                                        });
+                let entry = match result {
+                    Ok(entry) => entry,
+                    Err(_) => return WalkState::Continue,
+                };
 
-                                        // TODO: Limit results per file?
-                                    }
-                                }
-                            }
-                            Err(_) => {
-                                // Likely binary or permission error, skip
-                            }
-                        }
+                if let Some(ft) = entry.file_type() {
+                    if !ft.is_file() {
+                        return WalkState::Continue;
+                    }
+                } else {
+                    return WalkState::Continue;
+                }
+
+                let path = entry.path();
+                let path_string = path.to_string_lossy().to_string();
+
+                let mut searcher = SearcherBuilder::new()
+                    .binary_detection(BinaryDetection::quit(b'\x00'))
+                    .line_number(true)
+                    .build();
+
+                let mut local_results = Vec::new();
+                let mut sink = CollectingSink {
+                    results: &mut local_results,
+                    file_path: path_string,
+                };
+
+                let _ = searcher.search_path(&matcher, path, &mut sink);
+
+                if !local_results.is_empty() {
+                    if let Ok(mut lock) = results_mutex.lock() {
+                        lock.extend(local_results);
                     }
                 }
-                Err(err) => {
-                    eprintln!("Error walking: {}", err);
-                }
-            }
-        }
 
-        Ok(results)
+                WalkState::Continue
+            })
+        });
+
+        // Extract results
+        let final_results = Arc::try_unwrap(results_mutex)
+            .map_err(|_| anyhow::anyhow!("Lock error"))?
+            .into_inner()?;
+
+        Ok(final_results)
     }
 }

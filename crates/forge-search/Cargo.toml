@@ -8,6 +8,8 @@ anyhow = { workspace = true }
 serde = { workspace = true }
 ignore = { workspace = true }
 regex = { workspace = true }
+grep = "0.2"
+walkdir = "2"
 
 [dev-dependencies]
 proptest = { workspace = true }

@@ -1,0 +1,174 @@
+   Compiling regex-automata v0.4.14
+   Compiling grep-matcher v0.1.8
+   Compiling encoding_rs_io v0.1.7
+   Compiling base64 v0.20.0
+warning: unused import: `Pixel`
+ --> crates/forge-test-tools/src/screenshot.rs:1:24
+  |
+1 | use image::{RgbaImage, Pixel};
+  |                        ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `ElementState` and `MouseButton`
+ --> crates/forge-test-tools/src/input_sim.rs:1:20
+  |
+1 | use winit::event::{ElementState, MouseButton, WindowEvent};
+  |                    ^^^^^^^^^^^^  ^^^^^^^^^^^
+
+warning: `forge-test-tools` (lib) generated 2 warnings (run `cargo fix --lib -p forge-test-tools` to apply 2 suggestions)
+   Compiling forge-debug v0.1.0 (/app/crates/forge-debug)
+   Compiling bstr v1.12.1
+   Compiling regex v1.12.3
+   Compiling globset v0.4.18
+   Compiling grep-searcher v0.1.16
+   Compiling tree-sitter v0.24.7
+   Compiling grep-printer v0.1.7
+   Compiling grep-cli v0.1.12
+   Compiling grep-regex v0.1.14
+   Compiling tree-sitter v0.20.10
+   Compiling tree-sitter-toml v0.20.0
+   Compiling grep v0.2.13
+   Compiling forge-core v0.1.0 (/app/crates/forge-core)
+   Compiling ignore v0.4.25
+   Compiling forge-renderer v0.1.0 (/app/crates/forge-renderer)
+   Compiling forge-search v0.1.0 (/app/crates/forge-search)
+warning: variable does not need to be mutable
+  --> crates/forge-search/src/content.rs:54:13
+   |
+54 |         let mut results = Vec::new();
+   |             ----^^^^^^^
+   |             |
+   |             help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+   Compiling forge-syntax v0.1.0 (/app/crates/forge-syntax)
+warning: `forge-search` (lib) generated 1 warning (run `cargo fix --lib -p forge-search` to apply 1 suggestion)
+   Compiling forge-app v0.1.0 (/app/crates/forge-app)
+warning: variable does not need to be mutable
+   --> crates/forge-app/src/application.rs:372:13
+    |
+372 |         let mut file_explorer = crate::file_explorer::FileExplorer::new();
+    |             ----^^^^^^^^^^^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+ --> crates/forge-app/src/debug_views.rs:9:13
+  |
+9 |         let mut rects = Vec::new();
+  |             ----^^^^^
+  |             |
+  |             help: remove this `mut`
+
+warning: `forge-app` (bin "forge") generated 2 warnings (run `cargo fix --bin "forge" -p forge-app` to apply 2 suggestions)
+    Finished `dev` profile [optimized + debuginfo] target(s) in 1m 18s
+     Running `target/debug/forge --screenshot screenshot_final.png`
+[2m2026-02-14T22:47:33.907246Z[0m [32m INFO[0m [2mforge[0m[2m:[0m 🔥 Forge Editor starting...
+[2m2026-02-14T22:47:33.972383Z[0m [33m WARN[0m [2mwinit::platform_impl::linux::x11::xdisplay[0m[2m:[0m error setting XSETTINGS; Xft options won't reload automatically
+[2m2026-02-14T22:47:34.008894Z[0m [32m INFO[0m [2mforge::application[0m[2m:[0m Plugin runtime initialized (WASM)
+[2m2026-02-14T22:47:34.022395Z[0m [32m INFO[0m [2mforge_lsp::server[0m[2m:[0m Spawning LSP server: rust-analyzer []
+[2m2026-02-14T22:47:34.022925Z[0m [32m INFO[0m [2mforge::application[0m[2m:[0m LSP: rust-analyzer spawned
+[2m2026-02-14T22:47:34.023598Z[0m [33m WARN[0m [2mwinit::platform_impl::linux::x11::util::randr[0m[2m:[0m XRandR reported that the display's 0mm in size, which is certifiably insane
+[2m2026-02-14T22:47:34.023720Z[0m [32m INFO[0m [2mwinit::platform_impl::linux::x11::window[0m[2m:[0m Guessed window scale factor: 1
+[2m2026-02-14T22:47:34.029318Z[0m [33m WARN[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m Unable to find extension: VK_KHR_surface
+[2m2026-02-14T22:47:34.029344Z[0m [33m WARN[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m Unable to find extension: VK_KHR_xlib_surface
+[2m2026-02-14T22:47:34.029350Z[0m [33m WARN[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m Unable to find extension: VK_KHR_xcb_surface
+[2m2026-02-14T22:47:34.029424Z[0m [33m WARN[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m Unable to find extension: VK_KHR_wayland_surface
+[2m2026-02-14T22:47:34.029433Z[0m [33m WARN[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m Unable to find extension: VK_EXT_swapchain_colorspace
+[2m2026-02-14T22:47:34.029437Z[0m [33m WARN[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m Unable to find extension: VK_KHR_get_physical_device_properties2
+[2m2026-02-14T22:47:34.030289Z[0m [33m WARN[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m InstanceFlags::VALIDATION requested, but unable to find layer: VK_LAYER_KHRONOS_validation
+[2m2026-02-14T22:47:34.030653Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m GENERAL [Loader Message (0x0)]
+	Searching for implicit layer manifest files
+[2m2026-02-14T22:47:34.030675Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m 	objects: (type: INSTANCE, hndl: 0x5604f5b6d760, name: ?)
+[2m2026-02-14T22:47:34.030686Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m GENERAL [Loader Message (0x0)]
+	   In following locations:
+[2m2026-02-14T22:47:34.030690Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m 	objects: (type: INSTANCE, hndl: 0x5604f5b6d760, name: ?)
+[2m2026-02-14T22:47:34.030695Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m GENERAL [Loader Message (0x0)]
+	      /home/jules/.config/vulkan/implicit_layer.d
+[2m2026-02-14T22:47:34.030699Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m 	objects: (type: INSTANCE, hndl: 0x5604f5b6d760, name: ?)
+[2m2026-02-14T22:47:34.030703Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m GENERAL [Loader Message (0x0)]
+	      /etc/xdg/vulkan/implicit_layer.d
+[2m2026-02-14T22:47:34.030707Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m 	objects: (type: INSTANCE, hndl: 0x5604f5b6d760, name: ?)
+[2m2026-02-14T22:47:34.030711Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m GENERAL [Loader Message (0x0)]
+	      /etc/vulkan/implicit_layer.d
+[2m2026-02-14T22:47:34.030714Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m 	objects: (type: INSTANCE, hndl: 0x5604f5b6d760, name: ?)
+[2m2026-02-14T22:47:34.030718Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m GENERAL [Loader Message (0x0)]
+	      /home/jules/.local/share/vulkan/implicit_layer.d
+[2m2026-02-14T22:47:34.030722Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m 	objects: (type: INSTANCE, hndl: 0x5604f5b6d760, name: ?)
+[2m2026-02-14T22:47:34.030726Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m GENERAL [Loader Message (0x0)]
+	      /usr/local/share/vulkan/implicit_layer.d
+[2m2026-02-14T22:47:34.030730Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m 	objects: (type: INSTANCE, hndl: 0x5604f5b6d760, name: ?)
+[2m2026-02-14T22:47:34.030734Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m GENERAL [Loader Message (0x0)]
+	      /usr/share/vulkan/implicit_layer.d
+[2m2026-02-14T22:47:34.030738Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m 	objects: (type: INSTANCE, hndl: 0x5604f5b6d760, name: ?)
+[2m2026-02-14T22:47:34.030777Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m GENERAL [Loader Message (0x0)]
+	   Found no files
+[2m2026-02-14T22:47:34.030781Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m 	objects: (type: INSTANCE, hndl: 0x5604f5b6d760, name: ?)
+[2m2026-02-14T22:47:34.030794Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m GENERAL [Loader Message (0x0)]
+	Searching for explicit layer manifest files
+[2m2026-02-14T22:47:34.030799Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m 	objects: (type: INSTANCE, hndl: 0x5604f5b6d760, name: ?)
+[2m2026-02-14T22:47:34.030805Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m GENERAL [Loader Message (0x0)]
+	   In following locations:
+[2m2026-02-14T22:47:34.030811Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m 	objects: (type: INSTANCE, hndl: 0x5604f5b6d760, name: ?)
+[2m2026-02-14T22:47:34.030827Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m GENERAL [Loader Message (0x0)]
+	      /home/jules/.config/vulkan/explicit_layer.d
+[2m2026-02-14T22:47:34.030834Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m 	objects: (type: INSTANCE, hndl: 0x5604f5b6d760, name: ?)
+[2m2026-02-14T22:47:34.030840Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m GENERAL [Loader Message (0x0)]
+	      /etc/xdg/vulkan/explicit_layer.d
+[2m2026-02-14T22:47:34.030846Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m 	objects: (type: INSTANCE, hndl: 0x5604f5b6d760, name: ?)
+[2m2026-02-14T22:47:34.030851Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m GENERAL [Loader Message (0x0)]
+	      /etc/vulkan/explicit_layer.d
+[2m2026-02-14T22:47:34.030857Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m 	objects: (type: INSTANCE, hndl: 0x5604f5b6d760, name: ?)
+[2m2026-02-14T22:47:34.030863Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m GENERAL [Loader Message (0x0)]
+	      /home/jules/.local/share/vulkan/explicit_layer.d
+[2m2026-02-14T22:47:34.030870Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m 	objects: (type: INSTANCE, hndl: 0x5604f5b6d760, name: ?)
+[2m2026-02-14T22:47:34.030876Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m GENERAL [Loader Message (0x0)]
+	      /usr/local/share/vulkan/explicit_layer.d
+[2m2026-02-14T22:47:34.030882Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m 	objects: (type: INSTANCE, hndl: 0x5604f5b6d760, name: ?)
+[2m2026-02-14T22:47:34.030889Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m GENERAL [Loader Message (0x0)]
+	      /usr/share/vulkan/explicit_layer.d
+[2m2026-02-14T22:47:34.030895Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m 	objects: (type: INSTANCE, hndl: 0x5604f5b6d760, name: ?)
+[2m2026-02-14T22:47:34.030926Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m GENERAL [Loader Message (0x0)]
+	   Found no files
+[2m2026-02-14T22:47:34.030930Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m 	objects: (type: INSTANCE, hndl: 0x5604f5b6d760, name: ?)
+[2m2026-02-14T22:47:34.030971Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m GENERAL [Loader Message (0x0)]
+	Searching for driver manifest files
+[2m2026-02-14T22:47:34.030979Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m 	objects: (type: INSTANCE, hndl: 0x5604f5b6d760, name: ?)
+[2m2026-02-14T22:47:34.030984Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m GENERAL [Loader Message (0x0)]
+	   In following locations:
+[2m2026-02-14T22:47:34.030989Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m 	objects: (type: INSTANCE, hndl: 0x5604f5b6d760, name: ?)
+[2m2026-02-14T22:47:34.030993Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m GENERAL [Loader Message (0x0)]
+	      /home/jules/.config/vulkan/icd.d
+[2m2026-02-14T22:47:34.030997Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m 	objects: (type: INSTANCE, hndl: 0x5604f5b6d760, name: ?)
+[2m2026-02-14T22:47:34.031011Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m GENERAL [Loader Message (0x0)]
+	      /etc/xdg/vulkan/icd.d
+[2m2026-02-14T22:47:34.031017Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m 	objects: (type: INSTANCE, hndl: 0x5604f5b6d760, name: ?)
+[2m2026-02-14T22:47:34.031021Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m GENERAL [Loader Message (0x0)]
+	      /etc/vulkan/icd.d
+[2m2026-02-14T22:47:34.031024Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m 	objects: (type: INSTANCE, hndl: 0x5604f5b6d760, name: ?)
+[2m2026-02-14T22:47:34.031028Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m GENERAL [Loader Message (0x0)]
+	      /home/jules/.local/share/vulkan/icd.d
+[2m2026-02-14T22:47:34.031032Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m 	objects: (type: INSTANCE, hndl: 0x5604f5b6d760, name: ?)
+[2m2026-02-14T22:47:34.031043Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m GENERAL [Loader Message (0x0)]
+	      /usr/local/share/vulkan/icd.d
+[2m2026-02-14T22:47:34.031047Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m 	objects: (type: INSTANCE, hndl: 0x5604f5b6d760, name: ?)
+[2m2026-02-14T22:47:34.031051Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m GENERAL [Loader Message (0x0)]
+	      /usr/share/vulkan/icd.d
+[2m2026-02-14T22:47:34.031055Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m 	objects: (type: INSTANCE, hndl: 0x5604f5b6d760, name: ?)
+[2m2026-02-14T22:47:34.031084Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m GENERAL [Loader Message (0x0)]
+	   Found no files
+[2m2026-02-14T22:47:34.031088Z[0m [32m INFO[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m 	objects: (type: INSTANCE, hndl: 0x5604f5b6d760, name: ?)
+[2m2026-02-14T22:47:34.031095Z[0m [31mERROR[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m GENERAL [Loader Message (0x0)]
+	vkCreateInstance: Found no drivers!
+[2m2026-02-14T22:47:34.031100Z[0m [31mERROR[0m [2mwgpu_hal::vulkan::instance[0m[2m:[0m 	objects: (type: INSTANCE, hndl: 0x5604f5b6d760, name: ?)
+error: XDG_RUNTIME_DIR is invalid or not set in the environment.
+[2m2026-02-14T22:47:34.139194Z[0m [32m INFO[0m [2mwgpu_hal::gles::egl[0m[2m:[0m Using X11 platform
+[2m2026-02-14T22:47:34.236204Z[0m [32m INFO[0m [2mwgpu_core::instance[0m[2m:[0m Adapter AdapterInfo { name: "llvmpipe (LLVM 20.1.2, 256 bits)", vendor: 65541, device: 0, device_type: Cpu, driver: "", driver_info: "4.5 (Core Profile) Mesa 25.0.7-0ubuntu0.24.04.2", backend: Gl }
+[2m2026-02-14T22:47:34.236331Z[0m [32m INFO[0m [2mforge::gpu[0m[2m:[0m GPU adapter: "llvmpipe (LLVM 20.1.2, 256 bits)"
+[2m2026-02-14T22:47:34.289801Z[0m [32m INFO[0m [2mforge::application[0m[2m:[0m GPU initialized: 1280x800
+[2m2026-02-14T22:47:34.289870Z[0m [32m INFO[0m [2mforge::application[0m[2m:[0m AI Agent: will be spawned when async runtime is available
+[2m2026-02-14T22:47:34.760974Z[0m [32m INFO[0m [2mforge::application[0m[2m:[0m Screenshot saved to screenshot_final.png

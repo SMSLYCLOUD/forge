@@ -21,6 +21,7 @@ mod accessibility;
 mod emmet;
 mod image_preview;
 mod markdown_preview;
+mod markdown;
 mod terminal_tabs;
 
 // UI components
@@ -29,6 +30,8 @@ mod autocomplete;
 mod breadcrumb;
 mod cursor;
 mod debug_ui;
+mod debug_views;
+mod debug_toolbar;
 mod drag_drop;
 mod editor_groups;
 mod extensions_panel;
