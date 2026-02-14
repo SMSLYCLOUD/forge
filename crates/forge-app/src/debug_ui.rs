@@ -1,5 +1,8 @@
 use forge_debug::DebugClient;
 use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::runtime::Runtime;
+use tokio::sync::Mutex;
 
 #[derive(Clone, Debug)]
 pub struct Breakpoint {
@@ -17,7 +20,7 @@ pub struct StackFrame {
 }
 
 pub struct DebugUi {
-    pub client: Option<DebugClient>,
+    pub client: Option<Arc<Mutex<DebugClient>>>,
     pub breakpoints: Vec<Breakpoint>,
     pub stack_frames: Vec<StackFrame>,
     pub variables: HashMap<String, String>,
@@ -35,7 +38,7 @@ impl DebugUi {
         }
     }
 
-    pub fn toggle_breakpoint(&mut self, file: String, line: usize) {
+    pub fn toggle_breakpoint(&mut self, file: String, line: usize, rt: &Arc<Runtime>) {
         if let Some(idx) = self
             .breakpoints
             .iter()
@@ -44,12 +47,31 @@ impl DebugUi {
             self.breakpoints.remove(idx);
         } else {
             self.breakpoints.push(Breakpoint {
-                file,
+                file: file.clone(),
                 line,
                 verified: false,
             });
         }
-        // TODO: Send setBreakpoints request to DAP
+
+        if let Some(client) = &self.client {
+            let client = client.clone();
+            let bps: Vec<_> = self
+                .breakpoints
+                .iter()
+                .filter(|bp| bp.file == file)
+                .map(|bp| serde_json::json!({ "line": bp.line }))
+                .collect();
+            let file_clone = file.clone();
+
+            rt.spawn(async move {
+                let mut c = client.lock().await;
+                let args = serde_json::json!({
+                    "source": { "path": file_clone },
+                    "breakpoints": bps
+                });
+                let _ = c.send_request("setBreakpoints", Some(args)).await;
+            });
+        }
     }
 
     pub async fn start_debug(&mut self, program: &str) {
@@ -58,13 +80,17 @@ impl DebugUi {
         // Assume "codelldb" or similar adapter
         if let Ok(_) = client.launch("codelldb", &["--port", "0"]) {
             // Initialize DAP session
-            self.client = Some(client);
+            self.client = Some(Arc::new(Mutex::new(client)));
         }
     }
 
     pub async fn step_over(&mut self) {
-        if let Some(client) = &mut self.client {
-            // client.send_request("next", ...).await;
+        if let Some(client) = &self.client {
+            let client = client.clone();
+            // TODO: spawn or return future? for now just hold lock if async
+            // But step_over is async, so we can await lock
+            let mut c = client.lock().await;
+            let _ = c.send_request("next", None).await;
         }
     }
 

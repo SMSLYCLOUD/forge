@@ -18,9 +18,13 @@ use crate::tab_bar::TabBar;
 use crate::tab_manager::TabManager;
 use crate::ui::{LayoutConstants, LayoutZones};
 
+use forge_agent::agent::{Agent, AgentRequest, AgentResponse, AgentStatus, EditorContext};
+use forge_lsp::{LspClient, LspServer};
 use std::sync::Arc;
 use std::time::Instant;
+use tokio::runtime::Runtime;
 use tracing::info;
+use url::Url;
 use winit::application::ApplicationHandler;
 use winit::dpi::LogicalSize;
 use winit::event::{ElementState, WindowEvent};
@@ -132,16 +136,17 @@ pub struct Application {
     settings_ui: crate::settings_ui::SettingsUi,
     zen_mode: crate::zen_mode::ZenMode,
 
-    // Phase 2: LSP (async — needs tokio runtime bridge)
-    // LSP client will be initialized when tokio runtime is available
-    // lsp_client: Option<forge_lsp::LspClient>,
+    // Async Runtime
+    rt: Arc<Runtime>,
 
-    // Phase 3: AI Agent (async — needs tokio runtime bridge)
-    // agent will be initialized when tokio runtime is available
-    // agent: Option<forge_agent::agent::AgentRuntime>,
+    // Phase 2: LSP
+    lsp_client: Option<Arc<LspClient>>,
+
+    // Phase 3: AI Agent
+    // agent: Option<Arc<forge_agent::agent::AgentRuntime>>,
 
     // Phase 5: Debug + Plugins
-    debug_client: forge_debug::DebugClient,
+    debug_ui: Option<crate::debug_ui::DebugUi>,
     plugin_runtime: Option<forge_plugin::PluginRuntime>,
 
     // Phase 4: Intelligence Layer
@@ -165,7 +170,9 @@ struct AppState {
 
     // Text buffers — one per UI region
     editor_buffer: GlyphonBuffer,
+    split_editor_buffer: GlyphonBuffer, // For split view
     gutter_buffer: GlyphonBuffer,
+    split_gutter_buffer: GlyphonBuffer, // For split view
     tab_buffer: GlyphonBuffer,
     status_buffer: GlyphonBuffer,
     breadcrumb_buffer: GlyphonBuffer,
@@ -181,6 +188,12 @@ struct AppState {
     // Terminal
     terminal: Option<forge_terminal::Terminal>,
     bottom_panel_focused: bool,
+
+    // AI Agent
+    agent: Option<Agent>,
+
+    // Debug UI
+    debug_ui: crate::debug_ui::DebugUi,
 
     // Rectangle renderer
     rect_renderer: RectRenderer,
@@ -225,8 +238,8 @@ impl Application {
         let settings_ui = crate::settings_ui::SettingsUi::new();
         let zen_mode = crate::zen_mode::ZenMode::new();
 
-        // Phase 5: Debug client (sync init)
-        let debug_client = forge_debug::DebugClient::new();
+        // Phase 5: Debug UI (sync init)
+        let debug_ui = Some(crate::debug_ui::DebugUi::new());
 
         // Phase 5: Plugin runtime (sync init)
         let plugin_runtime = match forge_plugin::PluginRuntime::new() {
@@ -247,7 +260,39 @@ impl Application {
         let ghost_tabs = forge_anticipation::GhostTabsEngine::new();
         let anomaly_detector = forge_immune::AnomalyDetector::new(100);
 
+        // Async Runtime
+        let rt = Arc::new(Runtime::new().expect("Failed to create Tokio runtime"));
+
+        // LSP Init
+        let lsp_client = if let Ok(server) = rt.block_on(async { LspServer::spawn("rust-analyzer", &[]) }) {
+            info!("LSP: rust-analyzer spawned");
+            let mut client = LspClient::new(server);
+            if let Err(e) = client.initialize_transport() {
+                tracing::warn!("LSP: Failed to initialize transport: {}", e);
+                None
+            } else {
+                let client = Arc::new(client);
+                let c = client.clone();
+                let cwd = std::env::current_dir().unwrap_or_default();
+                if let Ok(cwd_url) = Url::from_directory_path(&cwd) {
+                    rt.spawn(async move {
+                        if let Err(e) = c.initialize(cwd_url).await {
+                            tracing::warn!("LSP: Initialize failed: {}", e);
+                        } else {
+                            info!("LSP: Initialized");
+                        }
+                    });
+                }
+                Some(client)
+            }
+        } else {
+            tracing::warn!("LSP: rust-analyzer not found or failed to spawn");
+            None
+        };
+
         Self {
+            rt,
+            lsp_client,
             file_path,
             screenshot_path,
             state: None,
@@ -264,7 +309,7 @@ impl Application {
             context_menu,
             settings_ui,
             zen_mode,
-            debug_client,
+            debug_ui,
             plugin_runtime,
             ghost_tabs,
             anomaly_detector,
@@ -295,12 +340,20 @@ impl Application {
         let cwd = std::env::current_dir().unwrap_or_default();
         let _ = file_explorer.scan_directory(&cwd);
 
-        // Phase 2: LSP init stub
-        // TODO: When tokio runtime is available, spawn rust-analyzer:
-        //   let server = forge_lsp::LspServer::spawn("rust-analyzer", &[]).unwrap();
-        //   let lsp_client = forge_lsp::LspClient::new(server);
-        //   lsp_client.initialize(cwd.to_string_lossy()).await;
-        info!("LSP: rust-analyzer will be spawned when async runtime is available");
+        // LSP: Send didOpen if file is opened
+        if let Some(ref path) = self.file_path {
+            if let Some(client) = &self.lsp_client {
+                if let Ok(path_abs) = std::fs::canonicalize(path) {
+                    if let Ok(uri) = Url::from_file_path(&path_abs) {
+                        let text = std::fs::read_to_string(&path_abs).unwrap_or_default();
+                        let client = client.clone();
+                        self.rt.spawn(async move {
+                            let _ = client.did_open(uri, text, "rust".to_string()).await;
+                        });
+                    }
+                }
+            }
+        }
 
         // Phase 3: AI Agent init stub
         // TODO: When tokio runtime is available, spawn agent:
@@ -332,7 +385,18 @@ impl Application {
             &mut font_system,
             Metrics::new(LayoutConstants::FONT_SIZE, LayoutConstants::LINE_HEIGHT),
         );
+        let split_editor_buffer = GlyphonBuffer::new(
+            &mut font_system,
+            Metrics::new(LayoutConstants::FONT_SIZE, LayoutConstants::LINE_HEIGHT),
+        );
         let gutter_buffer = GlyphonBuffer::new(
+            &mut font_system,
+            Metrics::new(
+                LayoutConstants::SMALL_FONT_SIZE,
+                LayoutConstants::LINE_HEIGHT,
+            ),
+        );
+        let split_gutter_buffer = GlyphonBuffer::new(
             &mut font_system,
             Metrics::new(
                 LayoutConstants::SMALL_FONT_SIZE,
@@ -424,7 +488,9 @@ impl Application {
             viewport,
             text_renderer,
             editor_buffer,
+            split_editor_buffer,
             gutter_buffer,
+            split_gutter_buffer,
             tab_buffer,
             status_buffer,
             breadcrumb_buffer,
@@ -436,6 +502,11 @@ impl Application {
             file_explorer,
             terminal: None,
             bottom_panel_focused: false,
+            agent: Some(Agent::start()),
+            debug_ui: self
+                .debug_ui
+                .take()
+                .unwrap_or_else(|| crate::debug_ui::DebugUi::new()),
             rect_renderer,
             layout,
             tab_bar,
@@ -471,6 +542,30 @@ impl Application {
     ) {
         state.frame_timer.begin_frame();
         notifications.tick();
+
+        // Poll AI Agent
+        if let Some(agent) = &mut state.agent {
+            while let Some(response) = agent.poll_response() {
+                match response {
+                    AgentResponse::StatusChange(status) => {
+                        state.status_bar_state.ai_status = status.to_string();
+                    }
+                    AgentResponse::Complete(resp) => {
+                        notifications.show(
+                            &format!("AI: {}", resp.content),
+                            crate::notifications::Level::Info,
+                        );
+                    }
+                    AgentResponse::Error(e) => {
+                        notifications.show(
+                            &format!("AI Error: {}", e),
+                            crate::notifications::Level::Error,
+                        );
+                    }
+                    _ => {}
+                }
+            }
+        }
 
         let (width, height) = state.gpu.size();
         if width == 0 || height == 0 {
@@ -1065,6 +1160,11 @@ impl Application {
             if bottom_panel.visible {
                 let mut term_text = String::new();
                 if let Some(ref mut term) = state.terminal {
+                    // Render cursor and background via TerminalUi
+                    let term_ui = crate::terminal_ui::TerminalUi::new();
+                    let term_rects = term_ui.render_rects(term, bp);
+                    state.render_batch.extend(&term_rects);
+
                     let _events = term.tick();
                     let grid = term.render_grid();
                     for row in &grid.cells {
@@ -1644,12 +1744,32 @@ impl Application {
         state.frame_timer.end_frame();
     }
 
+    fn notify_lsp(state: &AppState, rt: &Arc<Runtime>, lsp_client: &Option<Arc<LspClient>>) {
+        if let Some(client) = lsp_client {
+            if let Some(tab) = state.tab_manager.tabs.get(state.tab_manager.active) {
+                if let Some(ref path) = tab.path {
+                    if let Ok(path_abs) = std::fs::canonicalize(path) {
+                        if let Ok(uri) = Url::from_file_path(path_abs) {
+                            let text = tab.editor.buffer.text();
+                            let client = client.clone();
+                            rt.spawn(async move {
+                                let _ = client.did_change(uri, 1, text).await;
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     /// Handle mouse/input events on UI components
     fn handle_input(
         state: &mut AppState,
         event: &WindowEvent,
         bottom_panel_visible: bool,
         context_menu: &mut crate::context_menu::ContextMenu,
+        rt: &Arc<Runtime>,
+        lsp_client: &Option<Arc<LspClient>>,
     ) {
         match event {
             WindowEvent::MouseInput {
@@ -1694,7 +1814,21 @@ impl Application {
                             } else if state.layout.tab_bar.contains(mx, my) {
                                 state.tab_bar.handle_click(mx, &state.layout.tab_bar);
                             } else if state.layout.gutter.contains(mx, my) {
-                                state.gutter.handle_click(my, &state.layout.gutter);
+                                if let Some(line) =
+                                    state.gutter.handle_click(my, &state.layout.gutter)
+                                {
+                                    if let Some(tab) =
+                                        state.tab_manager.tabs.get(state.tab_manager.active)
+                                    {
+                                        if let Some(ref path) = tab.path {
+                                            state.debug_ui.toggle_breakpoint(
+                                                path.to_string_lossy().to_string(),
+                                                line,
+                                                rt,
+                                            );
+                                        }
+                                    }
+                                }
                             } else if state.layout.scrollbar_v.contains(mx, my) {
                                 let scroll_top = state
                                     .tab_manager
@@ -1913,11 +2047,19 @@ impl ApplicationHandler for Application {
                             state.window.request_redraw();
                         }
                         "\\" => {
-                            self.notifications.show(
-                                "Split editor is not available yet.",
-                                crate::notifications::Level::Warning,
-                            );
+                            state.tab_manager.split_current();
                             state.window.request_redraw();
+                        }
+                        "1" if ctrl => {
+                            state.tab_manager.focused_pane = crate::tab_manager::Pane::Primary;
+                            state.window.request_redraw();
+                        }
+                        "2" if ctrl => {
+                            if state.tab_manager.active_secondary.is_some() {
+                                state.tab_manager.focused_pane =
+                                    crate::tab_manager::Pane::Secondary;
+                                state.window.request_redraw();
+                            }
                         }
                         "k" => {
                             if self.zen_mode.active {
@@ -1981,12 +2123,16 @@ impl ApplicationHandler for Application {
                         "z" => {
                             if let Some(ed) = state.tab_manager.active_editor_mut() {
                                 ed.buffer.undo();
+                                ed.rehighlight(); // Ensure syntax highlighting is updated
                             }
+                            Self::notify_lsp(state, &self.rt, &self.lsp_client);
                         }
                         "y" => {
                             if let Some(ed) = state.tab_manager.active_editor_mut() {
                                 ed.buffer.redo();
+                                ed.rehighlight(); // Ensure syntax highlighting is updated
                             }
+                            Self::notify_lsp(state, &self.rt, &self.lsp_client);
                         }
                         "c" => {
                             // Clipboard copy
@@ -2010,26 +2156,27 @@ impl ApplicationHandler for Application {
                                         }
                                         ed.rehighlight();
                                     }
-                                    if let Some(tab) =
-                                        state.tab_manager.tabs.get_mut(state.tab_manager.active)
-                                    {
-                                        tab.is_modified = true;
-                                    }
+                                    state.tab_manager.mark_active_modified();
+                                    Self::notify_lsp(state, &self.rt, &self.lsp_client);
                                 }
                             }
                         }
                         "x" => {
                             // Clipboard cut (copy current line + delete it)
-                            if let Some(ed) = state.tab_manager.active_editor() {
+                            if let Some(ed) = state.tab_manager.active_editor_mut() {
                                 let text = ed.buffer.text();
                                 let (line, _) = ed.cursor_line_col();
                                 if let Some(line_text) = text.lines().nth(line) {
                                     if let Ok(mut clipboard) = arboard::Clipboard::new() {
                                         let _ = clipboard.set_text(line_text.to_string());
                                     }
+                                    // Delete the line
+                                    ed.delete_line(line);
+                                    ed.rehighlight();
                                 }
                             }
-                            // TODO: delete the line after copying
+                            state.tab_manager.mark_active_modified();
+                            Self::notify_lsp(state, &self.rt, &self.lsp_client);
                         }
                         "o" => {
                             // Open file dialog (simple native dialog)
@@ -2041,6 +2188,64 @@ impl ApplicationHandler for Application {
                         }
                         "m" => {
                             self.current_mode = self.current_mode.next();
+                        }
+                        "d" if shift => {
+                            // Ctrl+Shift+D = Go to Definition
+                            if let Some(tab) = state.tab_manager.tabs.get(state.tab_manager.active)
+                            {
+                                if let Some(ref path) = tab.path {
+                                    let (line, col) = tab.editor.cursor_line_col();
+                                    crate::go_to_def::GoToDef::execute(
+                                        &self.rt,
+                                        &self.lsp_client,
+                                        &path.to_string_lossy(),
+                                        line as u32,
+                                        col as u32,
+                                        &mut self.notifications,
+                                    );
+                                }
+                            }
+                        }
+                        "e" if shift => {
+                            // Ctrl+Shift+E = Explain
+                            if let Some(agent) = &state.agent {
+                                if let Some(ed) = state.tab_manager.active_editor() {
+                                    let selection =
+                                        if !ed.buffer.selection().is_empty() {
+                                            let range = ed.buffer.selection().primary();
+                                            if range.is_empty() {
+                                                None
+                                            } else {
+                                                Some(ed.buffer.slice(
+                                                    range.start().offset,
+                                                    range.end().offset,
+                                                ))
+                                            }
+                                        } else {
+                                            None
+                                        };
+
+                                    let context = EditorContext {
+                                        file_path: state
+                                            .tab_manager
+                                            .tabs
+                                            .get(state.tab_manager.active)
+                                            .and_then(|t| t.path.as_ref())
+                                            .map(|p| p.to_string_lossy().to_string()),
+                                        file_content: Some(ed.buffer.text()),
+                                        cursor_line: ed.cursor_line(),
+                                        cursor_col: ed.cursor_col(),
+                                        selection,
+                                        language: format!("{:?}", ed.language),
+                                        confidence_score: None,
+                                    };
+                                    agent.send_slash_command("/explain".to_string(), context);
+                                    self.notifications.show(
+                                        "AI: Explaining...",
+                                        crate::notifications::Level::Info,
+                                    );
+                                }
+                            }
                         }
                         _ => {}
                     },
@@ -2095,11 +2300,8 @@ impl ApplicationHandler for Application {
                                 ed.backspace();
                                 ed.rehighlight();
                             }
-                            if let Some(tab) =
-                                state.tab_manager.tabs.get_mut(state.tab_manager.active)
-                            {
-                                tab.is_modified = true;
-                            }
+                            state.tab_manager.mark_active_modified();
+                            Self::notify_lsp(state, &self.rt, &self.lsp_client);
                         }
                     }
                     Key::Named(NamedKey::Delete) => {
@@ -2107,10 +2309,8 @@ impl ApplicationHandler for Application {
                             ed.delete();
                             ed.rehighlight();
                         }
-                        if let Some(tab) = state.tab_manager.tabs.get_mut(state.tab_manager.active)
-                        {
-                            tab.is_modified = true;
-                        }
+                        state.tab_manager.mark_active_modified();
+                        Self::notify_lsp(state, &self.rt, &self.lsp_client);
                     }
                     Key::Named(NamedKey::Enter) => {
                         if self.command_palette.visible {
@@ -2249,6 +2449,7 @@ impl ApplicationHandler for Application {
                                 {
                                     tab.is_modified = true;
                                 }
+                                Self::notify_lsp(state, &self.rt, &self.lsp_client);
                             } else {
                                 self.notifications.show(
                                     "No active match to replace.",
@@ -2272,11 +2473,8 @@ impl ApplicationHandler for Application {
                                 ed.insert_newline();
                                 ed.rehighlight();
                             }
-                            if let Some(tab) =
-                                state.tab_manager.tabs.get_mut(state.tab_manager.active)
-                            {
-                                tab.is_modified = true;
-                            }
+                            state.tab_manager.mark_active_modified();
+                            Self::notify_lsp(state, &self.rt, &self.lsp_client);
                         }
                     }
                     Key::Named(NamedKey::Escape) => {
@@ -2303,10 +2501,8 @@ impl ApplicationHandler for Application {
                             }
                             ed.rehighlight();
                         }
-                        if let Some(tab) = state.tab_manager.tabs.get_mut(state.tab_manager.active)
-                        {
-                            tab.is_modified = true;
-                        }
+                        state.tab_manager.mark_active_modified();
+                        Self::notify_lsp(state, &self.rt, &self.lsp_client);
                     }
 
                     Key::Character(ref c) if !ctrl => {
@@ -2338,11 +2534,8 @@ impl ApplicationHandler for Application {
                                 ed.rehighlight();
                             }
                             // Mark tab as modified
-                            if let Some(tab) =
-                                state.tab_manager.tabs.get_mut(state.tab_manager.active)
-                            {
-                                tab.is_modified = true;
-                            }
+                            state.tab_manager.mark_active_modified();
+                            Self::notify_lsp(state, &self.rt, &self.lsp_client);
                         }
                     }
 
@@ -2402,6 +2595,8 @@ impl ApplicationHandler for Application {
                     &event,
                     self.bottom_panel.visible,
                     &mut self.context_menu,
+                    &self.rt,
+                    &self.lsp_client,
                 );
             }
         }

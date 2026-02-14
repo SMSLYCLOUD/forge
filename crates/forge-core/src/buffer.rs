@@ -305,6 +305,20 @@ impl Buffer {
         let line_start = self.rope.line_to_byte(line);
         line_start + col
     }
+
+    /// Sync content from another buffer (preserves selection/syntax state)
+    pub fn sync_content_from(&mut self, other: &Buffer) {
+        self.rope = other.rope.clone();
+        self.history = other.history.clone();
+        self.dirty = other.dirty;
+        self.line_ending = other.line_ending;
+        self.encoding = other.encoding;
+        // Path should match, but we copy it anyway
+        self.path = other.path.clone();
+        // We don't sync syntax state as it depends on local parser state in Editor
+        // But invalidating it might be good?
+        // self.syntax = None;
+    }
 }
 
 impl Default for Buffer {

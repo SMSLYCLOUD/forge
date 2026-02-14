@@ -7,6 +7,12 @@ pub struct DiagnosticHandler {
     pub diagnostics: HashMap<PathBuf, Vec<Diagnostic>>,
 }
 
+impl Default for DiagnosticHandler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DiagnosticHandler {
     pub fn new() -> Self {
         Self {

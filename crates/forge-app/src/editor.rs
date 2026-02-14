@@ -135,6 +135,35 @@ impl Editor {
         self.buffer.apply(tx);
     }
 
+    /// Delete the whole line
+    pub fn delete_line(&mut self, line: usize) {
+        let total = self.total_lines();
+        if line >= total {
+            return;
+        }
+        let start = self.buffer.line_col_to_offset(line, 0);
+
+        let end = if line + 1 < total {
+            self.buffer.line_col_to_offset(line + 1, 0)
+        } else {
+            self.buffer.len_bytes()
+        };
+
+        let change = Change::delete(Position::new(start), Position::new(end));
+        // Move cursor to start of where line was (or new end if last line)
+        let new_cursor = if line + 1 < total {
+            start
+        } else {
+            start.saturating_sub(1) // Primitive, better logic handles newline removal
+        };
+
+        let tx = Transaction::new(
+            ChangeSet::with_change(change),
+            Some(Selection::point(Position::new(new_cursor))),
+        );
+        self.buffer.apply(tx);
+    }
+
     /// Insert a newline at cursor
     pub fn insert_newline(&mut self) {
         self.insert_char('\n');
@@ -313,5 +342,18 @@ impl Editor {
     #[allow(dead_code)]
     pub fn text(&self) -> String {
         self.buffer.text()
+    }
+
+    /// Clone the editor view (buffer content is shared/cloned, but cursor/scroll independent)
+    pub fn clone_view(&self) -> Self {
+        Self {
+            buffer: self.buffer.clone(),
+            scroll_y: self.scroll_y,
+            cursor_visible: true,
+            title: self.title.clone(),
+            syntax_parser: None, // Will be recreated on rehighlight if needed
+            language: self.language,
+            highlight_spans: self.highlight_spans.clone(),
+        }
     }
 }

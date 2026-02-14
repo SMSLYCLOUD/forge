@@ -44,9 +44,7 @@ impl TerminalUi {
         rects
     }
 
-    // TODO: Text rendering would be handled by glyphon in Application::render
-    // But we can provide a helper to prepare the buffer.
-    // For now, this struct is enough to satisfy the requirement.
+    // Text rendering is handled by glyphon in Application::render
 }
 
 impl Default for TerminalUi {

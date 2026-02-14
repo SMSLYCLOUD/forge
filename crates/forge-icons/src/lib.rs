@@ -89,7 +89,7 @@ impl FileIcon {
             "readme.md" | "readme.txt" => Self::Readme,
             _ => {
                 if let Some(ext) = std::path::Path::new(name).extension() {
-                     Self::from_extension(&ext.to_string_lossy())
+                    Self::from_extension(&ext.to_string_lossy())
                 } else {
                     Self::Generic
                 }
@@ -140,31 +140,31 @@ impl FileIcon {
     /// Color hex code (approximate for Material Icon Theme)
     pub fn color(&self) -> [f32; 4] {
         match self {
-            Self::Rust => [0.8, 0.3, 0.1, 1.0], // Orange
-            Self::JavaScript => [0.95, 0.9, 0.2, 1.0], // Yellow
-            Self::TypeScript => [0.0, 0.48, 0.8, 1.0], // Blue
-            Self::React => [0.38, 0.85, 1.0, 1.0], // Cyan
-            Self::Vue => [0.25, 0.72, 0.49, 1.0], // Green
-            Self::Python => [0.2, 0.4, 0.6, 1.0], // Blue-ish
-            Self::Go => [0.0, 0.68, 0.84, 1.0], // Cyan
-            Self::C | Self::Cpp => [0.0, 0.36, 0.68, 1.0], // Blue
-            Self::Java => [0.94, 0.1, 0.1, 1.0], // Red
-            Self::Kotlin => [0.5, 0.2, 0.8, 1.0], // Purple
-            Self::Swift => [0.98, 0.18, 0.11, 1.0], // Orange-Red
-            Self::Ruby => [0.8, 0.1, 0.1, 1.0], // Red
-            Self::PHP => [0.46, 0.5, 0.68, 1.0], // Purple
-            Self::Json => [0.96, 0.8, 0.1, 1.0], // Yellow
-            Self::Toml => [0.6, 0.6, 0.6, 1.0], // Grey
-            Self::Yaml => [0.6, 0.6, 0.6, 1.0], // Grey
+            Self::Rust => [0.8, 0.3, 0.1, 1.0],              // Orange
+            Self::JavaScript => [0.95, 0.9, 0.2, 1.0],       // Yellow
+            Self::TypeScript => [0.0, 0.48, 0.8, 1.0],       // Blue
+            Self::React => [0.38, 0.85, 1.0, 1.0],           // Cyan
+            Self::Vue => [0.25, 0.72, 0.49, 1.0],            // Green
+            Self::Python => [0.2, 0.4, 0.6, 1.0],            // Blue-ish
+            Self::Go => [0.0, 0.68, 0.84, 1.0],              // Cyan
+            Self::C | Self::Cpp => [0.0, 0.36, 0.68, 1.0],   // Blue
+            Self::Java => [0.94, 0.1, 0.1, 1.0],             // Red
+            Self::Kotlin => [0.5, 0.2, 0.8, 1.0],            // Purple
+            Self::Swift => [0.98, 0.18, 0.11, 1.0],          // Orange-Red
+            Self::Ruby => [0.8, 0.1, 0.1, 1.0],              // Red
+            Self::PHP => [0.46, 0.5, 0.68, 1.0],             // Purple
+            Self::Json => [0.96, 0.8, 0.1, 1.0],             // Yellow
+            Self::Toml => [0.6, 0.6, 0.6, 1.0],              // Grey
+            Self::Yaml => [0.6, 0.6, 0.6, 1.0],              // Grey
             Self::Xml | Self::Html => [0.89, 0.3, 0.1, 1.0], // Orange
-            Self::Css | Self::Sass => [0.1, 0.6, 0.9, 1.0], // Blue
+            Self::Css | Self::Sass => [0.1, 0.6, 0.9, 1.0],  // Blue
             Self::Markdown | Self::Readme | Self::License => [0.5, 0.5, 0.5, 1.0], // Grey
             Self::Shell | Self::Bat => [0.3, 0.3, 0.3, 1.0], // Dark Grey
-            Self::Docker => [0.0, 0.5, 1.0, 1.0], // Blue
-            Self::Git => [0.9, 0.3, 0.2, 1.0], // Red
+            Self::Docker => [0.0, 0.5, 1.0, 1.0],            // Blue
+            Self::Git => [0.9, 0.3, 0.2, 1.0],               // Red
             Self::Image | Self::Audio | Self::Video => [0.6, 0.4, 0.8, 1.0], // Purple
             Self::Archive | Self::Database | Self::Lock => [0.5, 0.5, 0.5, 1.0], // Grey
-            Self::Generic => [0.8, 0.8, 0.8, 1.0], // Light Grey
+            Self::Generic => [0.8, 0.8, 0.8, 1.0],           // Light Grey
         }
     }
 }
@@ -220,7 +220,10 @@ mod tests {
     fn test_extension_mapping() {
         assert!(matches!(FileIcon::from_extension("rs"), FileIcon::Rust));
         assert!(matches!(FileIcon::from_extension("cpp"), FileIcon::Cpp));
-        assert!(matches!(FileIcon::from_filename("Cargo.toml"), FileIcon::Rust));
+        assert!(matches!(
+            FileIcon::from_filename("Cargo.toml"),
+            FileIcon::Rust
+        ));
     }
 
     #[test]

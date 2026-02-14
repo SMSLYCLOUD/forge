@@ -80,6 +80,12 @@ pub struct DebugClient {
     seq: i64,
 }
 
+impl Default for DebugClient {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DebugClient {
     pub fn new() -> Self {
         Self {
