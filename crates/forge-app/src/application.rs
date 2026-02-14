@@ -148,6 +148,7 @@ pub struct Application {
     // Phase 5: Debug + Plugins
     debug_ui: Option<crate::debug_ui::DebugUi>,
     plugin_runtime: Option<forge_plugin::PluginRuntime>,
+    search_panel: crate::search_panel::SearchPanel,
 
     // Phase 4: Intelligence Layer
     ghost_tabs: forge_anticipation::GhostTabsEngine,
@@ -241,6 +242,8 @@ impl Application {
         // Phase 5: Debug UI (sync init)
         let debug_ui = Some(crate::debug_ui::DebugUi::new());
 
+        let search_panel = crate::search_panel::SearchPanel::new();
+
         // Phase 5: Plugin runtime (sync init)
         let plugin_runtime = match forge_plugin::PluginRuntime::new() {
             Ok(rt) => {
@@ -311,6 +314,7 @@ impl Application {
             zen_mode,
             debug_ui,
             plugin_runtime,
+            search_panel,
             ghost_tabs,
             anomaly_detector,
         }
@@ -1287,10 +1291,22 @@ impl Application {
 
         if command_palette.visible {
             let mut cp_text = format!("> {}\n\n", command_palette.query);
-            for (i, idx) in command_palette.filtered.iter().take(10).enumerate() {
-                if let Some(cmd) = command_palette.commands.get(*idx) {
-                    let prefix = if i == 0 { ">" } else { " " };
-                    cp_text.push_str(&format!("{} {}\n", prefix, cmd.label));
+            match command_palette.mode {
+                crate::command_palette::PaletteMode::Commands => {
+                    for (i, idx) in command_palette.filtered_commands.iter().take(10).enumerate() {
+                        if let Some(cmd) = command_palette.commands.get(*idx) {
+                            let prefix = if i == 0 { ">" } else { " " };
+                            cp_text.push_str(&format!("{} {}\n", prefix, cmd.label));
+                        }
+                    }
+                }
+                crate::command_palette::PaletteMode::Files => {
+                    for (i, idx) in command_palette.filtered_files.iter().take(10).enumerate() {
+                        if let Some(file) = command_palette.files.get(*idx) {
+                            let prefix = if i == 0 { ">" } else { " " };
+                            cp_text.push_str(&format!("{} {}\n", prefix, file));
+                        }
+                    }
                 }
             }
             let mut buf = GlyphonBuffer::new(
@@ -1969,7 +1985,20 @@ impl ApplicationHandler for Application {
                             self.find_bar.close();
                             self.replace_bar.close();
                             self.go_to_line.cancel();
-                            self.command_palette.open();
+                            self.command_palette.open(crate::command_palette::PaletteMode::Commands);
+                            state.window.request_redraw();
+                        }
+                        "p" => {
+                            self.find_bar.close();
+                            self.replace_bar.close();
+                            self.go_to_line.cancel();
+                            // Collect files from file_explorer
+                            // FileExplorer.paths contains all paths
+                            let files: Vec<String> = state.file_explorer.paths.iter()
+                                .map(|p| p.to_string_lossy().to_string())
+                                .collect();
+                            self.command_palette.set_files(files);
+                            self.command_palette.open(crate::command_palette::PaletteMode::Files);
                             state.window.request_redraw();
                         }
                         "i" if shift => {
@@ -2146,6 +2175,11 @@ impl ApplicationHandler for Application {
                                 }
                             }
                         }
+                        "d" if !shift => { // Ctrl+D = Add Selection To Next Find Match
+                            if let Some(ed) = state.tab_manager.active_editor_mut() {
+                                ed.select_next_occurrence();
+                            }
+                        }
                         "v" => {
                             // Clipboard paste
                             if let Ok(mut clipboard) = arboard::Clipboard::new() {
@@ -2314,14 +2348,14 @@ impl ApplicationHandler for Application {
                     }
                     Key::Named(NamedKey::Enter) => {
                         if self.command_palette.visible {
-                            if let Some((cmd_id, cmd_label)) = self
-                                .command_palette
-                                .select(0)
-                                .map(|cmd| (cmd.id.clone(), cmd.label.clone()))
-                            {
-                                self.command_palette.close();
-                                match cmd_id.as_str() {
-                                    "edit.find" => {
+                            match self.command_palette.mode {
+                                crate::command_palette::PaletteMode::Commands => {
+                                    if let Some(cmd) = self.command_palette.select_command(0) {
+                                        let cmd_id = cmd.id.clone();
+                                        let cmd_label = cmd.label.clone();
+                                        self.command_palette.close();
+                                        match cmd_id.as_str() {
+                                            "edit.find" => {
                                         self.find_bar.open();
                                         self.go_to_line.cancel();
                                         self.replace_bar.close();
@@ -2331,6 +2365,19 @@ impl ApplicationHandler for Application {
                                         self.go_to_line.cancel();
                                         self.replace_bar.open();
                                     }
+                                            "edit.find_in_files" => {
+                                                // Trigger search panel (stub logic for now)
+                                                // Ideally we'd toggle a side panel or bottom panel for search
+                                                self.search_panel.visible = !self.search_panel.visible;
+                                                if self.search_panel.visible {
+                                                    let cwd = std::env::current_dir().unwrap_or_default();
+                                                    // Default search for selection or "TODO"
+                                                    self.search_panel.query = "TODO".to_string();
+                                                    self.search_panel.search(&cwd);
+                                                }
+                                                // Recompute layout if we had a dedicated zone
+                                                state.window.request_redraw();
+                                            }
                                     "view.terminal" => {
                                         self.bottom_panel.toggle();
                                         state.bottom_panel_focused = self.bottom_panel.visible;
@@ -2397,7 +2444,23 @@ impl ApplicationHandler for Application {
                             } else {
                                 self.command_palette.close();
                             }
-                        } else if self.go_to_line.visible {
+                        }
+                        crate::command_palette::PaletteMode::Files => {
+                            if let Some(file) = self.command_palette.select_file(0) {
+                                let path = file.clone();
+                                self.command_palette.close();
+                                if let Err(e) = state.tab_manager.open_file(&path) {
+                                    tracing::error!("Failed to open file: {}", e);
+                                }
+                                state.window.request_redraw();
+                                // Notify LSP
+                                Self::notify_lsp(state, &self.rt, &self.lsp_client);
+                            } else {
+                                self.command_palette.close();
+                            }
+                        }
+                    }
+                } else if self.go_to_line.visible {
                             if let Some((line, col_opt)) = self.go_to_line.confirm() {
                                 if let Some(ed) = state.tab_manager.active_editor_mut() {
                                     let max_line = ed.total_lines().saturating_sub(1);

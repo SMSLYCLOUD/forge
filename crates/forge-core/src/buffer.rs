@@ -258,6 +258,11 @@ impl Buffer {
         self.selection = selection;
     }
 
+    /// Add a range to the current selection (Multi-cursor)
+    pub fn add_selection_range(&mut self, range: crate::Range) {
+        self.selection.push(range);
+    }
+
     /// Check if the buffer has been modified
     pub fn is_dirty(&self) -> bool {
         self.dirty

@@ -356,4 +356,32 @@ impl Editor {
             highlight_spans: self.highlight_spans.clone(),
         }
     }
+
+    /// Select next occurrence of the current selection (Ctrl+D)
+    pub fn select_next_occurrence(&mut self) {
+        let text = self.buffer.text();
+        let primary = self.buffer.selection().primary();
+
+        let search_text = if primary.is_empty() {
+            // No selection: select word under cursor
+            // Basic word selection logic
+            // For now, let's just return if empty, or expand selection to word
+            // Expanding to word is safer first step.
+            return;
+        } else {
+            self.buffer.slice(primary.start().offset, primary.end().offset)
+        };
+
+        // Find next occurrence after the current primary cursor
+        let start_offset = primary.end().offset;
+        if let Some(idx) = text[start_offset..].find(&search_text) {
+            let next_start = start_offset + idx;
+            let next_end = next_start + search_text.len();
+
+            self.buffer.add_selection_range(forge_core::Range::new(
+                forge_core::Position::new(next_start),
+                forge_core::Position::new(next_end),
+            ));
+        }
+    }
 }
