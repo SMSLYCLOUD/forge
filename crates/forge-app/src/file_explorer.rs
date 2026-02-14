@@ -1,4 +1,4 @@
-use crate::file_tree_ui::DisplayNode;
+use crate::file_tree_ui::{DisplayNode, FileTreeUi};
 use std::path::{Path, PathBuf};
 
 pub struct FileExplorer {
@@ -6,6 +6,7 @@ pub struct FileExplorer {
     pub nodes: Vec<DisplayNode>,
     pub paths: Vec<PathBuf>,
     pub selected: Option<usize>,
+    pub ui: FileTreeUi,
 }
 
 impl FileExplorer {
@@ -15,6 +16,7 @@ impl FileExplorer {
             nodes: Vec::new(),
             paths: Vec::new(),
             selected: None,
+            ui: FileTreeUi::new(),
         }
     }
 

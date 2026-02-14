@@ -1,0 +1,103 @@
+   Compiling wgpu-core v23.0.1
+   Compiling x11rb-protocol v0.13.2
+   Compiling serde_urlencoded v0.7.1
+   Compiling cosmic-text v0.12.1
+   Compiling rusqlite v0.31.0
+   Compiling ropey v1.6.1
+   Compiling wgpu v23.0.1
+   Compiling x11rb v0.13.2
+   Compiling wasmtime-cache v27.0.0
+   Compiling ab_glyph v0.2.32
+   Compiling wasmtime-fiber v27.0.0
+   Compiling globset v0.4.18
+   Compiling portable-pty v0.9.0
+   Compiling moxcms v0.7.11
+   Compiling png v0.18.0
+   Compiling wasmtime-cranelift v27.0.0
+   Compiling hyper-rustls v0.27.7
+   Compiling fxprof-processed-profile v0.6.0
+   Compiling smithay-client-toolkit v0.19.2
+   Compiling hyper-tls v0.6.0
+   Compiling ittapi v0.4.0
+   Compiling nix v0.25.1
+   Compiling serial v0.4.0
+   Compiling tree-sitter v0.20.10
+   Compiling wat v1.245.1
+   Compiling tiny-skia v0.11.4
+   Compiling wasmtime-jit-debug v27.0.0
+   Compiling fluent-uri v0.1.4
+   Compiling addr2line v0.24.2
+   Compiling euclid v0.22.13
+   Compiling futures-executor v0.3.31
+   Compiling memfd v0.6.5
+   Compiling wasmtime-jit-icache-coherence v27.0.0
+   Compiling lazy_static v1.5.0
+   Compiling fixedbitset v0.4.2
+   Compiling byteorder-lite v0.1.0
+   Compiling mime v0.3.17
+   Compiling wasmtime-slab v27.0.0
+   Compiling sptr v0.3.2
+   Compiling svg_fmt v0.4.5
+   Compiling iana-time-zone v0.1.65
+   Compiling etagere v0.2.15
+   Compiling chrono v0.4.43
+   Compiling wasmtime v27.0.0
+   Compiling reqwest v0.12.28
+   Compiling image v0.25.9
+   Compiling petgraph v0.6.5
+   Compiling sharded-slab v0.1.7
+   Compiling lsp-types v0.97.0
+   Compiling futures v0.3.31
+   Compiling sctk-adwaita v0.10.1
+   Compiling portable-pty v0.8.1
+   Compiling tree-sitter-toml v0.20.0
+   Compiling forge-core v0.1.0 (/app/crates/forge-core)
+   Compiling ignore v0.4.25
+   Compiling x11-dl v2.21.0
+   Compiling tree-sitter-python v0.23.6
+   Compiling tree-sitter-javascript v0.23.1
+   Compiling tree-sitter-json v0.24.8
+   Compiling forge-confidence v0.1.0 (/app/crates/forge-confidence)
+   Compiling xkbcommon-dl v0.4.2
+   Compiling wayland-protocols-plasma v0.3.10
+   Compiling tracing-log v0.2.0
+   Compiling thread_local v1.1.9
+   Compiling smol_str v0.2.2
+   Compiling nu-ansi-term v0.50.3
+   Compiling lru v0.12.5
+   Compiling dpi v0.1.2
+   Compiling glyphon v0.7.0
+   Compiling tracing-subscriber v0.3.22
+   Compiling winit v0.30.12
+   Compiling forge-propagation v0.1.0 (/app/crates/forge-propagation)
+   Compiling forge-syntax v0.1.0 (/app/crates/forge-syntax)
+   Compiling forge-search v0.1.0 (/app/crates/forge-search)
+   Compiling forge-renderer v0.1.0 (/app/crates/forge-renderer)
+   Compiling forge-terminal v0.1.0 (/app/crates/forge-terminal)
+   Compiling forge-agent v0.1.0 (/app/crates/forge-agent)
+   Compiling forge-lsp v0.1.0 (/app/crates/forge-lsp)
+   Compiling forge-plugin v0.1.0 (/app/crates/forge-plugin)
+   Compiling arboard v3.6.1
+   Compiling forge-immune v0.1.0 (/app/crates/forge-immune)
+   Compiling forge-config v0.1.0 (/app/crates/forge-config)
+   Compiling forge-anticipation v0.1.0 (/app/crates/forge-anticipation)
+   Compiling forge-debug v0.1.0 (/app/crates/forge-debug)
+   Compiling forge-theme v0.1.0 (/app/crates/forge-theme)
+   Compiling pollster v0.4.0
+   Compiling forge-icons v0.1.0 (/app/crates/forge-icons)
+   Compiling forge-app v0.1.0 (/app/crates/forge-app)
+warning: variable does not need to be mutable
+   --> crates/forge-app/src/application.rs:357:13
+    |
+357 |         let mut file_explorer = crate::file_explorer::FileExplorer::new();
+    |             ----^^^^^^^^^^^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: `forge-app` (bin "forge") generated 1 warning (run `cargo fix --bin "forge" -p forge-app` to apply 1 suggestion)
+    Finished `dev` profile [optimized + debuginfo] target(s) in 4m 17s
+     Running `target/debug/forge --screenshot screenshot_before.png`
+[2m2026-02-14T15:50:56.364956Z[0m [32m INFO[0m [2mforge[0m[2m:[0m 🔥 Forge Editor starting...
+Error: os error at /home/jules/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/winit-0.30.12/src/platform_impl/linux/mod.rs:765: neither WAYLAND_DISPLAY nor WAYLAND_SOCKET nor DISPLAY is set.

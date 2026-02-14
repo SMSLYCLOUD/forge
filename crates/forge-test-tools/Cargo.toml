@@ -1,0 +1,11 @@
+[package]
+name = "forge-test-tools"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+winit = { workspace = true }
+image = "0.25"
+glyphon = { workspace = true }
+wgpu = { workspace = true }
+log = "0.4"

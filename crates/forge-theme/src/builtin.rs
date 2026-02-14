@@ -13,9 +13,16 @@ pub fn forge_dark() -> Theme {
     colors.insert("descriptionForeground".into(), "#ccccccb3".into());
     colors.insert("errorForeground".into(), "#f48771".into());
 
+    // ─── Title Bar ───
+    colors.insert("titleBar.activeBackground".into(), "#3c3c3c".into());
+    colors.insert("titleBar.activeForeground".into(), "#cccccc".into());
+    colors.insert("titleBar.inactiveBackground".into(), "#3c3c3c99".into());
+    colors.insert("titleBar.inactiveForeground".into(), "#cccccc99".into());
+    colors.insert("titleBar.border".into(), "#3c3c3c".into());
+
     // ─── Text / Editor ───
     colors.insert("editor.background".into(), "#1e1e1e".into());
-    colors.insert("editor.foreground".into(), "#d4d4d4".into());
+    colors.insert("editor.foreground".into(), "#cccccc".into());
     colors.insert("editor.lineHighlightBackground".into(), "#2f3337".into());
     colors.insert("editor.selectionBackground".into(), "#264f78".into());
     colors.insert(

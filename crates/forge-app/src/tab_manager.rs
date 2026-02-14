@@ -34,7 +34,13 @@ impl TabManager {
 
     /// Open a scratch (untitled) tab so keyboard input works immediately.
     pub fn open_scratch(&mut self) {
-        let editor = Editor::new();
+        let mut editor = Editor::new();
+        let welcome_text = "Forge IDE\n\nStart\n  New File          (Ctrl+N)\n  Open File...      (Ctrl+O)\n  Open Folder...    (Ctrl+K Ctrl+O)\n\nHelp\n  Show All Commands  (Ctrl+Shift+P)\n  Terminal            (Ctrl+`)";
+
+        let change = forge_core::Change::insert(forge_core::Position::new(0), welcome_text.to_string());
+        let tx = forge_core::Transaction::new(forge_core::ChangeSet::with_change(change), None);
+        editor.buffer.apply(tx);
+
         self.tabs.push(Tab {
             title: "Welcome".to_string(),
             path: None,

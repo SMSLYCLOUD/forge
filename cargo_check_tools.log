@@ -1,0 +1,11 @@
+error: failed to load manifest for workspace member `/app/crates/forge-test-tools`
+referenced by workspace at `/app/Cargo.toml`
+
+Caused by:
+  failed to parse manifest at `/app/crates/forge-test-tools/Cargo.toml`
+
+Caused by:
+  error inheriting `image` from workspace root manifest's `workspace.dependencies.image`
+
+Caused by:
+  `dependency.image` was not found in `workspace.dependencies`

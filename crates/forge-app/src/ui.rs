@@ -16,37 +16,37 @@ impl Default for SidebarMode {
 
 /// Antigravity color scheme — SMSLY signature dark (Fallback)
 pub mod colors {
-    /// Activity bar background (#08071a)
-    pub const ACTIVITY_BAR: [f32; 4] = [0.031, 0.027, 0.102, 1.0];
-    /// Tab bar background (#08071a)
-    pub const TAB_BAR: [f32; 4] = [0.031, 0.027, 0.102, 1.0];
-    /// Active tab background (#0d0b1a)
-    pub const TAB_ACTIVE: [f32; 4] = [0.051, 0.043, 0.102, 1.0];
-    /// Inactive tab background (#08071a)
-    pub const TAB_INACTIVE: [f32; 4] = [0.031, 0.027, 0.102, 1.0];
-    /// Breadcrumb bar background (#0d0b1a)
-    pub const BREADCRUMB: [f32; 4] = [0.051, 0.043, 0.102, 1.0];
-    /// Editor background (#0d0b1a)
-    pub const EDITOR_BG: [f32; 4] = [0.051, 0.043, 0.102, 1.0];
-    /// Gutter background (#0d0b1a)
-    pub const GUTTER: [f32; 4] = [0.051, 0.043, 0.102, 1.0];
-    /// Status bar background (#7c3aed — violet)
-    pub const STATUS_BAR: [f32; 4] = [0.486, 0.227, 0.929, 1.0];
-    /// Current line highlight (#1a1730)
-    pub const CURRENT_LINE: [f32; 4] = [0.102, 0.090, 0.188, 1.0];
-    /// Sidebar background (#0d0b1a)
-    pub const SIDEBAR: [f32; 4] = [0.051, 0.043, 0.102, 1.0];
-    /// Scrollbar (#3e2d73, semi-transparent)
-    pub const SCROLLBAR: [f32; 4] = [0.243, 0.176, 0.451, 0.4];
-    /// Separator lines (#1a1730)
-    pub const SEPARATOR: [f32; 4] = [0.102, 0.090, 0.188, 1.0];
-    /// AI panel background (#0d0b1a)
-    pub const AI_PANEL: [f32; 4] = [0.051, 0.043, 0.102, 1.0];
-    /// Text foreground (#e0def4)
+    /// Activity bar background (#333333)
+    pub const ACTIVITY_BAR: [f32; 4] = [0.2, 0.2, 0.2, 1.0];
+    /// Tab bar background (#252526)
+    pub const TAB_BAR: [f32; 4] = [0.145, 0.145, 0.149, 1.0];
+    /// Active tab background (#1e1e1e)
+    pub const TAB_ACTIVE: [f32; 4] = [0.118, 0.118, 0.118, 1.0];
+    /// Inactive tab background (#2d2d2d)
+    pub const TAB_INACTIVE: [f32; 4] = [0.176, 0.176, 0.176, 1.0];
+    /// Breadcrumb bar background (#1e1e1e)
+    pub const BREADCRUMB: [f32; 4] = [0.118, 0.118, 0.118, 1.0];
+    /// Editor background (#1e1e1e)
+    pub const EDITOR_BG: [f32; 4] = [0.118, 0.118, 0.118, 1.0];
+    /// Gutter background (#1e1e1e)
+    pub const GUTTER: [f32; 4] = [0.118, 0.118, 0.118, 1.0];
+    /// Status bar background (#007acc)
+    pub const STATUS_BAR: [f32; 4] = [0.0, 0.478, 0.8, 1.0];
+    /// Current line highlight (#2f3337)
+    pub const CURRENT_LINE: [f32; 4] = [0.184, 0.2, 0.216, 1.0];
+    /// Sidebar background (#252526)
+    pub const SIDEBAR: [f32; 4] = [0.145, 0.145, 0.149, 1.0];
+    /// Scrollbar (semi-transparent)
+    pub const SCROLLBAR: [f32; 4] = [0.5, 0.5, 0.5, 0.4];
+    /// Separator lines (#444444)
+    pub const SEPARATOR: [f32; 4] = [0.267, 0.267, 0.267, 1.0];
+    /// AI panel background (#252526)
+    pub const AI_PANEL: [f32; 4] = [0.145, 0.145, 0.149, 1.0];
+    /// Text foreground (#cccccc)
     #[allow(dead_code)]
-    pub const TEXT_FG: [f32; 4] = [0.878, 0.871, 0.957, 1.0];
-    /// Dimmed text (#4a456e)
-    pub const TEXT_DIM: [f32; 4] = [0.290, 0.271, 0.431, 1.0];
+    pub const TEXT_FG: [f32; 4] = [0.8, 0.8, 0.8, 1.0];
+    /// Dimmed text (#858585)
+    pub const TEXT_DIM: [f32; 4] = [0.522, 0.522, 0.522, 1.0];
     /// White text
     pub const TEXT_WHITE: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
     /// Cursor color (#00e5ff — cyan accent)

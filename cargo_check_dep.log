@@ -1,0 +1,78 @@
+   Compiling zerocopy-derive v0.8.39
+   Compiling profiling-procmacros v1.0.17
+   Compiling equator-macro v0.4.2
+    Checking core2 v0.4.0
+    Checking nom v8.0.0
+    Checking profiling v1.0.17
+   Compiling arg_enum_proc_macro v0.3.4
+    Checking equator v0.4.2
+    Checking aligned-vec v0.6.4
+    Checking wgpu-hal v23.0.1
+    Checking v_frame v0.3.9
+    Checking av-scenechange v0.14.1
+    Checking zerocopy v0.8.39
+    Checking bitstream-io v4.9.0
+   Compiling num-derive v0.4.2
+    Checking av1-grain v0.2.5
+   Compiling fax_derive v0.2.0
+    Checking rav1e v0.8.1
+    Checking fax v0.2.6
+    Checking qoi v0.4.1
+    Checking chrono v0.4.43
+    Checking wgpu-core v23.0.1
+    Checking forge-immune v0.1.0 (/app/crates/forge-immune)
+    Checking ahash v0.8.12
+    Checking half v2.7.1
+    Checking hashbrown v0.14.5
+    Checking exr v1.74.0
+    Checking regalloc2 v0.10.2
+    Checking wasmparser v0.219.2
+    Checking cranelift-codegen v0.114.0
+    Checking wgpu v23.0.1
+    Checking ravif v0.12.0
+    Checking hashlink v0.9.1
+    Checking tiff v0.10.3
+    Checking rusqlite v0.31.0
+    Checking image v0.25.9
+    Checking forge-confidence v0.1.0 (/app/crates/forge-confidence)
+    Checking glyphon v0.7.0
+    Checking winit v0.30.12
+    Checking arboard v3.6.1
+    Checking forge-propagation v0.1.0 (/app/crates/forge-propagation)
+    Checking wasmprinter v0.219.2
+    Checking forge-renderer v0.1.0 (/app/crates/forge-renderer)
+    Checking forge-test-tools v0.1.0 (/app/crates/forge-test-tools)
+warning: unused import: `Pixel`
+ --> crates/forge-test-tools/src/screenshot.rs:1:24
+  |
+1 | use image::{RgbaImage, Pixel};
+  |                        ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `ElementState` and `MouseButton`
+ --> crates/forge-test-tools/src/input_sim.rs:1:20
+  |
+1 | use winit::event::{ElementState, MouseButton, WindowEvent};
+  |                    ^^^^^^^^^^^^  ^^^^^^^^^^^
+
+warning: `forge-test-tools` (lib) generated 2 warnings (run `cargo fix --lib -p forge-test-tools` to apply 2 suggestions)
+    Checking wasmtime-environ v27.0.0
+    Checking cranelift-frontend v0.114.0
+    Checking cranelift-native v0.114.0
+    Checking wasmtime-cranelift v27.0.0
+    Checking wasmtime v27.0.0
+    Checking forge-plugin v0.1.0 (/app/crates/forge-plugin)
+    Checking forge-app v0.1.0 (/app/crates/forge-app)
+warning: variable does not need to be mutable
+   --> crates/forge-app/src/application.rs:357:13
+    |
+357 |         let mut file_explorer = crate::file_explorer::FileExplorer::new();
+    |             ----^^^^^^^^^^^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: `forge-app` (bin "forge") generated 1 warning (run `cargo fix --bin "forge" -p forge-app` to apply 1 suggestion)
+    Finished `dev` profile [optimized + debuginfo] target(s) in 43.49s
