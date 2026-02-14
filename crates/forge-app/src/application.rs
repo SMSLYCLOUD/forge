@@ -42,9 +42,9 @@ use glyphon::{
 
 // ─── Theme ───
 const BG_COLOR: wgpu::Color = wgpu::Color {
-    r: 0.102,
-    g: 0.106,
-    b: 0.149,
+    r: 0.051,
+    g: 0.043,
+    b: 0.102,
     a: 1.0,
 };
 
@@ -239,7 +239,7 @@ pub enum AppEvent {
 impl Application {
     pub fn new(file_path: Option<String>, screenshot_path: Option<String>) -> Self {
         let config = forge_config::ForgeConfig::default();
-        let theme = forge_theme::Theme::default_dark();
+        let theme = forge_theme::Theme::antigravity();
 
         let find_bar = crate::find_bar::FindBar::default();
         let replace_bar = crate::replace_bar::ReplaceBar::default();
@@ -279,31 +279,32 @@ impl Application {
         let rt = Arc::new(Runtime::new().expect("Failed to create Tokio runtime"));
 
         // LSP Init
-        let lsp_client = if let Ok(server) = rt.block_on(async { LspServer::spawn("rust-analyzer", &[]) }) {
-            info!("LSP: rust-analyzer spawned");
-            let mut client = LspClient::new(server);
-            if let Err(e) = client.initialize_transport() {
-                tracing::warn!("LSP: Failed to initialize transport: {}", e);
-                None
-            } else {
-                let client = Arc::new(client);
-                let c = client.clone();
-                let cwd = std::env::current_dir().unwrap_or_default();
-                if let Ok(cwd_url) = Url::from_directory_path(&cwd) {
-                    rt.spawn(async move {
-                        if let Err(e) = c.initialize(cwd_url).await {
-                            tracing::warn!("LSP: Initialize failed: {}", e);
-                        } else {
-                            info!("LSP: Initialized");
-                        }
-                    });
+        let lsp_client =
+            if let Ok(server) = rt.block_on(async { LspServer::spawn("rust-analyzer", &[]) }) {
+                info!("LSP: rust-analyzer spawned");
+                let mut client = LspClient::new(server);
+                if let Err(e) = client.initialize_transport() {
+                    tracing::warn!("LSP: Failed to initialize transport: {}", e);
+                    None
+                } else {
+                    let client = Arc::new(client);
+                    let c = client.clone();
+                    let cwd = std::env::current_dir().unwrap_or_default();
+                    if let Ok(cwd_url) = Url::from_directory_path(&cwd) {
+                        rt.spawn(async move {
+                            if let Err(e) = c.initialize(cwd_url).await {
+                                tracing::warn!("LSP: Initialize failed: {}", e);
+                            } else {
+                                info!("LSP: Initialized");
+                            }
+                        });
+                    }
+                    Some(client)
                 }
-                Some(client)
-            }
-        } else {
-            tracing::warn!("LSP: rust-analyzer not found or failed to spawn");
-            None
-        };
+            } else {
+                tracing::warn!("LSP: rust-analyzer not found or failed to spawn");
+                None
+            };
 
         Self {
             rt,
@@ -344,6 +345,7 @@ impl Application {
 
         // Init tab manager & file explorer
         let mut tab_manager = TabManager::new();
+        tab_manager.open_scratch(); // Ensure keyboard input works from launch
         if let Some(ref path) = self.file_path {
             if let Err(e) = tab_manager.open_file(path) {
                 tracing::warn!("Failed to open {}: {}", path, e);
@@ -354,7 +356,7 @@ impl Application {
 
         let mut file_explorer = crate::file_explorer::FileExplorer::new();
         let cwd = std::env::current_dir().unwrap_or_default();
-        let _ = file_explorer.scan_directory(&cwd);
+        // Don't auto-scan at startup — VS Code only shows files when user opens Explorer
 
         // LSP: Send didOpen if file is opened
         if let Some(ref path) = self.file_path {
@@ -534,7 +536,7 @@ impl Application {
             cursor_renderer,
             breadcrumb_bar,
             scrollbar,
-            sidebar_open: true,
+            sidebar_open: false,
             ai_panel_open: false,
             last_mouse_position: None,
             frame_timer: FrameTimer::new(),
@@ -563,7 +565,9 @@ impl Application {
                                 let line = loc.range.start.line as usize;
                                 let col = loc.range.start.character as usize;
                                 let offset = ed.buffer.line_col_to_offset(line, col);
-                                ed.buffer.set_selection(forge_core::Selection::point(forge_core::Position::new(offset)));
+                                ed.buffer.set_selection(forge_core::Selection::point(
+                                    forge_core::Position::new(offset),
+                                ));
                                 ed.set_scroll_top(line.saturating_sub(5));
                                 tracing::info!("Jumped to definition: {}:{}", path_str, line);
                             }
@@ -1125,7 +1129,7 @@ impl Application {
 
         // 5. Breadcrumb text
         let breadcrumb_text = if state.breadcrumb_bar.segments.is_empty() {
-            "  src > main.rs".to_string()
+            String::new() // No breadcrumb for untitled/welcome tabs
         } else {
             let path: Vec<&str> = state
                 .breadcrumb_bar
@@ -1165,8 +1169,17 @@ impl Application {
                 crate::ui::SidebarMode::Search => {
                     rich_spans.push(("  SEARCH RESULTS\n\n".to_string(), header_attrs));
                     if search_panel.results.is_empty() {
-                        let msg = if search_panel.searching { "  Searching..." } else { "  No results." };
-                        rich_spans.push((msg.to_string(), Attrs::new().family(Family::SansSerif).color(GlyphonColor::rgb(204, 204, 204))));
+                        let msg = if search_panel.searching {
+                            "  Searching..."
+                        } else {
+                            "  No results."
+                        };
+                        rich_spans.push((
+                            msg.to_string(),
+                            Attrs::new()
+                                .family(Family::SansSerif)
+                                .color(GlyphonColor::rgb(204, 204, 204)),
+                        ));
                     } else if let Some(sidebar_zone) = &state.layout.sidebar {
                         let zone = crate::ui::Zone {
                             x: sidebar_zone.x,
@@ -1175,27 +1188,54 @@ impl Application {
                             height: sidebar_zone.height - 30.0,
                         };
 
-                        let rects = search_panel.ui.render_rects(&search_panel.results, &zone, theme);
+                        let rects =
+                            search_panel
+                                .ui
+                                .render_rects(&search_panel.results, &zone, theme);
                         state.render_batch.extend(&rects);
 
                         let line_height = 24.0;
                         let visible_count = (zone.height / line_height).ceil() as usize;
                         let scroll = search_panel.ui.scroll_offset;
 
-                        let file_color = theme.color("sideBar.foreground").unwrap_or([0.8, 0.8, 0.8, 1.0]);
-                        let match_color = theme.color("editor.foreground").unwrap_or([0.9, 0.9, 0.9, 1.0]);
+                        let file_color = theme
+                            .color("sideBar.foreground")
+                            .unwrap_or([0.8, 0.8, 0.8, 1.0]);
+                        let match_color = theme
+                            .color("editor.foreground")
+                            .unwrap_or([0.9, 0.9, 0.9, 1.0]);
 
-                        let file_attrs = Attrs::new().family(Family::SansSerif).color(GlyphonColor::rgb(
-                            (file_color[0] * 255.0) as u8, (file_color[1] * 255.0) as u8, (file_color[2] * 255.0) as u8
-                        ));
-                        let match_attrs = Attrs::new().family(Family::SansSerif).color(GlyphonColor::rgb(
-                            (match_color[0] * 255.0) as u8, (match_color[1] * 255.0) as u8, (match_color[2] * 255.0) as u8
-                        ));
+                        let file_attrs =
+                            Attrs::new()
+                                .family(Family::SansSerif)
+                                .color(GlyphonColor::rgb(
+                                    (file_color[0] * 255.0) as u8,
+                                    (file_color[1] * 255.0) as u8,
+                                    (file_color[2] * 255.0) as u8,
+                                ));
+                        let match_attrs =
+                            Attrs::new()
+                                .family(Family::SansSerif)
+                                .color(GlyphonColor::rgb(
+                                    (match_color[0] * 255.0) as u8,
+                                    (match_color[1] * 255.0) as u8,
+                                    (match_color[2] * 255.0) as u8,
+                                ));
 
-                        for (_i, result) in search_panel.results.iter().enumerate().skip(scroll).take(visible_count) {
+                        for (_i, result) in search_panel
+                            .results
+                            .iter()
+                            .enumerate()
+                            .skip(scroll)
+                            .take(visible_count)
+                        {
                             let path = std::path::Path::new(&result.file);
-                            let filename = path.file_name().map(|s| s.to_string_lossy()).unwrap_or_default();
-                            rich_spans.push((format!("  {}:{}", filename, result.line), file_attrs));
+                            let filename = path
+                                .file_name()
+                                .map(|s| s.to_string_lossy())
+                                .unwrap_or_default();
+                            rich_spans
+                                .push((format!("  {}:{}", filename, result.line), file_attrs));
 
                             let snippet = result.text.trim();
                             let max_len = 30;
@@ -1211,7 +1251,12 @@ impl Application {
                 }
                 crate::ui::SidebarMode::Debug => {
                     let debug_text = state.debug_ui.render_text();
-                    rich_spans.push((debug_text, Attrs::new().family(Family::SansSerif).color(GlyphonColor::rgb(204, 204, 204))));
+                    rich_spans.push((
+                        debug_text,
+                        Attrs::new()
+                            .family(Family::SansSerif)
+                            .color(GlyphonColor::rgb(204, 204, 204)),
+                    ));
                 }
                 crate::ui::SidebarMode::Explorer => {
                     rich_spans.push(("  EXPLORER\n\n".to_string(), header_attrs));
@@ -1246,7 +1291,8 @@ impl Application {
                 );
             }
 
-            let rich_refs: Vec<(&str, Attrs)> = rich_spans.iter().map(|(s, a)| (s.as_str(), *a)).collect();
+            let rich_refs: Vec<(&str, Attrs)> =
+                rich_spans.iter().map(|(s, a)| (s.as_str(), *a)).collect();
             state.sidebar_buffer.set_rich_text(
                 &mut state.font_system,
                 rich_refs,
@@ -1399,7 +1445,12 @@ impl Application {
             let mut cp_text = format!("> {}\n\n", command_palette.query);
             match command_palette.mode {
                 crate::command_palette::PaletteMode::Commands => {
-                    for (i, idx) in command_palette.filtered_commands.iter().take(10).enumerate() {
+                    for (i, idx) in command_palette
+                        .filtered_commands
+                        .iter()
+                        .take(10)
+                        .enumerate()
+                    {
                         if let Some(cmd) = command_palette.commands.get(*idx) {
                             let prefix = if i == 0 { ">" } else { " " };
                             cp_text.push_str(&format!("{} {}\n", prefix, cmd.label));
@@ -1542,6 +1593,117 @@ impl Application {
                 y,
                 LayoutConstants::ACTIVITY_BAR_WIDTH,
                 LayoutConstants::ACTIVITY_BAR_WIDTH,
+            ));
+        }
+
+        // 4. Title Bar / Menu Labels
+        {
+            let menu_labels = [
+                "File",
+                "Edit",
+                "Selection",
+                "View",
+                "Go",
+                "Run",
+                "Terminal",
+                "Help",
+            ];
+            let mut menu_x = 12.0_f32;
+            let menu_y = 6.0_f32;
+            let menu_fg = theme
+                .color("titleBar.activeForeground")
+                .unwrap_or([0.0, 0.898, 1.0, 1.0]); // cyan
+
+            for label in &menu_labels {
+                let mut buf = GlyphonBuffer::new(
+                    &mut state.font_system,
+                    Metrics::new(
+                        LayoutConstants::SMALL_FONT_SIZE,
+                        LayoutConstants::TITLE_BAR_HEIGHT,
+                    ),
+                );
+                let c = GlyphonColor::rgb(
+                    (menu_fg[0] * 255.0) as u8,
+                    (menu_fg[1] * 255.0) as u8,
+                    (menu_fg[2] * 255.0) as u8,
+                );
+                buf.set_text(
+                    &mut state.font_system,
+                    label,
+                    Attrs::new().family(Family::SansSerif).color(c),
+                    Shaping::Advanced,
+                );
+                buf.shape_until_scroll(&mut state.font_system, false);
+                let label_width = (label.len() as f32) * 8.0 + 16.0;
+                dynamic_buffers.push(buf);
+                dynamic_meta.push((
+                    menu_x,
+                    menu_y,
+                    label_width,
+                    LayoutConstants::TITLE_BAR_HEIGHT,
+                ));
+                menu_x += label_width;
+            }
+        }
+
+        // 5. AI Panel text (only if panel is open)
+        if let Some(ref ai_zone) = state.layout.ai_panel {
+            let ai_status = if state.agent.is_some() {
+                "Connected"
+            } else {
+                "Disconnected"
+            };
+            let ai_text = format!(
+                "  ⬢ ANTIGRAVITY AI\n\n\
+                 \x20 Status: {}\n\n\
+                 \x20 Model: Claude 3.5 Sonnet\n\
+                 \x20 Provider: Anthropic\n\n\
+                 \x20 ─────────────────\n\n\
+                 \x20 Commands:\n\
+                 \x20 /chat     Open chat\n\
+                 \x20 /explain  Explain code\n\
+                 \x20 /fix      Fix errors\n\
+                 \x20 /generate Generate code\n\
+                 \x20 /refactor Refactor\n\n\
+                 \x20 ─────────────────\n\n\
+                 \x20 Press Ctrl+I to start\n\
+                 \x20 a conversation.\n",
+                ai_status
+            );
+            let ai_fg = theme
+                .color("foreground")
+                .unwrap_or([0.878, 0.871, 0.957, 1.0]);
+            let mut ai_buf = GlyphonBuffer::new(
+                &mut state.font_system,
+                Metrics::new(
+                    LayoutConstants::SMALL_FONT_SIZE,
+                    LayoutConstants::LINE_HEIGHT,
+                ),
+            );
+            ai_buf.set_size(
+                &mut state.font_system,
+                Some(ai_zone.width - 8.0),
+                Some(ai_zone.height),
+            );
+            ai_buf.set_text(
+                &mut state.font_system,
+                &ai_text,
+                Attrs::new()
+                    .family(Family::SansSerif)
+                    .color(GlyphonColor::rgb(
+                        (ai_fg[0] * 255.0) as u8,
+                        (ai_fg[1] * 255.0) as u8,
+                        (ai_fg[2] * 255.0) as u8,
+                    )),
+                Shaping::Advanced,
+            );
+            ai_buf.shape_until_scroll(&mut state.font_system, false);
+            dynamic_buffers.push(ai_buf);
+            dynamic_meta.push((
+                ai_zone.x + 4.0,
+                ai_zone.y + 8.0,
+                ai_zone.width - 8.0,
+                ai_zone.height,
             ));
         }
 
@@ -1906,7 +2068,7 @@ impl Application {
                         if state.sidebar_open && search_panel.visible {
                             if let Some(sb) = &state.layout.sidebar {
                                 if sb.contains(mx, my) {
-                                     let zone = crate::ui::Zone {
+                                    let zone = crate::ui::Zone {
                                         x: sb.x,
                                         y: sb.y + 30.0,
                                         width: sb.width,
@@ -1918,12 +2080,19 @@ impl Application {
                                             if let Err(e) = state.tab_manager.open_file(&res.file) {
                                                 tracing::error!("Failed to open file: {}", e);
                                             } else {
-                                                 if let Some(ed) = state.tab_manager.active_editor_mut() {
-                                                     let line = res.line.saturating_sub(1);
-                                                     let offset = ed.buffer.line_col_to_offset(line, 0);
-                                                     ed.buffer.set_selection(forge_core::Selection::point(forge_core::Position::new(offset)));
-                                                     ed.set_scroll_top(line.saturating_sub(5));
-                                                 }
+                                                if let Some(ed) =
+                                                    state.tab_manager.active_editor_mut()
+                                                {
+                                                    let line = res.line.saturating_sub(1);
+                                                    let offset =
+                                                        ed.buffer.line_col_to_offset(line, 0);
+                                                    ed.buffer.set_selection(
+                                                        forge_core::Selection::point(
+                                                            forge_core::Position::new(offset),
+                                                        ),
+                                                    );
+                                                    ed.set_scroll_top(line.saturating_sub(5));
+                                                }
                                             }
                                         }
                                     }
@@ -1958,7 +2127,15 @@ impl Application {
                                         // Update sidebar mode
                                         match item {
                                             crate::activity_bar::ActivityItem::Explorer => {
-                                                state.sidebar_mode = crate::ui::SidebarMode::Explorer;
+                                                state.sidebar_mode =
+                                                    crate::ui::SidebarMode::Explorer;
+                                                // Lazy-load files on first Explorer open
+                                                if state.file_explorer.nodes.is_empty() {
+                                                    let cwd =
+                                                        std::env::current_dir().unwrap_or_default();
+                                                    let _ =
+                                                        state.file_explorer.scan_directory(&cwd);
+                                                }
                                             }
                                             crate::activity_bar::ActivityItem::Search => {
                                                 state.sidebar_mode = crate::ui::SidebarMode::Search;
@@ -1967,7 +2144,8 @@ impl Application {
                                                 state.sidebar_mode = crate::ui::SidebarMode::Debug;
                                             }
                                             crate::activity_bar::ActivityItem::Extensions => {
-                                                state.sidebar_mode = crate::ui::SidebarMode::Extensions;
+                                                state.sidebar_mode =
+                                                    crate::ui::SidebarMode::Extensions;
                                             }
                                             _ => {}
                                         }
@@ -1975,12 +2153,15 @@ impl Application {
                                         // Sync sidebar visibility
                                         if state.activity_bar.active_item.is_none() {
                                             state.sidebar_open = false;
-                                        } else if item != crate::activity_bar::ActivityItem::AiAgent && item != crate::activity_bar::ActivityItem::Settings {
+                                        } else if item != crate::activity_bar::ActivityItem::AiAgent
+                                            && item != crate::activity_bar::ActivityItem::Settings
+                                        {
                                             state.sidebar_open = true;
                                         }
 
                                         // Sync search panel visibility
-                                        search_panel.visible = state.sidebar_open && state.sidebar_mode == crate::ui::SidebarMode::Search;
+                                        search_panel.visible = state.sidebar_open
+                                            && state.sidebar_mode == crate::ui::SidebarMode::Search;
                                     }
 
                                     let (w, h) = state.gpu.size();
@@ -2017,6 +2198,96 @@ impl Application {
                                     .map(|e| e.scroll_top())
                                     .unwrap_or(0);
                                 state.scrollbar.start_drag(my, scroll_top);
+                            } else if state.layout.editor.contains(mx, my) {
+                                // ─── Editor click → set cursor position ───
+                                let editor_zone = &state.layout.editor;
+                                let rel_x = mx - editor_zone.x;
+                                let rel_y = my - editor_zone.y;
+
+                                let scroll_top = state
+                                    .tab_manager
+                                    .active_editor()
+                                    .map(|e| e.scroll_top())
+                                    .unwrap_or(0);
+
+                                let clicked_line = scroll_top
+                                    + (rel_y / crate::ui::LayoutConstants::LINE_HEIGHT) as usize;
+                                let clicked_col =
+                                    (rel_x / crate::ui::LayoutConstants::CHAR_WIDTH) as usize;
+
+                                if let Some(ed) = state.tab_manager.active_editor_mut() {
+                                    let max_line = ed.total_lines().saturating_sub(1);
+                                    let target_line = clicked_line.min(max_line);
+
+                                    let text = ed.buffer.text();
+                                    let line_text = text.lines().nth(target_line).unwrap_or("");
+                                    let target_col = clicked_col.min(line_text.len());
+
+                                    let offset =
+                                        ed.buffer.line_col_to_offset(target_line, target_col);
+                                    ed.buffer.set_selection(forge_core::Selection::point(
+                                        forge_core::Position::new(offset),
+                                    ));
+                                }
+                                state.window.request_redraw();
+                            } else if state.sidebar_open
+                                && state.sidebar_mode == crate::ui::SidebarMode::Explorer
+                            {
+                                // ─── File Explorer click → open file ───
+                                if let Some(ref sb) = state.layout.sidebar {
+                                    if sb.contains(mx, my) {
+                                        let rel_y = my - sb.y;
+                                        if rel_y >= 0.0 {
+                                            // FileTreeUi renders with line_h = 22.0
+                                            // "EXPLORER\n\n" header: 2 lines × 22px = 44px
+                                            let header_offset = 44.0_f32;
+                                            let item_height = 22.0_f32;
+                                            let adjusted_y = rel_y - header_offset;
+                                            if adjusted_y < 0.0 {
+                                                // Clicked on header, ignore
+                                                state.window.request_redraw();
+                                                return;
+                                            }
+                                            let clicked_index = (adjusted_y / item_height) as usize;
+
+                                            if clicked_index < state.file_explorer.paths.len() {
+                                                let is_dir = state
+                                                    .file_explorer
+                                                    .nodes
+                                                    .get(clicked_index)
+                                                    .map(|n| n.is_dir)
+                                                    .unwrap_or(false);
+
+                                                if is_dir {
+                                                    state
+                                                        .file_explorer
+                                                        .toggle_expand(clicked_index);
+                                                } else {
+                                                    let path = state.file_explorer.paths
+                                                        [clicked_index]
+                                                        .to_string_lossy()
+                                                        .to_string();
+                                                    if let Err(e) =
+                                                        state.tab_manager.open_file(&path)
+                                                    {
+                                                        tracing::error!(
+                                                            "Failed to open file: {}",
+                                                            e
+                                                        );
+                                                    } else {
+                                                        // Update breadcrumb
+                                                        state
+                                                            .breadcrumb_bar
+                                                            .update_from_path(&path);
+                                                        // Notify LSP
+                                                        Self::notify_lsp(state, rt, lsp_client);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        state.window.request_redraw();
+                                    }
+                                }
                             }
                         }
                     }
@@ -2123,6 +2394,13 @@ impl ApplicationHandler for Application {
                     return;
                 }
 
+                tracing::debug!(
+                    "KeyboardInput: key={:?} ctrl={} shift={}",
+                    key_event.logical_key,
+                    self.modifiers.control_key(),
+                    self.modifiers.shift_key(),
+                );
+
                 let ctrl = self.modifiers.control_key();
                 let shift = self.modifiers.shift_key();
 
@@ -2150,7 +2428,8 @@ impl ApplicationHandler for Application {
                             self.find_bar.close();
                             self.replace_bar.close();
                             self.go_to_line.cancel();
-                            self.command_palette.open(crate::command_palette::PaletteMode::Commands);
+                            self.command_palette
+                                .open(crate::command_palette::PaletteMode::Commands);
                             state.window.request_redraw();
                         }
                         "p" => {
@@ -2159,11 +2438,15 @@ impl ApplicationHandler for Application {
                             self.go_to_line.cancel();
                             // Collect files from file_explorer
                             // FileExplorer.paths contains all paths
-                            let files: Vec<String> = state.file_explorer.paths.iter()
+                            let files: Vec<String> = state
+                                .file_explorer
+                                .paths
+                                .iter()
                                 .map(|p| p.to_string_lossy().to_string())
                                 .collect();
                             self.command_palette.set_files(files);
-                            self.command_palette.open(crate::command_palette::PaletteMode::Files);
+                            self.command_palette
+                                .open(crate::command_palette::PaletteMode::Files);
                             state.window.request_redraw();
                         }
                         "i" if shift => {
@@ -2362,7 +2645,8 @@ impl ApplicationHandler for Application {
                                 }
                             }
                         }
-                        "d" if !shift => { // Ctrl+D = Add Selection To Next Find Match
+                        "d" if !shift => {
+                            // Ctrl+D = Add Selection To Next Find Match
                             if let Some(ed) = state.tab_manager.active_editor_mut() {
                                 ed.select_next_occurrence();
                             }
@@ -2544,109 +2828,123 @@ impl ApplicationHandler for Application {
                                         self.command_palette.close();
                                         match cmd_id.as_str() {
                                             "edit.find" => {
-                                        self.find_bar.open();
-                                        self.go_to_line.cancel();
-                                        self.replace_bar.close();
-                                    }
-                                    "edit.replace" => {
-                                        self.find_bar.open();
-                                        self.go_to_line.cancel();
-                                        self.replace_bar.open();
-                                    }
+                                                self.find_bar.open();
+                                                self.go_to_line.cancel();
+                                                self.replace_bar.close();
+                                            }
+                                            "edit.replace" => {
+                                                self.find_bar.open();
+                                                self.go_to_line.cancel();
+                                                self.replace_bar.open();
+                                            }
                                             "edit.find_in_files" => {
-                                        state.sidebar_mode = crate::ui::SidebarMode::Search;
-                                        state.sidebar_open = true;
-                                        self.search_panel.visible = true;
+                                                state.sidebar_mode = crate::ui::SidebarMode::Search;
+                                                state.sidebar_open = true;
+                                                self.search_panel.visible = true;
 
-                                        let cwd = std::env::current_dir().unwrap_or_default();
-                                        self.search_panel.query = "TODO".to_string();
-                                        self.search_panel.search(&cwd);
+                                                let cwd =
+                                                    std::env::current_dir().unwrap_or_default();
+                                                self.search_panel.query = "TODO".to_string();
+                                                self.search_panel.search(&cwd);
 
                                                 state.window.request_redraw();
                                             }
-                                    "view.terminal" => {
-                                        self.bottom_panel.toggle();
-                                        state.bottom_panel_focused = self.bottom_panel.visible;
-                                        if self.bottom_panel.visible && state.terminal.is_none() {
-                                            match forge_terminal::Terminal::new() {
-                                                Ok(term) => state.terminal = Some(term),
-                                                Err(e) => tracing::warn!("Terminal failed: {}", e),
-                                            }
-                                        }
-                                        let (w, h) = state.gpu.size();
-                                        state.layout = LayoutZones::compute(
-                                            w as f32,
-                                            h as f32,
-                                            state.sidebar_open,
-                                            state.ai_panel_open,
-                                            self.bottom_panel.visible,
-                                        );
-                                    }
-                                    "view.sidebar" => {
-                                        state.sidebar_open = !state.sidebar_open;
-                                        let (w, h) = state.gpu.size();
-                                        state.layout = LayoutZones::compute(
-                                            w as f32,
-                                            h as f32,
-                                            state.sidebar_open,
-                                            state.ai_panel_open,
-                                            self.bottom_panel.visible,
-                                        );
-                                    }
-                                    "file.save" => {
-                                        if let Some(tab) =
-                                            state.tab_manager.tabs.get(state.tab_manager.active)
-                                        {
-                                            if let Some(ref path) = tab.path {
-                                                if let Some(ed) = state.tab_manager.active_editor()
+                                            "view.terminal" => {
+                                                self.bottom_panel.toggle();
+                                                state.bottom_panel_focused =
+                                                    self.bottom_panel.visible;
+                                                if self.bottom_panel.visible
+                                                    && state.terminal.is_none()
                                                 {
-                                                    let text = ed.buffer.text();
-                                                    if let Err(e) =
+                                                    match forge_terminal::Terminal::new() {
+                                                        Ok(term) => state.terminal = Some(term),
+                                                        Err(e) => {
+                                                            tracing::warn!("Terminal failed: {}", e)
+                                                        }
+                                                    }
+                                                }
+                                                let (w, h) = state.gpu.size();
+                                                state.layout = LayoutZones::compute(
+                                                    w as f32,
+                                                    h as f32,
+                                                    state.sidebar_open,
+                                                    state.ai_panel_open,
+                                                    self.bottom_panel.visible,
+                                                );
+                                            }
+                                            "view.sidebar" => {
+                                                state.sidebar_open = !state.sidebar_open;
+                                                let (w, h) = state.gpu.size();
+                                                state.layout = LayoutZones::compute(
+                                                    w as f32,
+                                                    h as f32,
+                                                    state.sidebar_open,
+                                                    state.ai_panel_open,
+                                                    self.bottom_panel.visible,
+                                                );
+                                            }
+                                            "file.save" => {
+                                                if let Some(tab) = state
+                                                    .tab_manager
+                                                    .tabs
+                                                    .get(state.tab_manager.active)
+                                                {
+                                                    if let Some(ref path) = tab.path {
+                                                        if let Some(ed) =
+                                                            state.tab_manager.active_editor()
+                                                        {
+                                                            let text = ed.buffer.text();
+                                                            if let Err(e) =
                                                         forge_core::file_io::FileIO::save_atomic(
                                                             path, &text,
                                                         )
                                                     {
                                                         tracing::error!("Save failed: {}", e);
                                                     }
+                                                        }
+                                                    }
+                                                }
+                                                if let Some(tab) = state
+                                                    .tab_manager
+                                                    .tabs
+                                                    .get_mut(state.tab_manager.active)
+                                                {
+                                                    tab.is_modified = false;
                                                 }
                                             }
+                                            "file.close" => {
+                                                state.tab_manager.close_current();
+                                            }
+                                            _ => {
+                                                self.notifications.show(
+                                                    &format!(
+                                                        "Command '{}' is not wired yet.",
+                                                        cmd_label
+                                                    ),
+                                                    crate::notifications::Level::Info,
+                                                );
+                                            }
                                         }
-                                        if let Some(tab) =
-                                            state.tab_manager.tabs.get_mut(state.tab_manager.active)
-                                        {
-                                            tab.is_modified = false;
-                                        }
-                                    }
-                                    "file.close" => {
-                                        state.tab_manager.close_current();
-                                    }
-                                    _ => {
-                                        self.notifications.show(
-                                            &format!("Command '{}' is not wired yet.", cmd_label),
-                                            crate::notifications::Level::Info,
-                                        );
+                                    } else {
+                                        self.command_palette.close();
                                     }
                                 }
-                            } else {
-                                self.command_palette.close();
-                            }
-                        }
-                        crate::command_palette::PaletteMode::Files => {
-                            if let Some(file) = self.command_palette.select_file(0) {
-                                let path = file.clone();
-                                self.command_palette.close();
-                                if let Err(e) = state.tab_manager.open_file(&path) {
-                                    tracing::error!("Failed to open file: {}", e);
+                                crate::command_palette::PaletteMode::Files => {
+                                    if let Some(file) = self.command_palette.select_file(0) {
+                                        let path = file.clone();
+                                        self.command_palette.close();
+                                        if let Err(e) = state.tab_manager.open_file(&path) {
+                                            tracing::error!("Failed to open file: {}", e);
+                                        }
+                                        state.window.request_redraw();
+                                        // Notify LSP
+                                        Self::notify_lsp(state, &self.rt, &self.lsp_client);
+                                    } else {
+                                        self.command_palette.close();
+                                    }
                                 }
-                                state.window.request_redraw();
-                                // Notify LSP
-                                Self::notify_lsp(state, &self.rt, &self.lsp_client);
-                            } else {
-                                self.command_palette.close();
                             }
-                        }
-                    }
-                } else if self.go_to_line.visible {
+                        } else if self.go_to_line.visible {
                             if let Some((line, col_opt)) = self.go_to_line.confirm() {
                                 if let Some(ed) = state.tab_manager.active_editor_mut() {
                                     let max_line = ed.total_lines().saturating_sub(1);
@@ -2818,26 +3116,26 @@ impl ApplicationHandler for Application {
 
                 let mut handled = false;
                 if let Some((mx, my)) = state.last_mouse_position {
-                     if let Some(sb) = &state.layout.sidebar {
-                         if sb.contains(mx, my) && state.sidebar_open {
-                             if self.search_panel.visible {
-                                 let current = self.search_panel.ui.scroll_offset as isize;
-                                 // Scroll direction: positive 'scroll' (from delta y) means scrolling down (view moves down, content moves up)
-                                 // Usually wheel down gives negative y?
-                                 // Wait, my scroll calculation above: -y * 3.0.
-                                 // If I scroll down (wheel back), y is -1. scroll is 3.0.
-                                 // For editor, positive scroll increases scroll_top (moves view down).
-                                 // So here, positive scroll should increase scroll_offset.
-                                 let new_val = (current + scroll as isize).max(0);
-                                 // Clamp to max results
-                                 let max_scroll = self.search_panel.results.len().saturating_sub(1);
-                                 let clamped = (new_val as usize).min(max_scroll);
+                    if let Some(sb) = &state.layout.sidebar {
+                        if sb.contains(mx, my) && state.sidebar_open {
+                            if self.search_panel.visible {
+                                let current = self.search_panel.ui.scroll_offset as isize;
+                                // Scroll direction: positive 'scroll' (from delta y) means scrolling down (view moves down, content moves up)
+                                // Usually wheel down gives negative y?
+                                // Wait, my scroll calculation above: -y * 3.0.
+                                // If I scroll down (wheel back), y is -1. scroll is 3.0.
+                                // For editor, positive scroll increases scroll_top (moves view down).
+                                // So here, positive scroll should increase scroll_offset.
+                                let new_val = (current + scroll as isize).max(0);
+                                // Clamp to max results
+                                let max_scroll = self.search_panel.results.len().saturating_sub(1);
+                                let clamped = (new_val as usize).min(max_scroll);
 
-                                 self.search_panel.ui.scroll_offset = clamped;
-                                 handled = true;
-                             }
-                         }
-                     }
+                                self.search_panel.ui.scroll_offset = clamped;
+                                handled = true;
+                            }
+                        }
+                    }
                 }
 
                 if !handled {

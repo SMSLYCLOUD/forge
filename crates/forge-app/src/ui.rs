@@ -14,44 +14,44 @@ impl Default for SidebarMode {
     }
 }
 
-/// VS Code color scheme — dark theme (Fallback)
+/// Antigravity color scheme — SMSLY signature dark (Fallback)
 pub mod colors {
-    /// Activity bar background (#333333)
-    pub const ACTIVITY_BAR: [f32; 4] = [0.2, 0.2, 0.2, 1.0];
-    /// Tab bar background (#252526)
-    pub const TAB_BAR: [f32; 4] = [0.145, 0.145, 0.149, 1.0];
-    /// Active tab background (#1e1e1e)
-    pub const TAB_ACTIVE: [f32; 4] = [0.118, 0.118, 0.118, 1.0];
-    /// Inactive tab background (#2d2d2d)
-    pub const TAB_INACTIVE: [f32; 4] = [0.176, 0.176, 0.176, 1.0];
-    /// Breadcrumb bar background (#1e1e1e)
-    pub const BREADCRUMB: [f32; 4] = [0.118, 0.118, 0.118, 1.0];
-    /// Editor background (#1e1e1e)
-    pub const EDITOR_BG: [f32; 4] = [0.118, 0.118, 0.118, 1.0];
-    /// Gutter background (#1e1e1e)
-    pub const GUTTER: [f32; 4] = [0.118, 0.118, 0.118, 1.0];
-    /// Status bar background (#007acc)
-    pub const STATUS_BAR: [f32; 4] = [0.0, 0.478, 0.8, 1.0];
-    /// Current line highlight (#2a2d2e)
-    pub const CURRENT_LINE: [f32; 4] = [0.165, 0.176, 0.18, 1.0];
-    /// Sidebar background (#252526)
-    pub const SIDEBAR: [f32; 4] = [0.145, 0.145, 0.149, 1.0];
-    /// Scrollbar (#424242, semi-transparent)
-    pub const SCROLLBAR: [f32; 4] = [0.259, 0.259, 0.259, 0.5];
-    /// Separator lines (#404040)
-    pub const SEPARATOR: [f32; 4] = [0.251, 0.251, 0.251, 1.0];
-    /// AI panel background (#1e1e1e)
-    pub const AI_PANEL: [f32; 4] = [0.118, 0.118, 0.118, 1.0];
-    /// Text foreground (#cccccc)
+    /// Activity bar background (#08071a)
+    pub const ACTIVITY_BAR: [f32; 4] = [0.031, 0.027, 0.102, 1.0];
+    /// Tab bar background (#08071a)
+    pub const TAB_BAR: [f32; 4] = [0.031, 0.027, 0.102, 1.0];
+    /// Active tab background (#0d0b1a)
+    pub const TAB_ACTIVE: [f32; 4] = [0.051, 0.043, 0.102, 1.0];
+    /// Inactive tab background (#08071a)
+    pub const TAB_INACTIVE: [f32; 4] = [0.031, 0.027, 0.102, 1.0];
+    /// Breadcrumb bar background (#0d0b1a)
+    pub const BREADCRUMB: [f32; 4] = [0.051, 0.043, 0.102, 1.0];
+    /// Editor background (#0d0b1a)
+    pub const EDITOR_BG: [f32; 4] = [0.051, 0.043, 0.102, 1.0];
+    /// Gutter background (#0d0b1a)
+    pub const GUTTER: [f32; 4] = [0.051, 0.043, 0.102, 1.0];
+    /// Status bar background (#7c3aed — violet)
+    pub const STATUS_BAR: [f32; 4] = [0.486, 0.227, 0.929, 1.0];
+    /// Current line highlight (#1a1730)
+    pub const CURRENT_LINE: [f32; 4] = [0.102, 0.090, 0.188, 1.0];
+    /// Sidebar background (#0d0b1a)
+    pub const SIDEBAR: [f32; 4] = [0.051, 0.043, 0.102, 1.0];
+    /// Scrollbar (#3e2d73, semi-transparent)
+    pub const SCROLLBAR: [f32; 4] = [0.243, 0.176, 0.451, 0.4];
+    /// Separator lines (#1a1730)
+    pub const SEPARATOR: [f32; 4] = [0.102, 0.090, 0.188, 1.0];
+    /// AI panel background (#0d0b1a)
+    pub const AI_PANEL: [f32; 4] = [0.051, 0.043, 0.102, 1.0];
+    /// Text foreground (#e0def4)
     #[allow(dead_code)]
-    pub const TEXT_FG: [f32; 4] = [0.8, 0.8, 0.8, 1.0];
-    /// Dimmed text (#858585)
-    pub const TEXT_DIM: [f32; 4] = [0.522, 0.522, 0.522, 1.0];
+    pub const TEXT_FG: [f32; 4] = [0.878, 0.871, 0.957, 1.0];
+    /// Dimmed text (#4a456e)
+    pub const TEXT_DIM: [f32; 4] = [0.290, 0.271, 0.431, 1.0];
     /// White text
     pub const TEXT_WHITE: [f32; 4] = [1.0, 1.0, 1.0, 1.0];
-    /// Cursor color (#aeafad)
-    pub const CURSOR: [f32; 4] = [0.682, 0.686, 0.678, 1.0];
-    /// Selection color (#264f78)
+    /// Cursor color (#00e5ff — cyan accent)
+    pub const CURSOR: [f32; 4] = [0.0, 0.898, 1.0, 1.0];
+    /// Selection color (#3e2d73)
     #[allow(dead_code)]
     pub const SELECTION: [f32; 4] = [0.149, 0.31, 0.471, 0.5];
     /// Error red
@@ -63,26 +63,27 @@ pub mod colors {
     pub const SUCCESS: [f32; 4] = [0.345, 0.663, 0.369, 1.0];
 }
 
-/// Pixel dimensions for each UI zone (VS Code Standard)
+/// Pixel dimensions for each UI zone
 pub struct LayoutConstants;
 
 impl LayoutConstants {
-    pub const ACTIVITY_BAR_WIDTH: f32 = 48.0; // VS Code: 48px
-    pub const TAB_BAR_HEIGHT: f32 = 35.0; // VS Code: 35px
-    pub const BREADCRUMB_HEIGHT: f32 = 22.0; // VS Code: 22px
-    pub const STATUS_BAR_HEIGHT: f32 = 22.0; // VS Code: 22px
-    pub const GUTTER_WIDTH: f32 = 60.0; // Adjustable but 50-60 is standard
-    pub const SIDEBAR_WIDTH: f32 = 250.0; // VS Code default is wider
-    pub const SCROLLBAR_WIDTH: f32 = 14.0; // VS Code: 14px
-    pub const TAB_WIDTH: f32 = 160.0; // Standard tab width
+    pub const TITLE_BAR_HEIGHT: f32 = 30.0; // Menu bar height
+    pub const ACTIVITY_BAR_WIDTH: f32 = 48.0;
+    pub const TAB_BAR_HEIGHT: f32 = 35.0;
+    pub const BREADCRUMB_HEIGHT: f32 = 22.0;
+    pub const STATUS_BAR_HEIGHT: f32 = 22.0;
+    pub const GUTTER_WIDTH: f32 = 60.0;
+    pub const SIDEBAR_WIDTH: f32 = 250.0;
+    pub const SCROLLBAR_WIDTH: f32 = 14.0;
+    pub const TAB_WIDTH: f32 = 160.0;
     #[allow(dead_code)]
     pub const TAB_CLOSE_SIZE: f32 = 16.0;
-    pub const AI_PANEL_WIDTH: f32 = 350.0; // Copilot chat style
+    pub const AI_PANEL_WIDTH: f32 = 350.0;
     pub const SEPARATOR_SIZE: f32 = 1.0;
-    pub const LINE_HEIGHT: f32 = 20.0; // 1.4-1.5em for 14px font
-    pub const CHAR_WIDTH: f32 = 8.4;
-    pub const FONT_SIZE: f32 = 14.0; // Editor font size
-    pub const SMALL_FONT_SIZE: f32 = 11.0; // UI font size
+    pub const LINE_HEIGHT: f32 = 22.0;
+    pub const CHAR_WIDTH: f32 = 9.0;
+    pub const FONT_SIZE: f32 = 16.0;
+    pub const SMALL_FONT_SIZE: f32 = 13.0;
 }
 
 /// Computed layout zones (recalculated on resize)
@@ -91,6 +92,7 @@ pub struct LayoutZones {
     #[allow(dead_code)]
     pub window_width: f32,
     pub window_height: f32,
+    pub title_bar: Zone,
     pub activity_bar: Zone,
     pub sidebar: Option<Zone>,
     pub tab_bar: Zone,
@@ -145,15 +147,16 @@ impl LayoutZones {
         ai_panel_open: bool,
         bottom_panel_visible: bool,
     ) -> Self {
+        let title_bar_h = LayoutConstants::TITLE_BAR_HEIGHT;
         let activity_x = 0.0;
         let activity_w = LayoutConstants::ACTIVITY_BAR_WIDTH;
 
         let sidebar = if sidebar_open {
             Some(Zone::new(
                 activity_w,
-                0.0,
+                title_bar_h,
                 LayoutConstants::SIDEBAR_WIDTH,
-                window_height - LayoutConstants::STATUS_BAR_HEIGHT,
+                window_height - LayoutConstants::STATUS_BAR_HEIGHT - title_bar_h,
             ))
         } else {
             None
@@ -172,8 +175,8 @@ impl LayoutZones {
         };
         let content_w = (window_width - content_x - ai_panel_w).max(100.0);
 
-        let tab_y = 0.0;
-        let breadcrumb_y = LayoutConstants::TAB_BAR_HEIGHT;
+        let tab_y = title_bar_h;
+        let breadcrumb_y = title_bar_h + LayoutConstants::TAB_BAR_HEIGHT;
         let editor_y = breadcrumb_y + LayoutConstants::BREADCRUMB_HEIGHT;
 
         let status_y = window_height - LayoutConstants::STATUS_BAR_HEIGHT;
@@ -211,11 +214,12 @@ impl LayoutZones {
         Self {
             window_width,
             window_height,
+            title_bar: Zone::new(0.0, 0.0, window_width, title_bar_h),
             activity_bar: Zone::new(
                 activity_x,
-                0.0,
+                title_bar_h,
                 activity_w,
-                window_height - LayoutConstants::STATUS_BAR_HEIGHT,
+                window_height - LayoutConstants::STATUS_BAR_HEIGHT - title_bar_h,
             ),
             sidebar,
             tab_bar: Zone::new(content_x, tab_y, content_w, LayoutConstants::TAB_BAR_HEIGHT),
@@ -283,6 +287,21 @@ impl LayoutZones {
         let status_bar_border = theme.color("statusBar.border").unwrap_or(colors::SEPARATOR);
 
         let _border_col = theme.color("contrastBorder").unwrap_or(colors::SEPARATOR);
+
+        // ─── Title Bar / Menu Bar ───
+        let title_bar_bg = theme
+            .color("titleBar.activeBackground")
+            .unwrap_or([0.031, 0.027, 0.102, 1.0]); // #08071a
+        rects.push(self.title_bar.to_rect(title_bar_bg));
+        // Bottom border of title bar
+        let title_border = theme.color("titleBar.border").unwrap_or(colors::SEPARATOR);
+        rects.push(Rect {
+            x: 0.0,
+            y: self.title_bar.height - LayoutConstants::SEPARATOR_SIZE,
+            width: self.title_bar.width,
+            height: LayoutConstants::SEPARATOR_SIZE,
+            color: title_border,
+        });
 
         // ─── Activity Bar ───
         rects.push(self.activity_bar.to_rect(activity_bar_bg));

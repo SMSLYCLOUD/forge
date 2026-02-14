@@ -32,6 +32,18 @@ impl TabManager {
         }
     }
 
+    /// Open a scratch (untitled) tab so keyboard input works immediately.
+    pub fn open_scratch(&mut self) {
+        let editor = Editor::new();
+        self.tabs.push(Tab {
+            title: "Welcome".to_string(),
+            path: None,
+            editor,
+            is_modified: false,
+        });
+        self.active = 0;
+    }
+
     pub fn open_file(&mut self, path: &str) -> Result<()> {
         // Don't open duplicate tabs
         if let Some(idx) = self.tabs.iter().position(|t| {

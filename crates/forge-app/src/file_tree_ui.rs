@@ -15,11 +15,17 @@ impl FileTreeUi {
         }
     }
 
-    pub fn render_rects(&self, nodes: &[DisplayNode], zone: &crate::ui::Zone) -> Vec<Rect> {
+    pub fn render_rects(
+        &self,
+        nodes: &[DisplayNode],
+        zone: &crate::ui::Zone,
+        header_lines: usize,
+    ) -> Vec<Rect> {
         let mut rects = Vec::new();
         let line_h = 22.0;
+        let header_offset = header_lines as f32 * line_h;
         for (i, _node) in nodes.iter().enumerate() {
-            let y = zone.y + (i as f32 * line_h);
+            let y = zone.y + header_offset + (i as f32 * line_h);
             if y > zone.y + zone.height {
                 break;
             }
