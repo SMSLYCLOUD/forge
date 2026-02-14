@@ -1099,3 +1099,631 @@ grep -r "unwrap()" crates/forge-app/src/ | grep -v "test" | grep -v "// safe"
 8. **winit:** No blocking I/O in event handlers.
 9. **New crates in `Cargo.toml`** need `[workspace.members]` entry if workspace uses resolver 2.
 10. **Test screenshot after each phase** — `cargo run -p forge-app -- --screenshot`.
+
+---
+
+## PHASE 10: Wire ALL Remaining Orphaned Systems (100% Coverage)
+
+This phase covers every remaining orphaned `.rs` file. After this phase, **every** source file in `crates/forge-app/src/` will be wired to `application.rs`.
+
+---
+
+### 10.1: Autocomplete (autocomplete.rs)
+
+**File:** `crates/forge-app/src/autocomplete.rs`
+
+#### Add to AppState
+```rust
+use crate::autocomplete::Autocomplete;
+// In state struct:
+autocomplete: Autocomplete,
+```
+
+#### Wire to LSP Completions
+When the LSP sends completion results, feed them into the autocomplete struct. In the event loop where LSP messages are processed:
+
+```rust
+// When LSP responds with completions:
+state.autocomplete.set_items(completion_items);
+state.autocomplete.show(cursor_x, cursor_y);
+```
+
+#### Render Dropdown
+Render the autocomplete dropdown BELOW the cursor position:
+
+```rust
+if state.autocomplete.visible {
+    let ac = &state.autocomplete;
+    let item_h = 22.0;
+    let width = 300.0;
+    let max_items = ac.items.len().min(10);
+    let height = max_items as f32 * item_h;
+    
+    // Background
+    rects.push(Rect {
+        x: ac.x, y: ac.y,
+        width, height,
+        color: [0.15, 0.15, 0.18, 1.0],
+    });
+    
+    // Each item with icon + label + detail
+    for (i, item) in ac.items.iter().take(10).enumerate() {
+        let y = ac.y + (i as f32 * item_h);
+        // Highlight selected item
+        if Some(i) == ac.selected_index {
+            rects.push(Rect {
+                x: ac.x, y,
+                width, height: item_h,
+                color: [0.04, 0.24, 0.57, 0.5],
+            });
+        }
+        // Render item.label via glyphon
+        // Render item.kind icon (function, variable, class, etc.)
+    }
+}
+```
+
+#### Input Routing
+When autocomplete is visible, arrow keys navigate it, Enter accepts, Escape closes:
+
+```rust
+if state.autocomplete.visible {
+    match &key {
+        Key::Named(NamedKey::ArrowDown) => { state.autocomplete.select_next(); return; }
+        Key::Named(NamedKey::ArrowUp) => { state.autocomplete.select_prev(); return; }
+        Key::Named(NamedKey::Enter) | Key::Named(NamedKey::Tab) => {
+            if let Some(text) = state.autocomplete.accept() {
+                if let Some(ed) = state.tab_manager.active_editor_mut() {
+                    ed.insert_completion(&text);
+                }
+            }
+            state.autocomplete.hide();
+            return;
+        }
+        Key::Named(NamedKey::Escape) => { state.autocomplete.hide(); return; }
+        _ => {} // Other keys pass through to editor AND filter autocomplete
+    }
+}
+```
+
+#### Trigger
+Autocomplete triggers on typing (after a `.` or `::` or when Ctrl+Space is pressed):
+
+```rust
+// After inserting a character into the editor:
+if c == '.' || c == ':' {
+    // Send LSP completion request at current cursor position
+    // Results arrive asynchronously and feed into autocomplete
+}
+
+// Ctrl+Space — manual trigger
+if modifiers.control_key() && key == Key::Named(NamedKey::Space) {
+    // Send LSP completion request
+}
+```
+
+**`cargo check -p forge-app` — must pass.**
+
+---
+
+### 10.2: Go to Definition (go_to_def.rs)
+
+**File:** `crates/forge-app/src/go_to_def.rs`
+
+#### Wire F12 and Ctrl+Click
+
+```rust
+// F12 — Go to Definition
+if key == Key::Named(NamedKey::F12) {
+    if let Some(ed) = state.tab_manager.active_editor() {
+        let (line, col) = ed.cursor_position();
+        // Send LSP "textDocument/definition" request
+        // When response arrives, open the target file at the target line
+    }
+    return;
+}
+
+// Ctrl+Click in editor — Go to Definition
+// In MouseInput handler, when Ctrl is held and left click is in editor zone:
+if modifiers.control_key() && state.layout.editor.contains(mx, my) {
+    // Calculate (line, col) from click position
+    // Send LSP definition request
+    return;
+}
+```
+
+#### Handle LSP Response
+When the LSP responds with a definition location:
+
+```rust
+// In LSP message handler:
+if let Some(location) = definition_response {
+    let path = location.uri.to_file_path().unwrap_or_default();
+    let content = std::fs::read_to_string(&path).unwrap_or_default();
+    state.tab_manager.open_file(path.display().to_string(), content);
+    if let Some(ed) = state.tab_manager.active_editor_mut() {
+        ed.goto_line(location.range.start.line as usize);
+    }
+}
+```
+
+**`cargo check -p forge-app` — must pass.**
+
+---
+
+### 10.3: Hover Info (hover_info.rs)
+
+**File:** `crates/forge-app/src/hover_info.rs`
+
+#### Wire Mouse Hover
+When the cursor hovers over a word in the editor for >500ms, send an LSP hover request:
+
+```rust
+// In CursorMoved handler:
+// Track last hover position and timestamp
+// If cursor hasn't moved for 500ms over editor text:
+//   Send LSP "textDocument/hover" request
+//   When response arrives, render tooltip at cursor
+```
+
+#### Render Tooltip
+```rust
+if let Some(ref hover) = state.hover_info {
+    if hover.visible {
+        let tooltip_w = 400.0_f32.min(hover.text.len() as f32 * 8.0 + 20.0);
+        let tooltip_h = (hover.line_count as f32 * 18.0) + 12.0;
+        
+        // Background with border
+        rects.push(Rect {
+            x: hover.x, y: hover.y - tooltip_h,
+            width: tooltip_w, height: tooltip_h,
+            color: [0.15, 0.15, 0.2, 1.0],
+        });
+        // Border
+        rects.push(Rect {
+            x: hover.x, y: hover.y - tooltip_h,
+            width: tooltip_w, height: 1.0,
+            color: [0.3, 0.3, 0.4, 1.0],
+        });
+        // Render hover.text via glyphon
+    }
+}
+```
+
+**`cargo check -p forge-app` — must pass.**
+
+---
+
+### 10.4: Go to Line (go_to_line.rs)
+
+**File:** `crates/forge-app/src/go_to_line.rs`
+
+#### Wire Ctrl+G
+
+```rust
+if modifiers.control_key() && key == Key::Character("g".into()) {
+    state.go_to_line.open();
+    state.window.request_redraw();
+    return;
+}
+```
+
+#### Render Input Box
+Small input at top-center of editor (like VS Code):
+
+```rust
+if state.go_to_line.visible {
+    let (win_w, _) = state.window_size;
+    let box_w = 300.0;
+    let box_x = (win_w - box_w) / 2.0;
+    let box_y = LayoutConstants::TITLE_BAR_HEIGHT + 10.0;
+    
+    rects.push(Rect {
+        x: box_x, y: box_y,
+        width: box_w, height: 32.0,
+        color: [0.15, 0.15, 0.15, 1.0],
+    });
+    // Render "Go to Line: " prefix + input text
+}
+```
+
+#### Input Routing
+```rust
+if state.go_to_line.visible {
+    match &key {
+        Key::Named(NamedKey::Escape) => { state.go_to_line.close(); return; }
+        Key::Named(NamedKey::Enter) => {
+            if let Ok(line) = state.go_to_line.input.parse::<usize>() {
+                if let Some(ed) = state.tab_manager.active_editor_mut() {
+                    ed.goto_line(line.saturating_sub(1)); // 0-indexed
+                }
+            }
+            state.go_to_line.close();
+            return;
+        }
+        Key::Character(c) => {
+            // Only accept digits
+            for ch in c.chars() {
+                if ch.is_ascii_digit() {
+                    state.go_to_line.input.push(ch);
+                }
+            }
+            return;
+        }
+        Key::Named(NamedKey::Backspace) => { state.go_to_line.input.pop(); return; }
+        _ => { return; }
+    }
+}
+```
+
+**`cargo check -p forge-app` — must pass.**
+
+---
+
+### 10.5: Split Editors (editor_groups.rs)
+
+**File:** `crates/forge-app/src/editor_groups.rs`
+
+#### Add to AppState
+```rust
+use crate::editor_groups::EditorGroups;
+// In state struct:
+editor_groups: EditorGroups,
+```
+
+#### Wire Ctrl+\ (Split Editor)
+```rust
+if modifiers.control_key() && key == Key::Character("\\".into()) {
+    state.editor_groups.split_horizontal();
+    state.window.request_redraw();
+    return;
+}
+```
+
+#### Layout Adjustment
+When split, divide the editor zone into two equal halves:
+
+```rust
+if state.editor_groups.count() > 1 {
+    let editor_zone = &state.layout.editor;
+    let half_w = editor_zone.width / 2.0;
+    // Left group: Zone(editor_zone.x, editor_zone.y, half_w, editor_zone.height)
+    // Right group: Zone(editor_zone.x + half_w + 1.0, editor_zone.y, half_w - 1.0, editor_zone.height)
+    // Render separator line between them
+    rects.push(Rect {
+        x: editor_zone.x + half_w,
+        y: editor_zone.y,
+        width: 1.0,
+        height: editor_zone.height,
+        color: [0.2, 0.2, 0.2, 1.0],
+    });
+}
+```
+
+**`cargo check -p forge-app` — must pass.**
+
+---
+
+### 10.6: Tab Drag-and-Drop (drag_drop.rs)
+
+**File:** `crates/forge-app/src/drag_drop.rs`
+
+#### Track Drag State
+```rust
+use crate::drag_drop::DragState;
+// In state struct:
+drag_state: Option<DragState>,
+```
+
+#### Wire Mouse Events
+```rust
+// On MouseDown in tab bar: start drag
+if state.layout.tab_bar.contains(mx, my) {
+    // Identify which tab was clicked
+    let tab_idx = ((mx - state.layout.tab_bar.x) / LayoutConstants::TAB_WIDTH) as usize;
+    state.drag_state = Some(DragState::new(tab_idx, mx, my));
+}
+
+// On CursorMoved while dragging: update position
+if let Some(ref mut drag) = state.drag_state {
+    drag.update(mx, my);
+    state.window.request_redraw();
+}
+
+// On MouseUp: drop tab at new position
+if let Some(drag) = state.drag_state.take() {
+    let new_idx = ((mx - state.layout.tab_bar.x) / LayoutConstants::TAB_WIDTH) as usize;
+    if new_idx != drag.original_index {
+        state.tab_manager.reorder_tab(drag.original_index, new_idx);
+    }
+    state.window.request_redraw();
+}
+```
+
+#### Render Drag Preview
+```rust
+if let Some(ref drag) = state.drag_state {
+    // Semi-transparent tab at mouse position
+    rects.push(Rect {
+        x: drag.current_x - 40.0,
+        y: drag.current_y - 10.0,
+        width: LayoutConstants::TAB_WIDTH,
+        height: LayoutConstants::TAB_BAR_HEIGHT,
+        color: [0.2, 0.2, 0.3, 0.7],
+    });
+    // Drop indicator line
+}
+```
+
+**`cargo check -p forge-app` — must pass.**
+
+---
+
+### 10.7: Settings UI (settings_ui.rs)
+
+**File:** `crates/forge-app/src/settings_ui.rs`
+
+#### Wire Ctrl+,
+```rust
+if modifiers.control_key() && key == Key::Character(",".into()) {
+    // Open settings as a special tab
+    state.tab_manager.open_settings_tab();
+    state.window.request_redraw();
+    return;
+}
+```
+
+Read `forge-config` crate to get available settings. Render them as a list of key-value pairs the user can edit.
+
+**`cargo check -p forge-app` — must pass.**
+
+---
+
+### 10.8: Extensions Panel (extensions_panel.rs)
+
+**File:** `crates/forge-app/src/extensions_panel.rs`
+
+#### Wire Activity Bar Extension Icon
+When the Extensions icon in the activity bar is clicked:
+
+```rust
+// In SidebarMode enum:
+Extensions,
+```
+
+When `sidebar_mode == Extensions`:
+```rust
+// Render "EXTENSIONS" header
+// Render installed extensions list from forge-plugin host
+// Each extension: icon + name + version + enable/disable toggle
+// Search bar at top for marketplace search
+```
+
+**`cargo check -p forge-app` — must pass.**
+
+---
+
+### 10.9: Minimap (minimap.rs)
+
+**File:** `crates/forge-app/src/minimap.rs`
+
+#### Render Minimap
+On the right side of the editor, render a scaled-down view of the code:
+
+```rust
+if state.minimap_enabled {
+    let editor_zone = &state.layout.editor;
+    let minimap_w = 80.0;
+    let minimap_x = editor_zone.x + editor_zone.width - minimap_w - LayoutConstants::SCROLLBAR_WIDTH;
+    
+    // Background
+    rects.push(Rect {
+        x: minimap_x, y: editor_zone.y,
+        width: minimap_w, height: editor_zone.height,
+        color: [0.12, 0.12, 0.12, 0.8],
+    });
+    
+    // Render each line as a thin colored bar (1-2px high)
+    // Use syntax highlighting colors in miniature
+    // Render viewport indicator (current scroll position rectangle)
+    let total_lines = editor.buffer.line_count() as f32;
+    let viewport_lines = (editor_zone.height / LINE_HEIGHT) as f32;
+    let viewport_ratio = viewport_lines / total_lines.max(1.0);
+    let viewport_y_ratio = scroll_top as f32 / total_lines.max(1.0);
+    
+    rects.push(Rect {
+        x: minimap_x,
+        y: editor_zone.y + (viewport_y_ratio * editor_zone.height),
+        width: minimap_w,
+        height: (viewport_ratio * editor_zone.height).max(20.0),
+        color: [1.0, 1.0, 1.0, 0.1],
+    });
+}
+```
+
+#### Click on Minimap → Scroll
+```rust
+// In click handler, if click is in minimap zone:
+if mx >= minimap_x && mx < minimap_x + minimap_w {
+    let click_ratio = (my - editor_zone.y) / editor_zone.height;
+    let target_line = (click_ratio * total_lines) as usize;
+    if let Some(ed) = state.tab_manager.active_editor_mut() {
+        ed.scroll_to_line(target_line);
+    }
+}
+```
+
+**`cargo check -p forge-app` — must pass.**
+
+---
+
+### 10.10: Markdown Preview (markdown_preview.rs)
+
+**File:** `crates/forge-app/src/markdown_preview.rs`
+
+When a `.md` file is open:
+```rust
+// Ctrl+Shift+V — toggle markdown preview
+if modifiers.control_key() && modifiers.shift_key() && key == Key::Character("v".into()) {
+    if let Some(ed) = state.tab_manager.active_editor() {
+        if ed.file_path.as_ref().map(|p| p.ends_with(".md")).unwrap_or(false) {
+            state.markdown_preview.toggle();
+            state.window.request_redraw();
+        }
+    }
+    return;
+}
+```
+
+Render as a side-by-side panel using the `markdown.rs` parser to render styled text.
+
+**`cargo check -p forge-app` — must pass.**
+
+---
+
+### 10.11: Image Preview (image_preview.rs)
+
+**File:** `crates/forge-app/src/image_preview.rs`
+
+When opening `.png`, `.jpg`, `.svg`, `.gif` files, render as image instead of text:
+
+```rust
+// In tab_manager when opening a file, detect image extension:
+let is_image = ["png", "jpg", "jpeg", "gif", "svg", "webp"]
+    .iter()
+    .any(|ext| path.ends_with(ext));
+
+if is_image {
+    // Load image via `image` crate
+    // Render as texture in the editor zone
+    // Show filename, dimensions, and file size in status bar
+}
+```
+
+**`cargo check -p forge-app` — must pass.**
+
+---
+
+### 10.12: Diff View (diff_view.rs)
+
+**File:** `crates/forge-app/src/diff_view.rs`
+
+Wire to git panel: when clicking a changed file in the git panel, open a side-by-side diff view:
+
+```rust
+// Left side: original (HEAD version)
+// Right side: working copy
+// Added lines: green background [0.1, 0.3, 0.1, 0.3]
+// Deleted lines: red background [0.3, 0.1, 0.1, 0.3]
+// Modified lines: yellow gutter marker
+```
+
+Use `git2` to get the HEAD version of the file for comparison.
+
+**`cargo check -p forge-app` — must pass.**
+
+---
+
+### 10.13: Comment Toggle (comment_toggle.rs)
+
+**File:** `crates/forge-app/src/comment_toggle.rs`
+
+#### Wire Ctrl+/
+```rust
+if modifiers.control_key() && key == Key::Character("/".into()) {
+    if let Some(ed) = state.tab_manager.active_editor_mut() {
+        // Get current line(s) (selection or cursor line)
+        // If all selected lines start with "//", remove the comment prefix
+        // Otherwise, add "//" prefix to all selected lines
+        // Use language-aware comment syntax from Tree-sitter grammar
+        ed.toggle_line_comment();
+    }
+    state.window.request_redraw();
+    return;
+}
+```
+
+**`cargo check -p forge-app` — must pass.**
+
+---
+
+### 10.14: Emmet (emmet.rs)
+
+**File:** `crates/forge-app/src/emmet.rs`
+
+#### Wire Tab Expansion in HTML/CSS Files
+```rust
+// When Tab is pressed and cursor is at end of an Emmet abbreviation:
+if key == Key::Named(NamedKey::Tab) {
+    if let Some(ed) = state.tab_manager.active_editor_mut() {
+        let is_html_css = ed.file_path.as_ref()
+            .map(|p| p.ends_with(".html") || p.ends_with(".css") || p.ends_with(".jsx") || p.ends_with(".tsx"))
+            .unwrap_or(false);
+        
+        if is_html_css {
+            let line_text = ed.current_line_text();
+            if let Some(expansion) = crate::emmet::expand(&line_text) {
+                ed.replace_current_line_prefix(&expansion);
+                state.window.request_redraw();
+                return;
+            }
+        }
+    }
+}
+```
+
+**`cargo check -p forge-app` — must pass.**
+
+---
+
+### 10.15: File Watcher + Accessibility
+
+**File:** `crates/forge-app/src/accessibility.rs`
+
+Wire file change detection so that when an external process modifies a file that's open in the editor, the editor detects it and offers to reload:
+
+```rust
+// Use notify crate (if available) or periodic file stat polling
+// On file change detected:
+//   If file is open in a tab, mark tab as "externally modified"
+//   Show notification bar: "File changed on disk. Reload?"
+```
+
+For accessibility, ensure all interactive elements have:
+- Focus indicators (visible focus ring on active element)
+- Keyboard-only navigation (Tab cycles through UI elements)
+- High contrast mode support
+
+**`cargo check -p forge-app` — must pass.**
+
+---
+
+## FINAL VERIFICATION (100% COVERAGE)
+
+After ALL 10 phases:
+
+```bash
+# 1. Build everything
+cargo check -p forge-app 2>&1
+cargo check -p forge-test-tools 2>&1
+
+# 2. Run ALL tests
+cargo test --workspace 2>&1
+
+# 3. Screenshot — full app
+cargo run -p forge-app -- --screenshot screenshot_100percent.png
+
+# 4. Screenshot — debug zones
+cargo run -p forge-app -- --debug-zones --screenshot screenshot_zones_100.png
+
+# 5. Verify no orphaned files
+# Every .rs file in crates/forge-app/src/ should be referenced in application.rs or mod.rs
+grep -rL "mod \|use crate::" crates/forge-app/src/*.rs | grep -v "main.rs\|lib.rs\|mod.rs"
+# This should return EMPTY — no orphaned files
+
+# 6. Safety audit
+grep -rn "unwrap()" crates/forge-app/src/ | grep -v "test" | grep -v "// safe" | wc -l
+# Should be minimal (ideally 0 for non-test code)
+```
+
+**After all 10 phases, Forge will be 100% wired — every source file connected, every UI interactive, every shortcut functional.**
