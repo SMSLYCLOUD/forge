@@ -33,6 +33,7 @@ forge-propagation = { path = "../forge-propagation" }
 forge-immune = { path = "../forge-immune" }
 forge-icons = { path = "../forge-icons" }
 forge-test-tools = { path = "../forge-test-tools" }
+forge-extension-host = { path = "../forge-extension-host" }
 
 # Versioned dependencies
 git2 = { version = "0.20.4" }

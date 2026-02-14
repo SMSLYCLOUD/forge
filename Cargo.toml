@@ -29,7 +29,7 @@ members = [
     "crates/forge-workspace",
     "crates/forge-terminal",
     "crates/forge-search",
-    "crates/forge-test-tools",
+    "crates/forge-test-tools", "crates/forge-extension-host",
 ]
 resolver = "2"
 

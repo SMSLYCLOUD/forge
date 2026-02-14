@@ -152,6 +152,7 @@ pub struct Application {
     // Phase 5: Debug + Plugins
     debug_ui: Option<crate::debug_ui::DebugUi>,
     plugin_runtime: Option<forge_plugin::PluginRuntime>,
+    extension_host: Option<forge_extension_host::ExtensionHost>,
     search_panel: crate::search_panel::SearchPanel,
 
     // Phase 4: Intelligence Layer
@@ -279,6 +280,9 @@ impl Application {
             }
         };
 
+        // Epic 2: Extension Host
+        let extension_host = Some(forge_extension_host::ExtensionHost::new());
+
         // Phase 4: Intelligence layer (sync init)
         let ghost_tabs = forge_anticipation::GhostTabsEngine::new();
         let anomaly_detector = forge_immune::AnomalyDetector::new(100);
@@ -336,6 +340,7 @@ impl Application {
             zen_mode,
             debug_ui,
             plugin_runtime,
+            extension_host,
             search_panel,
             ghost_tabs,
             anomaly_detector,
@@ -605,6 +610,7 @@ impl Application {
 
     /// Main render function
     fn render(
+        extension_host: &mut Option<forge_extension_host::ExtensionHost>,
         state: &mut AppState,
         mode: &UiMode,
         theme: &forge_theme::Theme,
@@ -622,6 +628,20 @@ impl Application {
         state.frame_timer.begin_frame();
         notifications.tick();
         Self::handle_app_events(state);
+
+        // Poll Extension Host
+        if let Some(host) = extension_host {
+            for msg in host.poll_messages() {
+                match msg {
+                    forge_extension_host::protocol::HostMessage::ShowInfo { message } => {
+                        notifications.show(&message, crate::notifications::Level::Info);
+                    }
+                    forge_extension_host::protocol::HostMessage::ShowError { message } => {
+                        notifications.show(&message, crate::notifications::Level::Error);
+                    }
+                }
+            }
+        }
 
         // Poll AI Agent
         if let Some(agent) = &mut state.agent {
@@ -1056,6 +1076,12 @@ impl Application {
             // Push remaining plain text
             if pos < editor_text.len() {
                 rich_spans.push((editor_text[pos..].to_string(), base_attrs));
+            }
+
+            // Ghost Text (inline diff streaming)
+            if let Some(ghost) = &state.tab_manager.active_editor().and_then(|e| e.ghost_text.as_ref()) {
+                let ghost_attrs = base_attrs.color(GlyphonColor::rgb(136, 136, 136)).style(glyphon::Style::Italic);
+                rich_spans.push((ghost.to_string(), ghost_attrs));
             }
 
             let rich_ref: Vec<(&str, Attrs)> =
@@ -2615,7 +2641,7 @@ impl ApplicationHandler for Application {
                             self.settings_ui.toggle();
                             state.window.request_redraw();
                         }
-                        "g" => {
+                        "g" if !shift => {
                             self.command_palette.close();
                             self.find_bar.close();
                             self.replace_bar.close();
@@ -2797,6 +2823,17 @@ impl ApplicationHandler for Application {
                         }
                         "m" => {
                             self.current_mode = self.current_mode.next();
+                        }
+                        "g" if shift => {
+                            // Mock AI Ghost Text Trigger (/ghost)
+                            if let Some(ed) = state.tab_manager.active_editor_mut() {
+                                if ed.ghost_text.is_some() {
+                                    ed.ghost_text = None;
+                                } else {
+                                    ed.ghost_text = Some(" // AI Suggestion: Optimize this loop".to_string());
+                                }
+                            }
+                            state.window.request_redraw();
                         }
                         "d" if shift => {
                             // Ctrl+Shift+D = Go to Definition
@@ -3263,7 +3300,8 @@ impl ApplicationHandler for Application {
             }
 
             WindowEvent::RedrawRequested => {
-                Application::render(
+                Self::render(
+                    &mut self.extension_host,
                     state,
                     &self.current_mode,
                     &self.theme,

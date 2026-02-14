@@ -1,0 +1,52 @@
+    Checking forge-extension-host v0.1.0 (/app/crates/forge-extension-host)
+warning: unused import: `std::rc::Rc`
+ --> crates/forge-extension-host/src/lib.rs:1:5
+  |
+1 | use std::rc::Rc;
+  |     ^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::cell::RefCell`
+ --> crates/forge-extension-host/src/lib.rs:2:5
+  |
+2 | use std::cell::RefCell;
+  |     ^^^^^^^^^^^^^^^^^^
+
+error[E0283]: type annotations needed
+    --> crates/forge-extension-host/src/lib.rs:17:52
+     |
+  17 |         self.runtime.execute_script("<anon>", code.into())?;
+     |                      --------------                ^^^^
+     |                      |
+     |                      required by a bound introduced by this call
+     |
+     = note: cannot satisfy `_: deno_core::modules::IntoModuleCodeString`
+     = help: the following types implement trait `deno_core::modules::IntoModuleCodeString`:
+               &'static str
+               FastStaticString
+               FastString
+               std::string::String
+               std::sync::Arc<str>
+note: required by a bound in `JsRuntime::execute_script`
+    --> /home/jules/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/deno_core-0.272.0/runtime/jsruntime.rs:1321:23
+     |
+1318 |   pub fn execute_script(
+     |          -------------- required by a bound in this associated function
+...
+1321 |     source_code: impl IntoModuleCodeString,
+     |                       ^^^^^^^^^^^^^^^^^^^^ required by this bound in `JsRuntime::execute_script`
+help: try using a fully qualified path to specify the expected types
+     |
+  17 -         self.runtime.execute_script("<anon>", code.into())?;
+  17 +         self.runtime.execute_script("<anon>", <&str as Into<T>>::into(code))?;
+     |
+help: consider removing this method call, as the receiver has type `&str` and `&str: deno_core::modules::IntoModuleCodeString` trivially holds
+     |
+  17 -         self.runtime.execute_script("<anon>", code.into())?;
+  17 +         self.runtime.execute_script("<anon>", code)?;
+     |
+
+For more information about this error, try `rustc --explain E0283`.
+warning: `forge-extension-host` (lib) generated 2 warnings
+error: could not compile `forge-extension-host` (lib) due to 1 previous error; 2 warnings emitted

@@ -15,6 +15,7 @@ mod gpu;
 mod modes;
 pub mod selection_render;
 pub mod tab_manager;
+pub mod shadow_workspace;
 
 mod accessibility;
 mod emmet;
