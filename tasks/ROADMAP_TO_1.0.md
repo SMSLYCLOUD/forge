@@ -13,8 +13,9 @@ This document outlines the strategic plan to elevate **Forge** from a "Sub-Binar
 
 ### 1.1 Flexible Docking System
 - **Current State**: Hardcoded `LayoutZones` in `forge-app`.
+- **VS Code Gap**: VS Code allows drag-and-drop of any panel to any edge, grid layouts, and maximizing panels.
 - **Task**: Implement a recursive tiling window manager within the app.
-    - [ ] Create `DockManager` in `forge-app`.
+    - [ ] Create `DockManager` in `forge-app` to replace `LayoutZones`.
     - [ ] Support drag-and-drop of panels (Terminal, AI, Explorer) between zones.
     - [ ] Serialize layout state to `workspace.toml`.
 
@@ -26,14 +27,13 @@ This document outlines the strategic plan to elevate **Forge** from a "Sub-Binar
     - [ ] Support clickable links (LSP definitions, web URLs).
 
 ### 1.3 Command Palette Polish
-- **Current State**: Functional but basic string matching.
-- **Task**: Implement "Quick Open" vs "Command Palette".
-    - [ ] Separate `Ctrl+P` (Files) and `Ctrl+Shift+P` (Commands).
-    - [ ] Integrate `forge-search` (fuzzy matching) for file results.
-    - [ ] Add "Recent Files" priority.
+- **Current State**: ✅ `Ctrl+P` (Files) and `Ctrl+Shift+P` (Commands) implemented.
+- **Task**: Improve ranking and aesthetics.
+    - [ ] Implement "Recent Files" priority in ranking.
+    - [ ] Add visual icons to results.
 
 ### 1.4 Accessibility (A11y)
-- **Current State**: None.
+- **Current State**: Stubbed `accessibility.rs`.
 - **Task**: Integrate `accesskit`.
     - [ ] Map `Editor` buffer to an accessibility tree.
     - [ ] Ensure screen readers can read the active line and selection.
@@ -45,7 +45,8 @@ This document outlines the strategic plan to elevate **Forge** from a "Sub-Binar
 **Goal**: Run VS Code extensions directly. This is the **most critical** adoption blocker.
 
 ### 2.1 Extension Host Architecture
-- **Current State**: Custom WASM plugins only.
+- **Current State**: Custom WASM plugins only (`forge-plugin`).
+- **VS Code Gap**: Critical. VS Code has 50k+ extensions on Node.js.
 - **Task**: Create a Node.js-compatible extension host.
     - [ ] Integrate `deno_core` or spawn a sidecar Node.js process (`forge-node-host`).
     - [ ] Implement the VS Code Extension Protocol (RPC over IPC).
@@ -60,6 +61,7 @@ This document outlines the strategic plan to elevate **Forge** from a "Sub-Binar
 
 ### 2.3 TextMate Grammar Support
 - **Current State**: Tree-sitter only.
+- **VS Code Gap**: Many syntax themes and older languages rely on TextMate.
 - **Task**: Support TextMate grammars for extensions that don't use Tree-sitter.
     - [ ] Integrate `syntect` or a Rust TextMate parser.
     - [ ] Allow extensions to contribute grammars via `package.json`.
@@ -84,7 +86,8 @@ This document outlines the strategic plan to elevate **Forge** from a "Sub-Binar
     - [ ] Allow the AI to apply edits to the shadow buffer, run `cargo check` / `tsc`, and verify fixes *before* showing the user.
 
 ### 3.3 Inline Diff Streaming
-- **Current State**: Chat only.
+- **Current State**: Chat only (`/explain`).
+- **VS Code Gap**: Copilot "Ghost Text" is standard.
 - **Task**: Allow AI to write directly to the editor with a diff view.
     - [ ] Implement "Ghost Text" (gray text) for predictive edits.
     - [ ] Implement "Inline Diff" (green/red background) for AI suggestions.
@@ -97,10 +100,9 @@ This document outlines the strategic plan to elevate **Forge** from a "Sub-Binar
 **Goal**: Power-user editing capabilities.
 
 ### 4.1 Advanced Multicursor
-- **Current State**: Basic multiple carets.
+- **Current State**: ✅ Basic multiple carets and `Ctrl+D` (add next occurrence).
 - **Task**: Full VS Code parity.
-    - [ ] `Ctrl+D`: Select next occurrence.
-    - [ ] `Alt+Click`: Add cursor.
+    - [ ] `Alt+Click`: Add cursor (Mouse handler).
     - [ ] Copy/Paste behavior with multiple cursors (n cursors -> n lines).
 
 ### 4.2 Large File Optimization
@@ -110,10 +112,10 @@ This document outlines the strategic plan to elevate **Forge** from a "Sub-Binar
     - [ ] Implement "Read Only" mode for massive files to skip Tree-sitter if it chokes.
 
 ### 4.3 Search & Replace
-- **Current State**: Basic in-memory search.
+- **Current State**: ✅ `SearchPanel` implemented with recursive search.
 - **Task**: Ripgrep integration.
-    - [ ] Integrate `ripgrep` binary or library for workspace-wide search.
-    - [ ] Build a "Search Results" panel (virtualized list).
+    - [ ] Integrate `ripgrep` binary or library for massive speedup.
+    - [ ] Support regex replacement (currently plain text only).
 
 ---
 
@@ -122,12 +124,13 @@ This document outlines the strategic plan to elevate **Forge** from a "Sub-Binar
 **Goal**: Stop using `println!`.
 
 ### 5.1 DAP UI
-- **Current State**: Breakpoints toggle, backend connects.
+- **Current State**: ✅ Sidebar text view implemented. Breakpoints work.
+- **VS Code Gap**: Missing visual interaction (Click to expand objects, Inline values).
 - **Task**: Build the Debug UI panels.
-    - [ ] **Variables View**: Tree view of locals/globals.
+    - [ ] **Variables View**: Tree view of locals/globals (expandable).
     - [ ] **Watch View**: User-defined expressions.
     - [ ] **Call Stack**: Interactive stack frames (click to jump).
-    - [ ] **Debug Toolbar**: Continue, Step Over, Step Into, Step Out, Stop.
+    - [ ] **Debug Toolbar**: Continue, Step Over, Step Into, Step Out, Stop (Floating UI).
 
 ### 5.2 Hover Inspection
 - **Current State**: None.
@@ -150,17 +153,16 @@ This document outlines the strategic plan to elevate **Forge** from a "Sub-Binar
 - **Task**: Binary distribution.
     - [ ] Implement `forge-updater` (check release, download, swap binary).
 
-### 6.3 Telemetry (Opt-in)
-- **Current State**: None.
-- **Task**: Crash reporting.
-    - [ ] Integrate `sentry` or similar for panic reporting (strictly opt-in).
-
 ---
 
-## 📝 Execution Order for Agents
+## 📝 Comparison with VS Code (Post-Alpha State)
 
-1.  **UI/UX (Epic 1)**: Must look good to be taken seriously.
-2.  **Debugging (Epic 5)**: Essential for "dogfooding" (debugging Forge with Forge).
-3.  **AI (Epic 3)**: The competitive differentiator.
-4.  **VS Code Bridge (Epic 2)**: The ecosystem unlock (hardest/longest task).
-5.  **Platform (Epic 6)**: Release prep.
+| Component | Forge Status | VS Code | Gap |
+| :--- | :--- | :--- | :--- |
+| **UI Shell** | Fixed Layout, fast | Flexible Grid, CSS-styled | **High** (Flexibility) |
+| **Extensions** | WASM (Limited) | Node.js (Limitless) | **Critical** (Ecosystem) |
+| **Editor** | Tree-sitter (Precise) | TextMate (Standard) | **Medium** (Compatibility) |
+| **Performance**| Native (WGPU/Rust) | Electron (Web) | **Winner: Forge** |
+| **Remote** | None | SSH/WSL/Containers | **Critical** (Enterprise) |
+
+**Next Priority:** Epic 1.1 (Docking) and Epic 2.1 (Node Host) are the biggest architectural hurdles remaining.
