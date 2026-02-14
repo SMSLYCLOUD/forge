@@ -21,6 +21,8 @@ pub struct Editor {
     pub language: Language,
     /// Cached highlight spans (byte-offset based)
     pub highlight_spans: Vec<HighlightSpan>,
+    /// Ghost text (AI suggestion) to be rendered after cursor or inline
+    pub ghost_text: Option<String>,
 }
 
 impl Editor {
@@ -34,6 +36,7 @@ impl Editor {
             syntax_parser: None,
             language: Language::Unknown,
             highlight_spans: Vec::new(),
+            ghost_text: None,
         }
     }
 
@@ -72,6 +75,7 @@ impl Editor {
             syntax_parser,
             language,
             highlight_spans,
+            ghost_text: None,
         })
     }
 
@@ -354,6 +358,7 @@ impl Editor {
             syntax_parser: None, // Will be recreated on rehighlight if needed
             language: self.language,
             highlight_spans: self.highlight_spans.clone(),
+            ghost_text: None,
         }
     }
 

@@ -1,0 +1,27 @@
+    Checking forge-extension-host v0.1.0 (/app/crates/forge-extension-host)
+error[E0599]: no associated item named `DECL` found for struct `op_show_info` in the current scope
+  --> crates/forge-extension-host/src/lib.rs:34:61
+   |
+17 | #[op2(fast)]
+   | ------------ associated item `DECL` not found for this struct
+...
+34 |             ops: std::borrow::Cow::Borrowed(&[op_show_info::DECL]),
+   |                                                             ^^^^ associated item not found in `op_show_info`
+   |
+   = help: items from traits can only be used if the trait is in scope
+help: trait `Op` which provides `DECL` is implemented but not in scope; perhaps you want to import it
+   |
+ 1 + use deno_core::Op;
+   |
+
+error[E0560]: struct `Extension` has no field named `state`
+  --> crates/forge-extension-host/src/lib.rs:35:13
+   |
+35 |             state: move |s: &mut deno_core::OpState| {
+   |             ^^^^^ `Extension` does not have this field
+   |
+   = note: available fields are: `deps`, `js_files`, `esm_files`, `lazy_loaded_esm_files`, `esm_entry_point` ... and 6 others
+
+Some errors have detailed explanations: E0560, E0599.
+For more information about an error, try `rustc --explain E0560`.
+error: could not compile `forge-extension-host` (lib) due to 2 previous errors

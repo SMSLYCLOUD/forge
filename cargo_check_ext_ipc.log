@@ -1,0 +1,43 @@
+    Checking forge-extension-host v0.1.0 (/app/crates/forge-extension-host)
+error: custom attribute panicked
+  --> crates/forge-extension-host/src/lib.rs:17:1
+   |
+17 | #[op2]
+   | ^^^^^^
+   |
+   = help: message: Failed to parse #[op2]:
+            - This op is fast-compatible and should be marked as (fast)
+
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `op_show_info`
+  --> crates/forge-extension-host/src/lib.rs:34:47
+   |
+34 |             ops: std::borrow::Cow::Borrowed(&[op_show_info::DECL]),
+   |                                               ^^^^^^^^^^^^ use of unresolved module or unlinked crate `op_show_info`
+   |
+   = help: if you wanted to use a crate named `op_show_info`, use `cargo add op_show_info` to add it to your `Cargo.toml`
+
+error[E0560]: struct `Extension` has no field named `state`
+  --> crates/forge-extension-host/src/lib.rs:35:13
+   |
+35 |             state: move |s| {
+   |             ^^^^^ `Extension` does not have this field
+   |
+   = note: available fields are: `deps`, `js_files`, `esm_files`, `lazy_loaded_esm_files`, `esm_entry_point` ... and 6 others
+
+error[E0282]: type annotations needed
+  --> crates/forge-extension-host/src/lib.rs:35:26
+   |
+35 |             state: move |s| {
+   |                          ^
+36 |                 s.put(state.clone());
+   |                 - type must be known at this point
+   |
+help: consider giving this closure parameter an explicit type
+   |
+35 |             state: move |s: /* Type */| {
+   |                           ++++++++++++
+
+Some errors have detailed explanations: E0282, E0433, E0560.
+For more information about an error, try `rustc --explain E0282`.
+error: could not compile `forge-extension-host` (lib) due to 4 previous errors
