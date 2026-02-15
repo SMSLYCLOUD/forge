@@ -1,3 +1,4 @@
+    Checking forge-renderer v0.1.0 (/app/crates/forge-renderer)
 warning: variable does not need to be mutable
   --> crates/forge-search/src/content.rs:54:13
    |
@@ -8,7 +9,6 @@ warning: variable does not need to be mutable
    |
    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
 
-    Checking forge-renderer v0.1.0 (/app/crates/forge-renderer)
 warning: `forge-search` (lib) generated 1 warning (run `cargo fix --lib -p forge-search` to apply 1 suggestion)
 warning: unused import: `Pixel`
  --> crates/forge-test-tools/src/screenshot.rs:1:24
@@ -27,9 +27,9 @@ warning: unused imports: `ElementState` and `MouseButton`
 warning: `forge-test-tools` (lib) generated 2 warnings (run `cargo fix --lib -p forge-test-tools` to apply 2 suggestions)
     Checking forge-app v0.1.0 (/app/crates/forge-app)
 warning: variable does not need to be mutable
-   --> crates/forge-app/src/application.rs:398:13
+   --> crates/forge-app/src/application.rs:372:13
     |
-398 |         let mut file_explorer = crate::file_explorer::FileExplorer::new();
+372 |         let mut file_explorer = crate::file_explorer::FileExplorer::new();
     |             ----^^^^^^^^^^^^^
     |             |
     |             help: remove this `mut`
@@ -45,4 +45,4 @@ warning: variable does not need to be mutable
   |             help: remove this `mut`
 
 warning: `forge-app` (bin "forge") generated 2 warnings (run `cargo fix --bin "forge" -p forge-app` to apply 2 suggestions)
-    Finished `dev` profile [optimized + debuginfo] target(s) in 3.13s
+    Finished `dev` profile [optimized + debuginfo] target(s) in 21.02s

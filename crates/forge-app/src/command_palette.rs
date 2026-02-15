@@ -18,6 +18,7 @@ pub struct CommandPalette {
     pub query: String,
     pub commands: Vec<Command>,
     pub files: Vec<String>,
+    pub recent_files: Vec<String>,
     pub filtered_commands: Vec<usize>,
     pub filtered_files: Vec<usize>,
 }
@@ -30,6 +31,7 @@ impl Default for CommandPalette {
             query: String::new(),
             commands: Vec::new(),
             files: Vec::new(),
+            recent_files: Vec::new(),
             filtered_commands: Vec::new(),
             filtered_files: Vec::new(),
         };
@@ -45,7 +47,20 @@ impl CommandPalette {
     }
 
     pub fn set_files(&mut self, files: Vec<String>) {
-        self.files = files;
+        // Start with recent files that are still valid (present in the new list)
+        let valid_recents: Vec<String> = self.recent_files.iter()
+            .filter(|r| files.contains(r))
+            .cloned()
+            .collect();
+
+        // Add remaining files
+        let mut new_files = valid_recents;
+        for file in files {
+            if !new_files.contains(&file) {
+                new_files.push(file);
+            }
+        }
+        self.files = new_files;
     }
 
     fn register_defaults(&mut self) {
@@ -182,10 +197,21 @@ impl CommandPalette {
         }
     }
 
-    pub fn select_file(&self, idx: usize) -> Option<&String> {
+    pub fn select_file(&mut self, idx: usize) -> Option<String> {
         if self.mode == PaletteMode::Files && idx < self.filtered_files.len() {
             let file_idx = self.filtered_files[idx];
-            self.files.get(file_idx)
+            if let Some(file) = self.files.get(file_idx).cloned() {
+                // Update recent files
+                self.recent_files.retain(|f| f != &file);
+                self.recent_files.insert(0, file.clone());
+                // Truncate if too long
+                if self.recent_files.len() > 20 {
+                    self.recent_files.pop();
+                }
+                Some(file)
+            } else {
+                None
+            }
         } else {
             None
         }

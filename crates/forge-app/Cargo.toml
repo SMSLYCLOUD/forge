@@ -42,6 +42,8 @@ tree-sitter = { version = "0.24" }
 # GPU + Window
 wgpu = { workspace = true }
 winit = { workspace = true }
+accesskit = "0.16"
+accesskit_winit = "0.22"
 glyphon = { workspace = true }
 pollster = { workspace = true }
 arboard = { workspace = true }
