@@ -17,7 +17,6 @@ pub mod selection_render;
 pub mod tab_manager;
 pub mod shadow_workspace;
 
-mod accessibility;
 mod emmet;
 mod image_preview;
 mod markdown_preview;
@@ -140,10 +139,11 @@ fn main() -> Result<()> {
         }
     }
 
-    let event_loop = EventLoop::new()?;
+    let event_loop = EventLoop::<application::UserEvent>::with_user_event().build()?;
     event_loop.set_control_flow(winit::event_loop::ControlFlow::Wait);
+    let proxy = event_loop.create_proxy();
 
-    let mut app = application::Application::new(file_path, screenshot_path, debug_zones);
+    let mut app = application::Application::new(proxy, file_path, screenshot_path, debug_zones);
 
     event_loop.run_app(&mut app)?;
 

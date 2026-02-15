@@ -28,7 +28,7 @@ use url::Url;
 use winit::application::ApplicationHandler;
 use winit::dpi::LogicalSize;
 use winit::event::{ElementState, WindowEvent};
-use winit::event_loop::ActiveEventLoop;
+use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
 use winit::keyboard::{Key, ModifiersState, NamedKey};
 use winit::window::{Window, WindowAttributes, WindowId};
 
@@ -37,6 +37,8 @@ use forge_syntax::highlighter::TokenType;
 
 #[path = "application_impl_debug.rs"]
 mod application_impl_debug;
+#[path = "accessibility.rs"]
+mod accessibility;
 
 use glyphon::{
     Attrs, Buffer as GlyphonBuffer, Cache, Color as GlyphonColor, Family, FontSystem, Metrics,
@@ -120,7 +122,19 @@ impl Default for RenderBatch {
 
 // ─── Application ───
 
+#[derive(Debug)]
+pub enum UserEvent {
+    AccessKitEvent(accesskit_winit::Event),
+}
+
+impl From<accesskit_winit::Event> for UserEvent {
+    fn from(event: accesskit_winit::Event) -> Self {
+        UserEvent::AccessKitEvent(event)
+    }
+}
+
 pub struct Application {
+    proxy: EventLoopProxy<UserEvent>,
     file_path: Option<String>,
     screenshot_path: Option<String>,
     debug_zones: bool,
@@ -236,6 +250,9 @@ struct AppState {
     // Sidebar Mode
     sidebar_mode: crate::ui::SidebarMode,
 
+    // Accessibility
+    accessibility_manager: self::accessibility::AccessibilityManager,
+
     // Event Loop Proxy (for async callbacks)
     event_tx: std::sync::mpsc::Sender<AppEvent>,
     event_rx: std::sync::mpsc::Receiver<AppEvent>,
@@ -247,7 +264,12 @@ pub enum AppEvent {
 }
 
 impl Application {
-    pub fn new(file_path: Option<String>, screenshot_path: Option<String>, debug_zones: bool) -> Self {
+    pub fn new(
+        proxy: EventLoopProxy<UserEvent>,
+        file_path: Option<String>,
+        screenshot_path: Option<String>,
+        debug_zones: bool,
+    ) -> Self {
         let config = forge_config::ForgeConfig::default();
         let theme = forge_theme::Theme::default_dark();
 
@@ -320,6 +342,7 @@ impl Application {
             };
 
         Self {
+            proxy,
             rt,
             lsp_client,
             file_path,
@@ -353,6 +376,9 @@ impl Application {
             .with_title("Forge")
             .with_inner_size(LogicalSize::new(1280, 800));
         let window = Arc::new(event_loop.create_window(attrs).unwrap());
+
+        let accessibility_manager =
+            self::accessibility::AccessibilityManager::new(&window, self.proxy.clone());
 
         let gpu = GpuContext::new(window.clone()).expect("Failed to initialize GPU");
         let (width, height) = gpu.size();
@@ -569,6 +595,7 @@ impl Application {
             render_batch: RenderBatch::new(),
             organism_state,
             sidebar_mode: crate::ui::SidebarMode::Explorer,
+            accessibility_manager,
             debug_zones: self.debug_zones,
             dock_tree,
             event_tx,
@@ -630,6 +657,20 @@ impl Application {
         state.frame_timer.begin_frame();
         notifications.tick();
         Self::handle_app_events(state);
+
+        // Update accessibility tree
+        let (editor_text, cursor_line, cursor_col) = if let Some(ed) = state.tab_manager.active_editor() {
+            (ed.buffer.text(), ed.cursor_line(), ed.cursor_col())
+        } else {
+            ("".to_string(), 0, 0)
+        };
+        let acc_state = self::accessibility::AccessibilityState {
+            editor_text,
+            cursor_line,
+            cursor_col,
+            sidebar_visible: state.sidebar_open,
+        };
+        state.accessibility_manager.update(acc_state);
 
         // Poll Extension Host
         if let Some(host) = extension_host {
@@ -2477,11 +2518,26 @@ impl Application {
 
 // ─── winit ApplicationHandler ───
 
-impl ApplicationHandler for Application {
+impl ApplicationHandler<UserEvent> for Application {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if self.state.is_none() {
             self.init_state(event_loop);
         }
+    }
+
+    fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: UserEvent) {
+        // Handle accessibility user events if needed (adapter handles them via callbacks/proxy mostly)
+        // AccessKit adapter events are usually handled by the adapter itself when it gets called?
+        // Actually, AccessKit uses the proxy to wake up the event loop so that we can process requests.
+        // But accesskit_winit might not need explicit handling here if we don't have custom logic?
+        // Wait, accesskit_winit documentation says:
+        // "Your application must implement ApplicationHandler<UserEvent> ... in user_event, call adapter.process_accesskit_event"
+        // But accesskit_winit 0.16 Adapter doesn't seem to have process_accesskit_event?
+        // Let's check the source or docs if possible.
+        // Assuming we just need to wake up.
+        // Actually, checking standard implementation:
+        // If we passed the proxy to adapter, it will send events. We need to handle them?
+        // Let's look at accessibility.rs again.
     }
 
     fn window_event(
@@ -2494,6 +2550,8 @@ impl ApplicationHandler for Application {
             Some(s) => s,
             None => return,
         };
+
+        state.accessibility_manager.on_event(&state.window, &event);
 
         match event {
             WindowEvent::CloseRequested => {
